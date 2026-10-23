@@ -10,6 +10,7 @@ type Listener = () => void;
 
 let count: number | null = null;
 let inflight: Promise<void> | null = null;
+let queued: Promise<void> | null = null;
 let teardown: (() => void) | null = null;
 const listeners = new Set<Listener>();
 
@@ -64,9 +65,19 @@ async function load(): Promise<void> {
   if (!error && unseen !== null) publish(unseen);
 }
 
-/** Re-reads the count; concurrent callers share one request. */
+/**
+ * Re-reads the count. A request already under way may have read the "seen" time from before the
+ * caller marked everything seen, so callers arriving meanwhile share one follow-up read after it.
+ */
 export function refreshUnseenAnnouncements(): Promise<void> {
-  inflight ??= load()
+  if (inflight) {
+    queued ??= inflight.then(() => {
+      queued = null;
+      return refreshUnseenAnnouncements();
+    });
+    return queued;
+  }
+  inflight = load()
     .catch(() => undefined)
     .finally(() => {
       inflight = null;
