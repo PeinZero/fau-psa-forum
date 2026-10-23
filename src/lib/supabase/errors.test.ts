@@ -13,6 +13,10 @@ describe("friendlyError", () => {
     expect(text).toBe("Something went wrong. Please try again.");
   });
 
+  it("explains a restricted account whatever the action", () => {
+    expect(friendlyError({ code: "42501", message: "your account is restricted" })).toMatch(/restricted/);
+  });
+
   it("prefers a module message over the code, and a module code over the default", () => {
     const options = {
       messages: [["cannot vote on your own", "Not your own."]] as const,

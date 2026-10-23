@@ -17,6 +17,7 @@ const MOD_ERRORS = {
     ["already reviewed", "This application was already reviewed."],
     ["best answer must be", "The best answer must be a visible comment of this thread."],
     ["comments are only possible", "The thread must be published for this to work."],
+    ["moderators cannot be restricted", "Moderators can't be restricted."],
     ["categories_slug_key", "Another category already uses this slug."],
     ["categories_name_key", "Another category already uses this name."],
   ],
@@ -354,4 +355,29 @@ export async function setUpdateRequestStatus(_prev: ActionState, formData: FormD
   if (error) return fail(friendlyError(error, MOD_ERRORS));
   if (!data?.length) return fail("Request not found, or you don't have permission.");
   return done(parsed.data.status === "resolved" ? "Request resolved." : "Request dismissed.");
+}
+
+const restrictSchema = z.object({
+  target: z.string().uuid(),
+  restricted: z.enum(["true", "false"]),
+  reason: z.string().trim().max(500, "The reason can be at most 500 characters.").optional(),
+});
+
+export async function setRestricted(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = restrictSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(firstIssue(parsed));
+  const { target, restricted, reason } = parsed.data;
+  if (restricted === "true" && !reason) return fail("Please give a reason for the restriction.");
+
+  const denied = await requireRole("moderator");
+  if (denied) return fail(denied);
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_user_restricted", {
+    target,
+    restricted: restricted === "true",
+    reason,
+  });
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+  return done(restricted === "true" ? "Account restricted." : "Restriction lifted.");
 }
