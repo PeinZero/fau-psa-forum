@@ -22,6 +22,7 @@ export function SiteFooter() {
           className="flex flex-wrap items-center gap-x-1 self-start sm:self-auto"
         >
           {[
+            { href: "/guides", label: "Guides" },
             { href: "/announcements", label: "Announcements" },
             { href: "/about", label: "About" },
             { href: "/contributors", label: "Contributors" },

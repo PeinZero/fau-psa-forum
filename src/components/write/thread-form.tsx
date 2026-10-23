@@ -3,6 +3,7 @@
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useId, useRef, useState, useTransition } from "react";
 
+import { SimilarThreads } from "@/components/duplicates/similar-threads";
 import { Markdown } from "@/components/markdown";
 import { MentionTextarea } from "@/components/mentions/mention-textarea";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,8 @@ type Props = {
   categories: { id: number; name: string }[];
   initial: ThreadFormValues;
   submitLabel: string;
+  /** Suggests existing threads while the title is typed; meant for new threads only. */
+  suggestSimilar?: boolean;
   action: (formData: FormData) => Promise<FormState>;
 };
 
@@ -42,7 +45,7 @@ function Counter({ value, max }: { value: number; max: number }) {
   );
 }
 
-export function ThreadForm({ categories, initial, submitLabel, action }: Props) {
+export function ThreadForm({ categories, initial, submitLabel, suggestSimilar = false, action }: Props) {
   const id = useId();
   const [title, setTitle] = useState(initial.title);
   const [body, setBody] = useState(initial.body);
@@ -107,6 +110,7 @@ export function ThreadForm({ categories, initial, submitLabel, action }: Props) 
           8 to 150 characters. Be specific so others can find it.
         </p>
         <FieldError id={`${id}-title-error`} message={fe.title} />
+        {suggestSimilar ? <SimilarThreads title={title} /> : null}
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2">

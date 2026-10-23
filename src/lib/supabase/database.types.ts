@@ -52,6 +52,39 @@ export type Database = {
           },
         ]
       }
+      bookmarks: {
+        Row: {
+          created_at: string
+          thread_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          thread_id: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          thread_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_by: string | null
@@ -194,6 +227,125 @@ export type Database = {
           },
         ]
       }
+      guide_progress: {
+        Row: {
+          completed_at: string
+          step_id: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          step_id: number
+          user_id?: string
+        }
+        Update: {
+          completed_at?: string
+          step_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_progress_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "guide_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guide_steps: {
+        Row: {
+          body: string | null
+          guide_id: number
+          id: number
+          position: number
+          thread_id: number | null
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          guide_id: number
+          id?: never
+          position: number
+          thread_id?: number | null
+          title: string
+        }
+        Update: {
+          body?: string | null
+          guide_id?: number
+          id?: never
+          position?: number
+          thread_id?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_steps_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "guides"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_steps_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: number
+          is_featured: boolean
+          slug: string
+          sort_order: number
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          is_featured?: boolean
+          slug: string
+          sort_order?: number
+          summary?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          is_featured?: boolean
+          slug?: string
+          sort_order?: number
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moderator_applications: {
         Row: {
           created_at: string
@@ -232,6 +384,35 @@ export type Database = {
           },
           {
             foreignKeyName: "moderator_applications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          email_frequency: string
+          muted_types: Database["public"]["Enums"]["notification_type"][]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email_frequency?: string
+          muted_types?: Database["public"]["Enums"]["notification_type"][]
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          email_frequency?: string
+          muted_types?: Database["public"]["Enums"]["notification_type"][]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -314,25 +495,34 @@ export type Database = {
       profiles: {
         Row: {
           affiliation: Database["public"]["Enums"]["affiliation"] | null
+          announcements_seen_at: string | null
+          best_answer_count: number
           created_at: string
           display_name: string
           id: string
+          reputation: number
           role: Database["public"]["Enums"]["user_role"]
           username: string
         }
         Insert: {
           affiliation?: Database["public"]["Enums"]["affiliation"] | null
+          announcements_seen_at?: string | null
+          best_answer_count?: number
           created_at?: string
           display_name: string
           id: string
+          reputation?: number
           role?: Database["public"]["Enums"]["user_role"]
           username: string
         }
         Update: {
           affiliation?: Database["public"]["Enums"]["affiliation"] | null
+          announcements_seen_at?: string | null
+          best_answer_count?: number
           created_at?: string
           display_name?: string
           id?: string
+          reputation?: number
           role?: Database["public"]["Enums"]["user_role"]
           username?: string
         }
@@ -406,6 +596,81 @@ export type Database = {
           },
         ]
       }
+      reputation_events: {
+        Row: {
+          comment_id: number | null
+          created_at: string
+          id: number
+          points: number
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          comment_id?: number | null
+          created_at?: string
+          id?: never
+          points: number
+          reason: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: number | null
+          created_at?: string
+          id?: never
+          points?: number
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reputation_events_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reputation_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thread_follows: {
+        Row: {
+          created_at: string
+          thread_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          thread_id: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          thread_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_follows_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_follows_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       thread_revisions: {
         Row: {
           body: string
@@ -461,6 +726,7 @@ export type Database = {
           is_outdated: boolean
           is_pinned: boolean
           last_activity_at: string
+          last_verified_at: string | null
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -468,6 +734,7 @@ export type Database = {
           slug: string
           status: Database["public"]["Enums"]["thread_status"]
           title: string
+          verified_by: string | null
         }
         Insert: {
           author_id?: string | null
@@ -481,6 +748,7 @@ export type Database = {
           is_outdated?: boolean
           is_pinned?: boolean
           last_activity_at?: string
+          last_verified_at?: string | null
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -488,6 +756,7 @@ export type Database = {
           slug?: string
           status?: Database["public"]["Enums"]["thread_status"]
           title: string
+          verified_by?: string | null
         }
         Update: {
           author_id?: string | null
@@ -501,6 +770,7 @@ export type Database = {
           is_outdated?: boolean
           is_pinned?: boolean
           last_activity_at?: string
+          last_verified_at?: string | null
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -508,6 +778,7 @@ export type Database = {
           slug?: string
           status?: Database["public"]["Enums"]["thread_status"]
           title?: string
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -538,6 +809,68 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "threads_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      update_requests: {
+        Row: {
+          created_at: string
+          id: number
+          note: string | null
+          requester_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["update_request_status"]
+          thread_id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          note?: string | null
+          requester_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["update_request_status"]
+          thread_id: number
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          note?: string | null
+          requester_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["update_request_status"]
+          thread_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "update_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "update_requests_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "update_requests_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -549,6 +882,7 @@ export type Database = {
       is_moderator: { Args: never; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
       mark_all_notifications_read: { Args: never; Returns: undefined }
+      mark_thread_verified: { Args: { thread_id: number }; Returns: undefined }
       review_moderator_application: {
         Args: {
           application_id: number
@@ -570,6 +904,7 @@ export type Database = {
           is_outdated: boolean
           is_pinned: boolean
           last_activity_at: string
+          last_verified_at: string | null
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -577,6 +912,45 @@ export type Database = {
           slug: string
           status: Database["public"]["Enums"]["thread_status"]
           title: string
+          verified_by: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "threads"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      search_threads_v2: {
+        Args: {
+          p_category_id?: number
+          p_city?: Database["public"]["Enums"]["city"]
+          p_has_best_answer?: boolean
+          p_sort?: string
+          p_verified?: boolean
+          q: string
+        }
+        Returns: {
+          author_id: string | null
+          best_comment_id: number | null
+          body: string
+          category_id: number
+          city: Database["public"]["Enums"]["city"] | null
+          created_at: string
+          edited_at: string | null
+          id: number
+          is_outdated: boolean
+          is_pinned: boolean
+          last_activity_at: string
+          last_verified_at: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          search: unknown
+          slug: string
+          status: Database["public"]["Enums"]["thread_status"]
+          title: string
+          verified_by: string | null
         }[]
         SetofOptions: {
           from: "*"
@@ -588,6 +962,15 @@ export type Database = {
       set_user_role: {
         Args: { new_role: Database["public"]["Enums"]["user_role"]; target: string }
         Returns: undefined
+      }
+      top_helpers: {
+        Args: { since: string }
+        Returns: {
+          display_name: string
+          points: number
+          user_id: string
+          username: string
+        }[]
       }
     }
     Enums: {
@@ -607,6 +990,8 @@ export type Database = {
         | "mod_new_application"
         | "mod_new_report"
         | "announcement"
+        | "mod_new_update_request"
+        | "followed_thread_activity"
       report_reason:
         | "spam"
         | "offensive"
@@ -615,6 +1000,7 @@ export type Database = {
         | "other"
       report_status: "open" | "resolved" | "dismissed"
       thread_status: "pending" | "published" | "rejected" | "archived"
+      update_request_status: "open" | "resolved" | "dismissed"
       user_role: "member" | "moderator" | "superadmin"
     }
     CompositeTypes: {
@@ -759,10 +1145,13 @@ export const Constants = {
         "mod_new_application",
         "mod_new_report",
         "announcement",
+        "mod_new_update_request",
+        "followed_thread_activity",
       ],
       report_reason: ["spam", "offensive", "wrong_info", "personal_data", "other"],
       report_status: ["open", "resolved", "dismissed"],
       thread_status: ["pending", "published", "rejected", "archived"],
+      update_request_status: ["open", "resolved", "dismissed"],
       user_role: ["member", "moderator", "superadmin"],
     },
   },

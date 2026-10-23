@@ -32,7 +32,7 @@ export function useMenuAction() {
     );
   }
 
-  return { pending, feedback, run, copyLink };
+  return { pending, feedback, setFeedback, run, copyLink };
 }
 
 export function MenuFeedback({ feedback, className }: { feedback: ActionState; className?: string }) {

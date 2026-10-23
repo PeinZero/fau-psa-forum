@@ -38,6 +38,7 @@ async function NewThread() {
           categories={categories ?? []}
           initial={{ title: "", body: "", categoryId: null, city: null }}
           submitLabel="Submit for review"
+          suggestSimilar
           action={createThreadAction}
         />
       </Card>

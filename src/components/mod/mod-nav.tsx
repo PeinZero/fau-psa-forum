@@ -1,11 +1,13 @@
 "use client";
 
 import {
+  FileClock,
   FilePenLine,
   Flag,
   FolderTree,
   Hourglass,
   LayoutDashboard,
+  ListChecks,
   Megaphone,
   UserCheck,
   Users,
@@ -22,8 +24,10 @@ const icons = {
   threads: Hourglass,
   reports: Flag,
   edits: FilePenLine,
+  updates: FileClock,
   applications: UserCheck,
   announcements: Megaphone,
+  guides: ListChecks,
   categories: FolderTree,
   users: Users,
 } satisfies Record<string, LucideIcon>;

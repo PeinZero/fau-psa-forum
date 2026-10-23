@@ -1,9 +1,13 @@
+import { isTopHelper, ReputationScore, TopHelperBadge } from "@/components/reputation/reputation";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/cn";
 import { affiliationLabels } from "@/lib/labels";
 import type { Tables } from "@/lib/supabase/database.types";
 
-type AuthorProfile = Pick<Tables<"profiles">, "display_name" | "affiliation" | "role">;
+type AuthorProfile = Pick<Tables<"profiles">, "display_name" | "affiliation" | "role"> & {
+  reputation?: number;
+  best_answer_count?: number;
+};
 
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -40,7 +44,16 @@ export function Avatar({
   );
 }
 
-export function Author({ profile, avatar = true }: { profile: AuthorProfile | null; avatar?: boolean }) {
+/** `showReputation` is for profile-like contexts only; threads and comments stay free of scores. */
+export function Author({
+  profile,
+  avatar = true,
+  showReputation = false,
+}: {
+  profile: AuthorProfile | null;
+  avatar?: boolean;
+  showReputation?: boolean;
+}) {
   if (!profile) {
     return (
       <span className="inline-flex items-center gap-2 text-muted">
@@ -58,6 +71,8 @@ export function Author({ profile, avatar = true }: { profile: AuthorProfile | nu
         <Badge variant="accent">{profile.role === "superadmin" ? "Superadmin" : "Moderator"}</Badge>
       )}
       {profile.affiliation && <Badge>{affiliationLabels[profile.affiliation]}</Badge>}
+      {showReputation && <ReputationScore points={profile.reputation} />}
+      {showReputation && isTopHelper(profile.best_answer_count) && <TopHelperBadge />}
     </span>
   );
 }

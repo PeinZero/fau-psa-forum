@@ -1,151 +1,22 @@
-// Runs the real migrations in PGlite with Supabase's roles, default grants and auth.uid(),
-// then acts as each persona via `set local role` + request.jwt.claims, like PostgREST does.
-import { after, afterEach, before, beforeEach, describe, test } from "node:test";
+// Core RLS, trigger and notification rules. The harness (Supabase roles, auth.uid(), personas,
+// seed data, one rolled-back transaction per test) lives in harness.mjs.
+import { after, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { PGlite } from "@electric-sql/pglite";
+import {
+  A, ADMIN, B, MOD, anon, as, categories, comments, createComment, createThread, createUser, db, ids, migrationFiles, migrationSql,
+  newDatabase, setupDatabase, sql, supabaseBootstrap, threads,
+} from "./harness.mjs";
+import type { Actor, Row } from "./harness.mjs";
 
-const migrationsDir = join(import.meta.dirname, "..", "migrations");
 const reviewFixesMigration = "20261023130000_review_fixes.sql";
-
-const supabaseBootstrap = `
-  create role anon nologin noinherit;
-  create role authenticated nologin noinherit;
-  create role service_role nologin noinherit bypassrls;
-
-  create schema auth;
-  create table auth.users (
-    id uuid primary key default gen_random_uuid(),
-    email text,
-    raw_user_meta_data jsonb not null default '{}'::jsonb,
-    created_at timestamptz not null default now()
-  );
-  create function auth.uid() returns uuid language sql stable as $$
-    select coalesce(
-      nullif(current_setting('request.jwt.claim.sub', true), ''),
-      (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
-    )::uuid
-  $$;
-  create function auth.jwt() returns jsonb language sql stable as $$
-    select coalesce(
-      nullif(current_setting('request.jwt.claim', true), ''),
-      nullif(current_setting('request.jwt.claims', true), '')
-    )::jsonb
-  $$;
-  create function auth.role() returns text language sql stable as $$
-    select coalesce(
-      nullif(current_setting('request.jwt.claim.role', true), ''),
-      (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
-    )::text
-  $$;
-  grant usage on schema auth to anon, authenticated, service_role;
-  grant execute on all functions in schema auth to anon, authenticated, service_role;
-
-  grant usage on schema public to anon, authenticated, service_role;
-  alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-  alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
-  alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
-`;
-
-type Actor = { role: "anon" | "authenticated"; sub?: string };
-type Row = Record<string, unknown>;
-
-const db = new PGlite();
-const anon: Actor = { role: "anon" };
-const ids = { a: "", b: "", mod: "", admin: "" };
-const member = (sub: string): Actor => ({ role: "authenticated", sub });
-let A: Actor, B: Actor, MOD: Actor, ADMIN: Actor;
-const threads = { published: 0, pending: 0, rejected: 0, archived: 0, otherPublished: 0 };
-const comments = { visible: 0, hidden: 0, onOther: 0 };
-let coursesId = 0;
-
-async function sql<T = Row>(query: string, params: unknown[] = []): Promise<T[]> {
-  return (await db.query<T>(query, params)).rows;
-}
-
-async function as<T = Row>(actor: Actor, query: string, params: unknown[] = []): Promise<T[]> {
-  await db.exec("savepoint act");
-  try {
-    await db.exec(`set local role ${actor.role}`);
-    const claims = actor.sub ? { sub: actor.sub, role: actor.role } : { role: actor.role };
-    await db.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify(claims)]);
-    const rows = await sql<T>(query, params);
-    await db.exec("reset role; release savepoint act");
-    return rows;
-  } catch (error) {
-    await db.exec("rollback to savepoint act");
-    throw error;
-  }
-}
-
-async function createUser(email: string, meta: Row = {}): Promise<string> {
-  const [row] = await sql<{ id: string }>(
-    "insert into auth.users (email, raw_user_meta_data) values ($1, $2) returning id",
-    [email, JSON.stringify(meta)],
-  );
-  return row.id;
-}
-
-async function createThread(author: string, status: string, title: string, body = "Some body text"): Promise<number> {
-  const [row] = await sql<{ id: number }>(
-    `insert into public.threads (title, body, category_id, author_id) values ($1, $2, $3, $4) returning id`,
-    [title, body, coursesId, author],
-  );
-  await sql("update public.threads set status = $1 where id = $2", [status, row.id]);
-  return row.id;
-}
-
-async function createComment(thread: number, author: string, body: string): Promise<number> {
-  const [row] = await sql<{ id: number }>(
-    "insert into public.comments (thread_id, author_id, body) values ($1, $2, $3) returning id",
-    [thread, author, body],
-  );
-  return row.id;
-}
+const coursesId = () => categories.courses;
 
 const threadIds = async (actor: Actor) =>
   (await as<{ id: number }>(actor, "select id from public.threads order by id")).map((r) => r.id);
 const commentIds = async (actor: Actor) =>
   (await as<{ id: number }>(actor, "select id from public.comments order by id")).map((r) => r.id);
 
-before(async () => {
-  await db.exec(supabaseBootstrap);
-  const files = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort();
-  for (const file of files) await db.exec(readFileSync(join(migrationsDir, file), "utf8"));
-
-  ids.a = await createUser("ayesha@example.com", { full_name: "Ayesha Khan" });
-  ids.b = await createUser("bilal@example.com", { name: "Bilal" });
-  ids.mod = await createUser("mod@example.com", { full_name: "Mo Derator" });
-  ids.admin = await createUser("owner@example.com", { full_name: "Owner" });
-  await sql("update public.profiles set role = 'moderator' where id = $1", [ids.mod]);
-  await sql("update public.profiles set role = 'superadmin' where id = $1", [ids.admin]);
-  [A, B, MOD, ADMIN] = [member(ids.a), member(ids.b), member(ids.mod), member(ids.admin)];
-
-  [{ id: coursesId }] = await sql<{ id: number }>("select id from public.categories where slug = 'courses'");
-  threads.published = await createThread(ids.a, "published", "How do I extend my residence permit?", "Bring your Anmeldung");
-  threads.pending = await createThread(ids.a, "pending", "Pending question from Ayesha");
-  threads.rejected = await createThread(ids.a, "rejected", "Rejected question from Ayesha");
-  await sql("update public.threads set rejection_reason = 'Duplicate' where id = $1", [threads.rejected]);
-  threads.archived = await createThread(ids.b, "archived", "Old semester ticket information", "Semesterticket details");
-  threads.otherPublished = await createThread(ids.b, "published", "Where to buy a bicycle in Erlangen?");
-  comments.visible = await createComment(threads.published, ids.b, "The Ausländerbehörde needs a Sperrkonto statement");
-  comments.hidden = await createComment(threads.published, ids.a, "Spam about cryptocurrency giveaway");
-  await sql("update public.comments set hidden_at = now(), hidden_by = $1 where id = $2", [ids.mod, comments.hidden]);
-  comments.onOther = await createComment(threads.otherPublished, ids.a, "Try the flea market");
-});
-
-after(async () => {
-  await db.close();
-});
-
-beforeEach(async () => {
-  await db.exec("begin");
-});
-
-afterEach(async () => {
-  await db.exec("rollback");
-});
+setupDatabase();
 
 describe("profiles", () => {
   test("auth user insert creates a member profile with a sensible display name", async () => {
@@ -197,7 +68,7 @@ describe("profiles", () => {
     await sql("update public.profiles set display_name = 'Ayesha K' where id = $1", [ids.a]);
     assert.equal((await sql("select 1 from public.profiles where id = $1", [early])).length, 0);
 
-    await db.exec(readFileSync(join(migrationsDir, reviewFixesMigration), "utf8"));
+    await db.exec(migrationSql(reviewFixesMigration));
 
     const rows = await sql<{ id: string; display_name: string; role: string }>(
       "select id, display_name, role from public.profiles where id = any($1::uuid[])",
@@ -237,7 +108,7 @@ describe("thread submission and editing", () => {
     const [row] = await as<{ status: string; slug: string; author_id: string }>(
       B,
       "insert into public.threads (title, body, category_id, city) values ('Anmeldung in Nürnberg?', 'How long does it take?', $1, 'nuremberg') returning status, slug, author_id",
-      [coursesId],
+      [coursesId()],
     );
     assert.equal(row.status, "pending");
     assert.equal(row.author_id, ids.b);
@@ -246,22 +117,22 @@ describe("thread submission and editing", () => {
 
   test("anon cannot submit threads", async () => {
     await assert.rejects(
-      as(anon, "insert into public.threads (title, body, category_id) values ('Anonymous question', 'x', $1)", [coursesId]),
+      as(anon, "insert into public.threads (title, body, category_id) values ('Anonymous question', 'x', $1)", [coursesId()]),
       /permission denied/,
     );
   });
 
   test("members cannot submit as published or pinned, or on behalf of someone else", async () => {
     await assert.rejects(
-      as(B, "insert into public.threads (title, body, category_id, status) values ('Sneaky published', 'x', $1, 'published')", [coursesId]),
+      as(B, "insert into public.threads (title, body, category_id, status) values ('Sneaky published', 'x', $1, 'published')", [coursesId()]),
       /permission denied/,
     );
     await assert.rejects(
-      as(B, "insert into public.threads (title, body, category_id, is_pinned) values ('Sneaky pinned one', 'x', $1, true)", [coursesId]),
+      as(B, "insert into public.threads (title, body, category_id, is_pinned) values ('Sneaky pinned one', 'x', $1, true)", [coursesId()]),
       /permission denied/,
     );
     await assert.rejects(
-      as(B, "insert into public.threads (title, body, category_id, author_id) values ('Impersonation', 'x', $1, $2)", [coursesId, ids.a]),
+      as(B, "insert into public.threads (title, body, category_id, author_id) values ('Impersonation', 'x', $1, $2)", [coursesId(), ids.a]),
       /permission denied/,
     );
   });
@@ -270,7 +141,7 @@ describe("thread submission and editing", () => {
     const [thread] = await as<{ id: number; author_id: string; slug: string; status: string }>(
       A,
       "insert into threads (title, body, category_id, city) values ('Werkstudent hours during semester?', 'Is 20 hours the limit?', $1, 'erlangen') returning id, author_id, slug, status",
-      [coursesId],
+      [coursesId()],
     );
     assert.deepEqual(
       { author_id: thread.author_id, status: thread.status },
@@ -288,7 +159,7 @@ describe("thread submission and editing", () => {
 
   test("a 4th pending thread is rejected for members but not for moderators", async () => {
     const submit = (actor: Actor, n: number) =>
-      as(actor, "insert into public.threads (title, body, category_id) values ($1, 'body', $2)", [`Question number ${n}`, coursesId]);
+      as(actor, "insert into public.threads (title, body, category_id) values ($1, 'body', $2)", [`Question number ${n}`, coursesId()]);
     await submit(A, 2);
     await submit(A, 3);
     await assert.rejects(submit(A, 4), /already have 3 threads waiting/);
@@ -356,7 +227,7 @@ describe("thread submission and editing", () => {
     const [edited] = await as<{ title: string; edited_at: Date | null }>(
       MOD,
       "update public.threads set title = 'Pending question, curated', category_id = $2 where id = $1 returning title, edited_at",
-      [threads.pending, coursesId],
+      [threads.pending, coursesId()],
     );
     assert.deepEqual(edited, { title: "Pending question, curated", edited_at: null });
     const revisions = await as<{ title: string; edited_by: string }>(MOD, "select title, edited_by from public.thread_revisions where thread_id = $1", [threads.pending]);
@@ -585,14 +456,14 @@ describe("categories", () => {
     assert.equal(created.created_by, ids.mod);
     assert.equal((await as(MOD, "update public.categories set name = 'Health & Insurance' where id = $1 returning id", [created.id])).length, 1);
     await assert.rejects(as(A, "insert into public.categories (slug, name) values ('spam', 'Spam')"), /row-level security/);
-    assert.equal((await as(A, "update public.categories set name = 'Hacked' where id = $1 returning id", [coursesId])).length, 0);
+    assert.equal((await as(A, "update public.categories set name = 'Hacked' where id = $1 returning id", [coursesId()])).length, 0);
   });
 
   test("only the superadmin deletes categories, and only empty ones", async () => {
     const [{ id }] = await sql<{ id: number }>("select id from public.categories where slug = 'other'");
     assert.equal((await as(MOD, "delete from public.categories where id = $1 returning id", [id])).length, 0);
     assert.equal((await as(ADMIN, "delete from public.categories where id = $1 returning id", [id])).length, 1);
-    await assert.rejects(as(ADMIN, "delete from public.categories where id = $1", [coursesId]), /foreign key/);
+    await assert.rejects(as(ADMIN, "delete from public.categories where id = $1", [coursesId()]), /foreign key/);
   });
 });
 
@@ -887,7 +758,7 @@ describe("notifications", () => {
   const comment = async (actor: Actor, thread: number, body: string, parent: number | null = null) =>
     (await as<{ id: number }>(actor, "insert into public.comments (thread_id, parent_id, body) values ($1, $2, $3) returning id", [thread, parent, body]))[0].id;
   const submit = async (actor: Actor, body: string) =>
-    (await as<{ id: number }>(actor, "insert into public.threads (title, body, category_id) values ('Blocked account at Sparkasse', $1, $2) returning id", [body, coursesId]))[0].id;
+    (await as<{ id: number }>(actor, "insert into public.threads (title, body, category_id) values ('Blocked account at Sparkasse', $1, $2) returning id", [body, coursesId()]))[0].id;
 
   beforeEach(async () => {
     await sql("delete from public.notifications");
@@ -897,7 +768,7 @@ describe("notifications", () => {
     const id = await comment(B, threads.published, "Book the appointment online");
     assert.deepEqual(await notes(), [note(ids.a, ids.b, "thread_comment", threads.published, id)]);
     await comment(A, threads.published, "Thanks, @ayesha_khan will do");
-    assert.equal((await notes()).length, 1);
+    assert.equal((await notes("recipient_id = $1", [ids.a])).length, 1);
   });
 
   test("one notification per recipient and comment: reply beats mention beats thread_comment", async () => {
@@ -993,11 +864,11 @@ describe("notifications", () => {
 
   test("best answer notifies the comment author unless they picked it themselves", async () => {
     await as(MOD, "update public.threads set best_comment_id = $2 where id = $1", [threads.published, comments.visible]);
-    assert.deepEqual(await notes(), [note(ids.b, ids.mod, "best_answer", threads.published, comments.visible)]);
+    assert.deepEqual(await notes("type = 'best_answer'"), [note(ids.b, ids.mod, "best_answer", threads.published, comments.visible)]);
     const own = await comment(MOD, threads.otherPublished, "The bike market on Saturdays");
     await sql("delete from public.notifications");
     await as(MOD, "update public.threads set best_comment_id = $2 where id = $1", [threads.otherPublished, own]);
-    assert.deepEqual(await notes(), []);
+    assert.deepEqual(await notes("type = 'best_answer'"), []);
   });
 
   test("applications notify moderators, decisions notify the applicant", async () => {
@@ -1271,7 +1142,7 @@ describe("comment votes", () => {
 });
 
 describe("handle backfill on an existing database", () => {
-  const fresh = new PGlite();
+  const fresh = newDatabase();
   after(async () => {
     await fresh.close();
   });
@@ -1279,9 +1150,9 @@ describe("handle backfill on an existing database", () => {
   test("existing profiles get unique handles in sign-up order; notifications join the realtime publication", async () => {
     await fresh.exec(supabaseBootstrap);
     await fresh.exec("create publication supabase_realtime");
-    const files = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort();
+    const files = migrationFiles();
     const handlesMigration = "20261024100000_replies_mentions_notifications.sql";
-    for (const file of files.filter((f) => f < handlesMigration)) await fresh.exec(readFileSync(join(migrationsDir, file), "utf8"));
+    for (const file of files.filter((f) => f < handlesMigration)) await fresh.exec(migrationSql(file));
 
     const people = [
       ["first@example.com", "Ayesha Khan"],
@@ -1299,7 +1170,7 @@ describe("handle backfill on an existing database", () => {
       created.push(rows[0].id);
     }
 
-    for (const file of files.filter((f) => f >= handlesMigration)) await fresh.exec(readFileSync(join(migrationsDir, file), "utf8"));
+    for (const file of files.filter((f) => f >= handlesMigration)) await fresh.exec(migrationSql(file));
 
     const { rows } = await fresh.query<{ id: string; username: string }>("select id, username from public.profiles");
     const byId = Object.fromEntries(rows.map((r) => [r.id, r.username]));

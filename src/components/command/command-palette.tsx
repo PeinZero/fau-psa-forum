@@ -65,6 +65,15 @@ function searchHref(query: string): string {
   return `/search?q=${encodeURIComponent(query.trim())}`;
 }
 
+function categorySearchItem(category: SearchCategory, query: string): Item {
+  return {
+    key: `search-in:${category.slug}`,
+    href: `/search?q=${encodeURIComponent(query.trim())}&category=${encodeURIComponent(category.slug)}`,
+    label: `Search in ${category.name}`,
+    icon: <Search className={iconClass} strokeWidth={1.75} />,
+  };
+}
+
 function threadItem(thread: SearchThread): Item {
   return {
     key: `thread:${thread.slug}`,
@@ -99,6 +108,7 @@ function buildGroups(
       { heading: "Recent threads", items: recent.map(threadItem) },
       { heading: "Quick actions", items: visibleActions },
       { heading: "Browse categories", items: categories.map(categoryItem) },
+      { heading: "Search in a category", items: categories.map((category) => categorySearchItem(category, "")) },
     ].filter((group) => group.items.length > 0);
   }
 
@@ -118,6 +128,7 @@ function buildGroups(
           label: `Search all results for “${query.trim()}”`,
           icon: <Search className={iconClass} strokeWidth={1.75} />,
         },
+        ...categories.filter((category) => matches(category.name)).map((category) => categorySearchItem(category, query)),
       ],
     },
   ].filter((group) => group.items.length > 0);

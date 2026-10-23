@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
+import { VerifiedBadge } from "@/components/update-requests/verified";
 import { EmptyState } from "@/components/ui/empty-state";
 import { stagger } from "@/components/ui/motion";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +16,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 const LIST_LIMIT = 30;
 
 const listSelect = `
-  id, slug, title, city, is_outdated, is_pinned, status, created_at, last_activity_at,
+  id, slug, title, city, is_outdated, is_pinned, status, created_at, last_activity_at, last_verified_at,
   category:categories!threads_category_id_fkey(slug, name),
   author:profiles!threads_author_id_fkey(display_name, affiliation, role),
   comments:comments!comments_thread_id_fkey(count)
@@ -132,6 +133,7 @@ function ThreadBadges({ thread }: { thread: ListRow }) {
         </Badge>
       )}
       {thread.is_outdated && <Badge variant="warning">Outdated</Badge>}
+      {thread.last_verified_at && <VerifiedBadge at={thread.last_verified_at} />}
     </>
   );
 }
