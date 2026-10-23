@@ -13,3 +13,12 @@
 - Configure custom SMTP before launch; Supabase's built-in mailer is heavily rate-limited.
 - Domain: bought later via the Cloudflare registrar, pointed at Vercel.
 - Voice notes (later): Cloudflare R2, EU jurisdiction.
+
+## Before public launch
+
+Not needed while only the maintainers are testing; do these before sharing the link widely.
+
+- Impressum and privacy policy pages (German law for public sites; operator = PSA or a named maintainer), linked from the footer.
+- Custom SMTP for auth emails.
+- Users can delete their account and their content.
+- Custom domain.
