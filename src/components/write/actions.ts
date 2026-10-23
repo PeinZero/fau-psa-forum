@@ -47,6 +47,10 @@ const COMMENT_ERRORS = {
     ...THREAD_ERRORS.messages,
     // The parent was hidden (or never visible to this user) after the page loaded.
     ["a reply must belong to a visible comment", "You can't reply to that comment anymore."],
+    [
+      "new accounts cannot post links yet",
+      "Links unlock once your account is a day old and you have written 3 comments. Please post without a link for now.",
+    ],
   ],
 } as const;
 

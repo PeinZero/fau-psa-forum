@@ -486,6 +486,14 @@ revision reviews, restrictions and lifts.
 the reject dialogs (thread menu and `/mod/threads`) and can still edit before sending. Moderators
 read and write them on `/mod/replies`; members and anon cannot read them. Five are seeded.
 
+## Link limits
+
+`comments_link_limit` rejects comments (inserts and body edits) that contain a link unless the
+account is at least a day old and has written 3 comments, hidden ones included
+(`my_comment_count()` bypasses RLS to count them). Moderators and the service role are exempt.
+Threads are not covered: moderators review them before anyone sees them. A link is a scheme
+(`http://`, `https://`), `www.` or a markdown `](`; bare domains are not detected.
+
 ## Search
 `search_threads(q text)` uses `websearch_to_tsquery('english', q)` over thread `search` and
 visible comment `search`, returns published + archived threads ranked by `ts_rank`
