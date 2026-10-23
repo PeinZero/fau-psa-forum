@@ -17,5 +17,6 @@ at FAU Erlangen-Nürnberg. Next.js 16 App Router + TypeScript + Tailwind v4, Sup
 - [docs/schema.md](docs/schema.md): tables, RLS matrix, search. Read before migrations, queries or policies.
 - [docs/design.md](docs/design.md): design system, tokens, UI components, motion. Read before any UI work.
 - [docs/security.md](docs/security.md): auth, redirect, header and RLS rules. Read before auth, UGC or policy work.
+- [docs/testing.md](docs/testing.md): unit, db and e2e tests, CI. Read before adding tests or changing CI.
 - [docs/delegation.md](docs/delegation.md): subagent split and review lenses. Read before multi-step work or reviews.
 - [docs/deployment.md](docs/deployment.md): hosting, env vars, regions.
