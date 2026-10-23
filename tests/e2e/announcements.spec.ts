@@ -8,6 +8,15 @@ async function announcementId(title: string): Promise<number> {
   return data.id;
 }
 
+async function seenSinceAnnouncement(userId: string, announcement: number): Promise<boolean> {
+  const admin = adminClient();
+  const [{ data: profile }, { data: row }] = await Promise.all([
+    admin.from("profiles").select("announcements_seen_at").eq("id", userId).single(),
+    admin.from("announcements").select("created_at").eq("id", announcement).single(),
+  ]);
+  return Date.parse(profile!.announcements_seen_at!) >= Date.parse(row!.created_at);
+}
+
 test("a pinned announcement reaches members as badge, notification and dismissible banner", async ({ browser, viewport }) => {
   test.skip((viewport?.width ?? 0) < 1024, "the announcements icon only shows in the header from the lg breakpoint");
 
@@ -42,6 +51,9 @@ test("a pinned announcement reaches members as badge, notification and dismissib
 
   await page.goto("/announcements");
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  // The badge starts empty until its count loads, so wait for the visit to be stored first.
+  const id = await announcementId(title);
+  await expect.poll(() => seenSinceAnnouncement(member.id, id)).toBe(true);
   await expect(megaphone).toHaveAccessibleName("Announcements");
 
   await page.goto("/");
@@ -51,7 +63,6 @@ test("a pinned announcement reaches members as badge, notification and dismissib
   await expect(banner).toBeHidden();
 
   // Dismissal is remembered per browser, for the newest pinned announcement only.
-  const id = await announcementId(title);
   await page.reload();
   await expect
     .poll(() => page.evaluate(() => window.localStorage.getItem("psa-dismissed-announcement")))
