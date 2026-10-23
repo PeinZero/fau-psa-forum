@@ -405,6 +405,23 @@ Status, review, pin and role columns are never writable by authors directly; mod
 through `security definer` functions or moderator-only policies, and a trigger rejects
 member updates to protected columns. Moderators hide comments but cannot change their body.
 
+## Rate limits
+
+Enforced by before-insert triggers (`*_rate_limit`) for members; moderators and the service role are
+exempt. Windows are counted from `created_at`, so they ease on their own, and an advisory lock per
+member stops parallel requests racing past the cap. Messages start with `rate limit: ` and are shown
+to members as written (see `friendlyError`).
+
+| Kind | Limit |
+|---|---|
+| Comments and replies | 5 per minute, 100 per day |
+| Threads | 10 per day (plus the existing 3 waiting for review) |
+| Reports | 10 per hour (plus the existing 10 open) |
+| New votes | 30 per minute (changing or withdrawing is free) |
+
+Deleting a comment removes it from the count, so delete-and-repost can exceed the per-minute cap
+slightly; the daily cap on threads and reports counts rows that still exist as well.
+
 ## Search
 `search_threads(q text)` uses `websearch_to_tsquery('english', q)` over thread `search` and
 visible comment `search`, returns published + archived threads ranked by `ts_rank`

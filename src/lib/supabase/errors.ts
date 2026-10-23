@@ -2,6 +2,8 @@ export type PgError = { code?: string; message?: string };
 
 export const SIGN_IN_REQUIRED = "Please sign in again to continue.";
 
+const RATE_LIMIT_PREFIX = "rate limit: ";
+
 const GENERIC = "Something went wrong. Please try again.";
 
 const CODE_MESSAGES: Record<string, string> = {
@@ -23,6 +25,8 @@ type Options = {
 // Raw database errors never reach the UI.
 export function friendlyError(error: PgError, { messages = [], codes = {} }: Options = {}): string {
   const raw = error.message ?? "";
+  // The rate-limit triggers write their messages for members, so they are shown as they are.
+  if (raw.startsWith(RATE_LIMIT_PREFIX)) return raw.slice(RATE_LIMIT_PREFIX.length);
   const hit = messages.find(([needle]) => raw.includes(needle));
   if (hit) return hit[1];
   const code = error.code ?? "";
