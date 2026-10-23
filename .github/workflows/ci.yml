@@ -36,7 +36,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,7 +48,7 @@ jobs:
         with:
           version: latest
       # Applies supabase/migrations to a throwaway local stack, so no hosted project or secret is needed.
-      - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+      - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,mailpit,storage-api,postgres-meta
       - name: Export local stack credentials
         run: |
           supabase status -o env > stack.env
@@ -61,7 +61,7 @@ jobs:
           rm stack.env
       - run: npx playwright install --with-deps chromium
       - run: npm run build
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --project=desktop
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

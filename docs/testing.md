@@ -33,10 +33,10 @@ Locally, `npm run test:e2e` reuses the dev server you already have running.
 ## CI
 
 `.github/workflows/ci.yml` runs on every PR: lint, typecheck, `npm test`, `npm run test:db`, build,
-then e2e against a throwaway `supabase start` stack. Failures upload the Playwright report, traces,
+then a small desktop-only e2e run (sign-in, comment, vote, public pages) against a throwaway `supabase start` stack. Failures upload the Playwright report, traces,
 screenshots and videos.
 
 ## Not done yet
 
-Thread posting and approval, reply scoping, reporting and resolving, account deletion, and a
+The live @mention bell and moderator pages (dropped to keep CI fast), thread posting and approval, reply scoping, reporting and resolving, account deletion, and a
 Lighthouse CI budget for the home and thread pages.
