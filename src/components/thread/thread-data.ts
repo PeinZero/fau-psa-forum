@@ -10,10 +10,10 @@ export const getThread = cache(async (slug: string) => {
     .select(
       `*,
        category:categories!threads_category_id_fkey(slug, name),
-       author:profiles!threads_author_id_fkey(display_name, affiliation, role),
+       author:profiles!threads_author_id_fkey(display_name, username, affiliation, role),
        comments:comments!comments_thread_id_fkey(
-         id, body, created_at, edited_at, hidden_at, author_id,
-         author:profiles!comments_author_id_fkey(display_name, affiliation, role)
+         id, parent_id, body, created_at, edited_at, hidden_at, author_id,
+         author:profiles!comments_author_id_fkey(display_name, username, affiliation, role)
        )`,
     )
     .eq("slug", slug)

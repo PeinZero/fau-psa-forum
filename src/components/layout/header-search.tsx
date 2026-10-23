@@ -1,0 +1,62 @@
+"use client";
+
+import { Search } from "lucide-react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { CommandPalette } from "@/components/command/command-palette";
+import { useIsApple } from "@/components/command/platform";
+import { cn } from "@/components/ui/cn";
+import { Kbd } from "@/components/ui/kbd";
+
+function isEditable(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+}
+
+/** Input-looking button from md up, icon button below; both open the command palette. */
+export function HeaderSearch({ canModerate }: { canModerate: boolean }) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const apple = useIsApple();
+
+  const onShortcut = useEffectEvent((event: KeyboardEvent) => {
+    const toggle = (event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "k";
+    const slash =
+      event.key === "/" && !open && !event.metaKey && !event.ctrlKey && !event.altKey && !isEditable(event.target);
+    if (!toggle && !slash) return;
+    event.preventDefault();
+    setOpen(toggle ? !open : true);
+  });
+
+  useEffect(() => {
+    window.addEventListener("keydown", onShortcut);
+    return () => window.removeEventListener("keydown", onShortcut);
+  }, []);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-keyshortcuts="Meta+K Control+K /"
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center rounded-md text-muted",
+          "transition-[background-color,border-color,color,box-shadow] duration-150 ease-out",
+          "size-9 hover:bg-surface-hover hover:text-foreground pointer-coarse:size-11",
+          "md:h-8 md:w-60 md:justify-start md:gap-2 md:border md:border-border-strong md:bg-surface md:pl-2.5 md:pr-1.5 md:text-meta md:text-subtle lg:w-72",
+          "md:hover:border-muted md:hover:bg-surface md:hover:text-muted md:pointer-coarse:h-11 md:pointer-coarse:w-60 lg:pointer-coarse:w-72",
+        )}
+      >
+        <Search aria-hidden strokeWidth={1.75} className="size-4 shrink-0" />
+        <span className="max-md:sr-only">Search threads…</span>
+        {apple !== null ? (
+          <span aria-hidden className="ml-auto hidden gap-0.5 md:flex">
+            <Kbd>{apple ? "⌘" : "Ctrl"}</Kbd>
+            <Kbd>K</Kbd>
+          </span>
+        ) : null}
+      </button>
+      <CommandPalette open={open} onClose={() => setOpen(false)} canModerate={canModerate} triggerRef={triggerRef} />
+    </>
+  );
+}

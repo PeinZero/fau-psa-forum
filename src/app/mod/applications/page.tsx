@@ -1,8 +1,12 @@
+import { CheckCircle2 } from "lucide-react";
 import type { Metadata } from "next";
 
 import { Author } from "@/components/author";
 import { ActionButton } from "@/components/mod/action-button";
 import { reviewApplication } from "@/components/mod/actions";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { stagger } from "@/components/ui/motion";
 import { formatDate } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,33 +22,38 @@ export default async function ApplicationsPage() {
     .eq("status", "pending")
     .order("created_at", { ascending: true });
 
-  if (error) return <p role="alert">Could not load applications. Please reload.</p>;
-  if (!applications.length) return <p className="text-muted">No open applications.</p>;
+  if (error) return <p role="alert" className="text-danger">Could not load applications. Please reload.</p>;
+  if (!applications.length) {
+    return <EmptyState icon={<CheckCircle2 />} title="No open applications">Nobody is waiting for a decision.</EmptyState>;
+  }
 
   return (
-    <ul className="grid gap-4">
-      {applications.map((application) => (
-        <li key={application.id} className="grid gap-3 rounded-md border border-border p-4">
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-            <Author profile={application.applicant} />
-            <span>{formatDate(application.created_at)}</span>
-          </p>
-          <p className="whitespace-pre-wrap break-words">{application.motivation}</p>
-          <div className="flex flex-wrap items-start gap-2">
-            <ActionButton
-              action={reviewApplication}
-              fields={{ applicationId: application.id, decision: "approved" }}
-              label="Approve"
-              confirm="Approving makes this person a moderator."
-            />
-            <ActionButton
-              action={reviewApplication}
-              fields={{ applicationId: application.id, decision: "rejected" }}
-              label="Reject"
-              tone="danger"
-              confirm="Reject this application?"
-            />
-          </div>
+    <ul className="grid gap-3">
+      {applications.map((application, index) => (
+        <li key={application.id} style={stagger(index)} className="animate-fade-up">
+          <Card className="grid gap-4">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-muted">
+              <Author profile={application.applicant} />
+              <span>{formatDate(application.created_at)}</span>
+            </p>
+            <p className="whitespace-pre-wrap break-words text-body">{application.motivation}</p>
+            <div className="flex flex-wrap items-start gap-2 border-t border-border pt-4">
+              <ActionButton
+                action={reviewApplication}
+                fields={{ applicationId: application.id, decision: "approved" }}
+                label="Approve"
+                variant="primary"
+                confirm="Approving makes this person a moderator."
+              />
+              <ActionButton
+                action={reviewApplication}
+                fields={{ applicationId: application.id, decision: "rejected" }}
+                label="Reject"
+                variant="danger"
+                confirm="Reject this application?"
+              />
+            </div>
+          </Card>
         </li>
       ))}
     </ul>

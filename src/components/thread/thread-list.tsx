@@ -1,6 +1,13 @@
+import { Inbox, MapPin, MessageSquare, PenLine, Pin } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
-import { Author } from "@/components/author";
+import { Badge } from "@/components/ui/badge";
+import { buttonClasses } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { stagger } from "@/components/ui/motion";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cityLabels, formatDate } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
@@ -39,77 +46,114 @@ export async function fetchThreadsByIds(ids: number[]) {
 
 type ListRow = Awaited<ReturnType<typeof fetchThreadList>>[number];
 
-export function ThreadList({ threads, emptyText }: { threads: ListRow[]; emptyText: string }) {
+export type ThreadListProps = {
+  threads: ListRow[];
+  emptyText: string;
+  emptyDescription?: ReactNode;
+  emptyAction?: ReactNode;
+};
+
+const askAction = (
+  <Link href="/new" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+    <PenLine strokeWidth={1.75} />
+    Ask a question
+  </Link>
+);
+
+export function ThreadList({ threads, emptyText, emptyDescription, emptyAction = askAction }: ThreadListProps) {
   if (threads.length === 0) {
     return (
-      <p className="rounded-lg border border-border p-4 text-muted">
-        {emptyText}{" "}
-        <Link href="/new" className="text-accent underline">
-          Ask a question
-        </Link>
-      </p>
+      <EmptyState icon={<Inbox />} title={emptyText} action={emptyAction}>
+        {emptyDescription ?? "Can't find what you need? Ask the community, a moderator reviews every new thread."}
+      </EmptyState>
     );
   }
 
   return (
-    <ul className="flex flex-col gap-3">
-      {threads.map((thread) => {
-        const commentCount = thread.comments[0]?.count ?? 0;
-        return (
-          <li key={thread.id} className="rounded-lg border border-border p-4">
-            <h3 className="text-lg font-semibold leading-snug break-words">
-              <Link href={`/t/${thread.slug}`} className="inline-flex min-h-11 items-center hover:underline">
-                {thread.title}
-              </Link>
-            </h3>
-            <ThreadBadges thread={thread} />
-            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-              <Author profile={thread.author} />
-              <span aria-hidden="true">·</span>
-              <time dateTime={thread.created_at}>{formatDate(thread.created_at)}</time>
-              <span aria-hidden="true">·</span>
-              <span>
-                {commentCount} {commentCount === 1 ? "comment" : "comments"}
-              </span>
-            </p>
-          </li>
-        );
-      })}
+    <ul className={listFrame}>
+      {threads.map((thread, i) => (
+        <ThreadRow key={thread.id} thread={thread} index={i} />
+      ))}
     </ul>
+  );
+}
+
+const listFrame = cardClasses({ padding: "none", className: "overflow-hidden divide-y divide-border" });
+
+function ThreadRow({ thread, index }: { thread: ListRow; index: number }) {
+  const commentCount = thread.comments[0]?.count ?? 0;
+  return (
+    <li className="animate-fade-up" style={stagger(index)}>
+      <Link
+        href={`/t/${thread.slug}`}
+        className="group flex items-start gap-3 px-4 py-3.5 transition-colors duration-150 ease-out hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-5"
+      >
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[15px] font-medium leading-snug text-foreground break-words">
+            {thread.title}
+          </h3>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-meta text-muted">
+            <ThreadBadges thread={thread} />
+            <span className="inline-flex min-w-0 items-center gap-x-2">
+              <span className="truncate">{thread.author?.display_name ?? "Deleted user"}</span>
+              <span aria-hidden className="text-subtle">·</span>
+              <time dateTime={thread.created_at} className="whitespace-nowrap">
+                {formatDate(thread.created_at)}
+              </time>
+            </span>
+          </div>
+        </div>
+        <span
+          className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-meta tabular-nums text-subtle transition-colors group-hover:text-muted"
+          aria-label={`${commentCount} ${commentCount === 1 ? "comment" : "comments"}`}
+        >
+          <MessageSquare aria-hidden strokeWidth={1.75} className="size-3.5" />
+          {commentCount}
+        </span>
+      </Link>
+    </li>
   );
 }
 
 function ThreadBadges({ thread }: { thread: ListRow }) {
   return (
-    <p className="mt-2 flex flex-wrap gap-2 text-xs">
+    <>
       {thread.is_pinned && (
-        <span className="rounded bg-accent px-1.5 py-0.5 font-medium text-accent-foreground">Pinned</span>
+        <Badge variant="accent">
+          <Pin aria-hidden strokeWidth={1.75} />
+          Pinned
+        </Badge>
       )}
-      {thread.category && (
-        <Link
-          href={`/c/${thread.category.slug}`}
-          className="inline-flex min-h-11 items-center rounded border border-border px-1.5 text-muted hover:text-foreground"
-        >
-          {thread.category.name}
-        </Link>
-      )}
+      {thread.category && <Badge>{thread.category.name}</Badge>}
       {thread.city && (
-        <span className="rounded border border-border px-1.5 py-0.5 text-muted">{cityLabels[thread.city]}</span>
+        <Badge>
+          <MapPin aria-hidden strokeWidth={1.75} />
+          {cityLabels[thread.city]}
+        </Badge>
       )}
-      {thread.is_outdated && (
-        <span className="rounded border border-border px-1.5 py-0.5 font-medium text-foreground">Outdated</span>
-      )}
-    </p>
+      {thread.is_outdated && <Badge variant="warning">Outdated</Badge>}
+    </>
   );
 }
 
-export function ThreadListSkeleton() {
+export function ThreadListSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="flex flex-col gap-3" role="status" aria-busy="true">
+    <div role="status" aria-busy="true">
       <span className="sr-only">Loading threads…</span>
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="h-24 animate-pulse rounded-lg border border-border bg-border/30" />
-      ))}
+      <div className={listFrame}>
+        {Array.from({ length: rows }, (_, i) => (
+          <div key={i} className="flex items-start gap-3 px-4 py-3.5 sm:px-5">
+            <div className="flex-1">
+              <Skeleton className={i % 2 ? "h-4 w-2/3" : "h-4 w-4/5"} />
+              <div className="mt-2.5 flex gap-2">
+                <Skeleton className="h-4 w-20 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            </div>
+            <Skeleton className="h-4 w-8" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -124,4 +168,16 @@ export async function fetchCategories(): Promise<CategoryRow[]> {
     .order("sort_order")
     .order("name");
   return data ?? [];
+}
+
+/** Published thread count per category; moderators would otherwise also count pending ones. */
+export async function fetchCategoriesWithCounts() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("categories")
+    .select("id, slug, name, description, threads:threads!threads_category_id_fkey(count)")
+    .eq("threads.status", "published")
+    .order("sort_order")
+    .order("name");
+  return (data ?? []).map(({ threads, ...category }) => ({ ...category, threadCount: threads[0]?.count ?? 0 }));
 }

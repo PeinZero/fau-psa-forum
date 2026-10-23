@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { ANNOUNCEMENT_BODY_MAX, ANNOUNCEMENT_TITLE_MAX, ANNOUNCEMENT_TITLE_MIN } from "@/components/announcements/limits";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
 import { firstIssue, friendlyError, SIGN_IN_REQUIRED } from "@/lib/supabase/errors";
 import { createClient } from "@/lib/supabase/server";
@@ -221,4 +222,92 @@ export async function changeRole(_prev: ActionState, formData: FormData): Promis
   });
   if (error) return fail(friendlyError(error, MOD_ERRORS));
   return done("Role updated.");
+}
+
+const reportSchema = z.object({
+  reportId: id,
+  status: z.enum(["resolved", "dismissed", "open"]),
+});
+
+export async function setReportStatus(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = reportSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail("Invalid request.");
+
+  const denied = await requireRole("moderator");
+  if (denied) return fail(denied);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("reports")
+    .update({ status: parsed.data.status })
+    .eq("id", parsed.data.reportId)
+    .select("id");
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+  if (!data?.length) return fail("Report not found, or you don't have permission.");
+
+  const messages = { resolved: "Report resolved.", dismissed: "Report dismissed.", open: "Report reopened." };
+  return done(messages[parsed.data.status]);
+}
+
+const announcementSchema = z.object({
+  announcementId: id.optional(),
+  title: z
+    .string()
+    .trim()
+    .min(ANNOUNCEMENT_TITLE_MIN, `The title needs at least ${ANNOUNCEMENT_TITLE_MIN} characters.`)
+    .max(ANNOUNCEMENT_TITLE_MAX, `The title can be at most ${ANNOUNCEMENT_TITLE_MAX} characters.`),
+  body: z
+    .string()
+    .trim()
+    .min(1, "Please write the announcement.")
+    .max(ANNOUNCEMENT_BODY_MAX, `The text can be at most ${ANNOUNCEMENT_BODY_MAX.toLocaleString("en")} characters.`),
+});
+
+export async function saveAnnouncement(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const raw = Object.fromEntries(formData);
+  const parsed = announcementSchema.safeParse({ ...raw, announcementId: raw.announcementId || undefined });
+  if (!parsed.success) return fail(firstIssue(parsed));
+  const { announcementId, title, body } = parsed.data;
+
+  const denied = await requireRole("moderator");
+  if (denied) return fail(denied);
+
+  const values = { title, body, is_pinned: formData.get("isPinned") === "on" };
+  const supabase = await createClient();
+
+  if (announcementId === undefined) {
+    const { error } = await supabase.from("announcements").insert(values);
+    if (error) return fail(friendlyError(error, MOD_ERRORS));
+    return done("Announcement posted. Everyone has been notified.");
+  }
+
+  const { data, error } = await supabase.from("announcements").update(values).eq("id", announcementId).select("id");
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+  if (!data?.length) return fail("Announcement not found, or you don't have permission.");
+  return done("Announcement saved.");
+}
+
+const announcementOpSchema = z.object({
+  announcementId: id,
+  op: z.enum(["pin", "unpin", "delete"]),
+});
+
+export async function moderateAnnouncement(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = announcementOpSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail("Invalid request.");
+  const { announcementId, op } = parsed.data;
+
+  const denied = await requireRole("moderator");
+  if (denied) return fail(denied);
+
+  const supabase = await createClient();
+  const table = supabase.from("announcements");
+  const { data, error } = await (op === "delete"
+    ? table.delete().eq("id", announcementId).select("id")
+    : table.update({ is_pinned: op === "pin" }).eq("id", announcementId).select("id"));
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+  if (!data?.length) return fail("Announcement not found, or you don't have permission.");
+
+  const messages = { pin: "Announcement pinned.", unpin: "Announcement unpinned.", delete: "Announcement deleted." };
+  return done(messages[op]);
 }

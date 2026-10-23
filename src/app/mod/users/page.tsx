@@ -1,8 +1,14 @@
+import { Lock, Search } from "lucide-react";
 import type { Metadata } from "next";
 import Form from "next/form";
 
 import { Author } from "@/components/author";
 import { RoleForm } from "@/components/mod/role-form";
+import { Button } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input, Label } from "@/components/ui/field";
+import { stagger } from "@/components/ui/motion";
 import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,10 +20,9 @@ export default async function UsersPage({ searchParams }: Props) {
   const viewer = await getViewer();
   if (viewer?.role !== "superadmin") {
     return (
-      <div role="alert" className="rounded-md border border-border p-4">
-        <p className="font-medium">Superadmin only</p>
-        <p className="mt-1 text-sm text-muted">Only the superadmin can manage roles.</p>
-      </div>
+      <EmptyState icon={<Lock />} title="Superadmin only">
+        <span role="alert">Only the superadmin can manage roles.</span>
+      </EmptyState>
     );
   }
 
@@ -37,40 +42,44 @@ export default async function UsersPage({ searchParams }: Props) {
   const { data: users, error } = await query;
 
   return (
-    <div className="grid gap-4">
-      <p className="text-sm text-muted">The last superadmin can&apos;t be demoted.</p>
-      <Form action="/mod/users" role="search" className="grid gap-1">
-        <label htmlFor="user-search" className="text-sm font-medium">
-          Search by display name
-        </label>
+    <div className="grid gap-5">
+      <Form action="/mod/users" role="search" className="grid gap-1.5">
+        <Label htmlFor="user-search">Search by display name</Label>
         <div className="flex gap-2">
-          <input
-            id="user-search"
-            name="q"
-            type="search"
-            defaultValue={q}
-            maxLength={40}
-            className="min-h-11 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
-          />
-          <button type="submit" className="min-h-11 rounded-md bg-accent px-4 text-sm font-medium text-accent-foreground">
+          <Input id="user-search" name="q" type="search" defaultValue={q} maxLength={40} className="min-w-0 flex-1" />
+          <Button type="submit" variant="primary">
+            <Search aria-hidden strokeWidth={1.75} />
             Search
-          </button>
+          </Button>
         </div>
+        <p className="text-meta text-subtle">The last superadmin can&apos;t be demoted.</p>
       </Form>
 
       {error ? (
-        <p role="alert">Could not load users. Please reload.</p>
+        <p role="alert" className="text-danger">Could not load users. Please reload.</p>
       ) : !users.length ? (
-        <p className="text-muted">No users found.</p>
+        <EmptyState icon={<Search />} title="No users found">Try a different name.</EmptyState>
       ) : (
-        <ul className="grid gap-3">
-          {users.map((user) => (
-            <li key={user.id} className="grid gap-3 rounded-md border border-border p-4 sm:grid-cols-2 sm:items-start">
-              <Author profile={user} />
-              <RoleForm target={user.id} name={user.display_name} role={user.role} />
-            </li>
-          ))}
-        </ul>
+        <div className={cardClasses({ padding: "none", className: "overflow-hidden" })}>
+          <div aria-hidden className="hidden grid-cols-[minmax(0,1fr)_16rem] gap-4 border-b border-border px-4 py-2 text-meta font-medium text-muted sm:grid">
+            <span>User</span>
+            <span>Role</span>
+          </div>
+          <ul className="divide-y divide-border">
+            {users.map((user, index) => (
+              <li
+                key={user.id}
+                style={stagger(index)}
+                className="grid animate-fade-up gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_16rem] sm:items-start sm:gap-4"
+              >
+                <div className="min-w-0 pt-1.5 text-sm">
+                  <Author profile={user} />
+                </div>
+                <RoleForm target={user.id} name={user.display_name} role={user.role} />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
