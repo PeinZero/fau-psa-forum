@@ -4,6 +4,7 @@ import { Flag, Link2, Pencil } from "lucide-react";
 import { useState } from "react";
 
 import { commentModItems } from "@/components/mod/comment-mod-actions";
+import type { MutableAuthor } from "@/components/mod/mute-author";
 import { ReportDialog } from "@/components/report/report-dialog";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { useCommentEdit } from "@/components/write/comment-editor";
@@ -22,7 +23,7 @@ export function CommentMenu({
   commentId: number;
   canReport: boolean;
   /** Present when the viewer moderates (and isn't viewing as a member). */
-  mod: { isBest: boolean; isHidden: boolean } | null;
+  mod: { isBest: boolean; isHidden: boolean; author: MutableAuthor | null } | null;
 }) {
   const edit = useCommentEdit();
   const { pending, feedback, run, copyLink } = useMenuAction();

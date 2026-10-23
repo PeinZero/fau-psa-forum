@@ -15,8 +15,16 @@ Authorization lives in Postgres Row Level Security; the UI only mirrors it.
 - `notification_type`: `reply`, `mention`, `thread_comment`, `thread_approved`, `thread_rejected`,
   `best_answer`, `application_approved`, `application_rejected`, `mod_new_thread`,
   `mod_new_application`, `mod_new_report`, `announcement`, `mod_new_update_request`,
-  `followed_thread_activity`
+  `followed_thread_activity`, `account_muted`, `account_banned`, `account_unrestricted`
 - `update_request_status`: `open`, `resolved`, `dismissed`
+- `restriction_kind`: `mute`, `ban`
+- `moderation_action`: `thread_approved`, `thread_rejected`, `thread_archived`, `thread_unarchived`,
+  `thread_pinned`, `thread_unpinned`, `thread_outdated`, `thread_verified`, `comment_hidden`,
+  `comment_unhidden`, `best_answer_set`, `best_answer_unset`, `report_resolved`, `report_dismissed`,
+  `update_request_resolved`, `update_request_dismissed`, `application_approved`,
+  `application_rejected`, `role_changed`, `category_created`, `category_updated`, `category_deleted`,
+  `announcement_created`, `announcement_deleted`, `guide_created`, `guide_deleted`,
+  `revision_reviewed`, `user_muted`, `user_banned`, `user_unrestricted`
 
 ## Tables
 
@@ -320,6 +328,7 @@ Inserted only by `security definer` triggers; clients read their own and set `re
 | thread_id | bigint null → threads | cascade |
 | comment_id | bigint null → comments | cascade |
 | announcement_id | bigint null → announcements | cascade |
+| restriction_id | bigint null → user_restrictions | cascade; set for `account_*` notices |
 | created_at | timestamptz | |
 | read_at | timestamptz null | the only client-writable column |
 
@@ -344,6 +353,7 @@ cannot read, so pending threads and hidden comments notify nobody but moderators
 | application approved / rejected | applicant → `application_approved` / `application_rejected` |
 | new report | every moderator and superadmin → `mod_new_report` (thread_id and comment_id of the target) |
 | new announcement | every other user → `announcement` (announcement_id); deleting the announcement deletes them |
+| account muted / banned / restriction lifted | the member → `account_muted` / `account_banned` / `account_unrestricted` (restriction_id) |
 
 Delivery: bell with unread count in the header + `/notifications` page (mark one/all read).
 `notifications` is in the `supabase_realtime` publication; subscribe with `postgres_changes`
@@ -400,10 +410,81 @@ which rows each one receives.
 | tick/untick own guide progress; read own progress | | ✓ | ✓ | ✓ |
 | read reputation (profiles, `top_helpers()`) | ✓ | ✓ | ✓ | ✓ |
 | read `reputation_events` | | | | |
+| mute members (`restrict_user()`), lift mutes | | | ✓ | ✓ |
+| ban, lift bans, restrict moderators | | | | ✓ |
+| read restrictions | | own | all | all |
+| read the moderation log | | | ✓ | ✓ |
+| read and edit canned replies | | | ✓ | ✓ |
 
 Status, review, pin and role columns are never writable by authors directly; moderation goes
 through `security definer` functions or moderator-only policies, and a trigger rejects
 member updates to protected columns. Moderators hide comments but cannot change their body.
+
+## Restrictions
+
+`user_restrictions`: history of mutes and bans.
+
+| column | type | notes |
+|---|---|---|
+| id | bigint identity PK | |
+| user_id | uuid → profiles | cascade |
+| kind | restriction_kind | `mute` or `ban` |
+| reason | text | 1–500 chars, required; shown to the member |
+| expires_at | timestamptz null | null = permanent |
+| created_by | uuid null → profiles | set null on account deletion |
+| created_at | timestamptz | |
+| lifted_at / lifted_by | timestamptz null / uuid null → profiles | set by `lift_restriction()` |
+
+Active = not lifted and (`expires_at` null or in the future); `is_restricted(uid, kind)` checks one
+kind. Rows from before the history (the old single "restricted" flag) became permanent mutes.
+No client writes: `restrict_user(target, kind, reason, duration interval null)` and
+`lift_restriction(restriction_id)`. Moderators read all rows, members their own.
+
+Who may: moderators mute members; only a superadmin bans, lifts a ban, or restricts/lifts on a
+moderator; nobody restricts a superadmin or themselves. One active restriction per kind
+(`this user is already muted|banned`, P0001). Other errors: `only moderators can restrict accounts`,
+`only the superadmin can ban accounts`, `you cannot restrict yourself`, `the superadmin cannot be
+restricted`, `only the superadmin can restrict moderators`, `only the superadmin can lift a ban`
+(42501), `a reason is required`, `this restriction was already lifted`, `this restriction has already
+ended` (P0001), `the duration must be positive` (22023).
+
+Enforcement (`restrictions_block_writes()`, before-insert/update triggers, client roles only):
+muted or banned users cannot insert threads, comments, reports, update requests, comment votes or
+moderator applications; banned users also cannot change their profile's display name, affiliation
+or username, their threads' title/body/category/city or their comments' body. Reading, bookmarks,
+follows, notifications and withdrawing votes stay allowed. The error (P0001) is worded for the
+member: `your account is muted until 31 Oct 2026, 14:00: <reason>`, `your account is muted:
+<reason>` (permanent), `your account is banned[ until …]: <reason>` (Berlin time; a ban wins).
+UI: `/mod/users` and `/mod/signups` (restrict, badges, lift), "Mute author…" in thread and comment
+menus, a banner on the comment form, `/new` and the edit page.
+
+## Moderation log
+
+`moderation_log`: append-only, written only by `security definer` triggers (`log_moderation()`)
+when the signed-in actor is a moderator; seed scripts, cascades and members' own edits are not
+logged. Moderators and superadmins read it on `/mod/log`; no client grants beyond select.
+
+| column | type | notes |
+|---|---|---|
+| id | bigint identity PK | |
+| actor_id | uuid null → profiles | set null on account deletion |
+| action | moderation_action | |
+| thread_id / comment_id | bigint null | set null when the target is deleted |
+| target_user_id | uuid null → profiles | the member affected (author, applicant, restricted user) |
+| reason | text null | rejection reason, restriction reason |
+| details | jsonb null | `title` of the thread/announcement/guide, category `name`, role `from`/`to`, `outdated`, restriction `kind`/`expires_at`, ids |
+| created_at | timestamptz | |
+
+Sources: thread status/pin/outdated/verification/best-answer changes, comment hide/unhide, report
+and update-request decisions, application reviews (the promotion that comes with an approval is
+not logged twice), role changes, category create/update/delete, announcement and guide create/delete,
+revision reviews, restrictions and lifts.
+
+## Canned replies
+
+`canned_replies (id, label 1–60, body 1–1000, sort_order)`: rejection reasons moderators pick in
+the reject dialogs (thread menu and `/mod/threads`) and can still edit before sending. Moderators
+read and write them on `/mod/replies`; members and anon cannot read them. Five are seeded.
 
 ## Link limits
 

@@ -8,6 +8,7 @@ import { Author } from "@/components/author";
 import { Markdown } from "@/components/markdown";
 import { ActionButton } from "@/components/mod/action-button";
 import { moderateThread } from "@/components/mod/actions";
+import { getCannedReplies } from "@/components/mod/canned-replies";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -32,7 +33,10 @@ export default async function PendingThreadsPage() {
     return <EmptyState icon={<CheckCircle2 />} title="All caught up">No threads are waiting for review.</EmptyState>;
   }
 
-  const duplicates = await Promise.all(threads.map((thread) => findSimilarThreads(thread.title)));
+  const [duplicates, presets] = await Promise.all([
+    Promise.all(threads.map((thread) => findSimilarThreads(thread.title))),
+    getCannedReplies(),
+  ]);
 
   return (
     <ul className="grid gap-3">
@@ -75,7 +79,7 @@ export default async function PendingThreadsPage() {
                 label="Reject"
                 variant="danger"
                 confirm="The author sees this reason."
-                reason={{ label: "Reason for rejection", max: 1000 }}
+                reason={{ label: "Reason for rejection", max: 1000, presets }}
               />
             </div>
           </Card>

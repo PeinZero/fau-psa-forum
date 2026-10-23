@@ -6,6 +6,7 @@ import { type ReactNode, Suspense } from "react";
 
 import { Author } from "@/components/author";
 import { getSavedState } from "@/components/bookmarks/data";
+import { getCannedReplies } from "@/components/mod/canned-replies";
 import { Markdown } from "@/components/markdown";
 import { MemberViewBanner } from "@/components/member-view/member-view-banner";
 import { ShareButton } from "@/components/share/share-button";
@@ -249,7 +250,11 @@ async function ViewerThreadMenu({ thread }: { thread: ThreadDetail }) {
   const isMod = viewer !== null && isModerator(viewer.role);
   const isAuthor = viewer !== null && viewer.userId === thread.author_id;
   const isPublic = thread.status === "published" || thread.status === "archived";
-  const saved = viewer ? await getSavedState(viewer.userId, thread.id) : undefined;
+  const [saved, presets] = await Promise.all([
+    viewer ? getSavedState(viewer.userId, thread.id) : undefined,
+    isMod && thread.status === "pending" ? getCannedReplies() : undefined,
+  ]);
+  const canMuteAuthor = isMod && !isAuthor && thread.author_id !== null && thread.author?.role === "member";
 
   return (
     <ThreadMenu
@@ -260,6 +265,8 @@ async function ViewerThreadMenu({ thread }: { thread: ThreadDetail }) {
       canReport={viewer !== null && !isMod && !isAuthor && isPublic}
       canRequestUpdate={viewer !== null && !isMod && thread.status === "published"}
       isMod={isMod}
+      presets={presets}
+      author={canMuteAuthor && thread.author_id && thread.author ? { id: thread.author_id, name: thread.author.display_name } : null}
     />
   );
 }
