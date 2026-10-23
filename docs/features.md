@@ -1,6 +1,6 @@
 # FAU PSA Forum: features, launch plan, costs and funding
 
-Last updated: 24 October 2026
+Last updated: 24 October 2026 (evening)
 
 - Live site: https://fau-psa-forum.vercel.app
 - Code: https://github.com/PeinZero/fau-psa-forum (open source, MIT licence)
@@ -71,6 +71,7 @@ thread, so the content stays clean.
 - Public profile page with reputation points and a "Top helper" badge (10+ best answers).
 - "My threads" with status and rejection reasons.
 - Apply to become a moderator.
+- Download all your data as one file (what the forum stores about you).
 - Delete your account. Your posts stay visible as "Deleted user".
 
 ### Moderation
@@ -83,6 +84,11 @@ thread, so the content stays clean.
   only).
 - On threads: approve, pin, mark outdated, archive, choose the best answer, hide comments.
 - "View as member" to see a page the way normal members see it.
+- Moderation log: every moderator action is recorded and can be filtered.
+- Ready-made rejection reasons that moderators can pick and edit.
+- Mute a user (1, 7 or 30 days, or permanently) or ban them (superadmin only). A muted
+  user can read but cannot post, comment, vote or report, and sees the reason and end date.
+- Recent sign-ups list to spot spam accounts early.
 
 ### Design and quality
 - Clean, modern design in light and dark mode (follows your phone or laptop setting, with
@@ -94,9 +100,13 @@ thread, so the content stays clean.
 - The website runs in London, next to the database, so pages respond fast.
 
 ### Safety and privacy
-- All permissions are enforced inside the database, not only in the website. 236 automated
+- All permissions are enforced inside the database, not only in the website. 302 automated
   database tests check them.
-- 62 automated unit tests plus browser tests (Playwright) run on every pull request in GitHub Actions.
+- 91 automated unit tests run on every pull request in GitHub Actions.
+- 64 browser tests (Playwright) cover every main feature as a member and as a moderator. They
+  are paused on pull requests to keep merging fast; run them by hand before big releases
+  (GitHub → Actions → CI → Run workflow).
+- The free database is kept awake by a scheduled check every few days.
 - Safe formatting (no scripts or raw HTML in posts), protection against redirect tricks,
   security headers.
 - Data stays in the EU (database in London, website server in London).
@@ -109,16 +119,14 @@ thread, so the content stays clean.
 | Missing | Why it matters | Ticket | Owner |
 |---|---|---|---|
 | Impressum and privacy policy | Required by German law before the public launch | #18 | Abdul |
-| Own email sending (SMTP) | Supabase's built-in email allows only about 2 sign-in emails per hour | #17 | Abdul |
+| Own email sending (SMTP) | Supabase's built-in email allows only about 2 sign-in emails per hour | #17 (setup guide in PR #55) | Abdul |
 | Own domain | Looks trustworthy, needed for email | #19 | Abdul |
-| Keep the database awake | The free database pauses after 7 days without visitors | #45 | Abdul |
 | Backups | The free database plan has no backups | no ticket yet | — |
 | Error monitoring (Sentry) | Without it we don't know when something breaks | #47 | Abdul |
 | Google search (sitemap) | Threads should appear in Google | #46 | Abdul |
-| "Download my data" | Required by GDPR on request | #48 | Abdul |
 | README and contributor guide | So other students can help with the code | #22 | Abdul |
 | Email notifications | People miss replies if they don't open the site | #35 (email part), #21 | — |
-| Rate limits against spam | Someone could flood comments | #42 | backlog |
+| Rate limits against spam | Someone could flood comments | #42 (PRs #57, #58 open) | Abdul |
 | Communities and sub-communities | So other groups (e.g. MSc AI, other universities) can use it | #4–#14 | Mahad, on hold |
 
 ---
@@ -128,16 +136,14 @@ thread, so the content stays clean.
 ### Must do before the public launch
 1. Impressum and privacy policy (#18).
 2. Own email sending (#17) and own domain (#19).
-3. Keep the database awake (#45) and set up weekly backups (new ticket).
+3. Set up backups (new ticket). The database is already kept awake.
 4. Error monitoring (#47).
-5. Basic anti-spam limits (#42), at least for comments.
-6. All browser tests green, including the signed-in flows (in progress).
+5. Anti-spam limits (#42, in review).
+6. Run the full browser test suite once by hand and fix anything red.
 
 ### Soon after launch (first 2 months)
 - Email notifications and a daily digest (#35, #21).
-- "Download my data" (#48).
 - Google search setup (#46).
-- Moderation log, mute and ban (#39).
 - Privacy-friendly statistics: which searches find nothing, which threads are read most
   (#43). This tells moderators which threads to write next.
 
@@ -291,7 +297,7 @@ This is general information, not legal advice.
 - **Privacy policy (Datenschutzerklärung):** list what we store (email, display name, posts),
   where (Supabase London, Vercel), how long, and how people can delete their data. (#18)
 - **Delete account:** done.
-- **Copy of your data (GDPR):** to build (#48).
+- **Copy of your data (GDPR):** done ("Download my data" on the account page).
 - **Illegal content:** we are not responsible for posts by users, but we must remove illegal
   content quickly once someone tells us. The report button and moderators cover this.
 - **Money:** no ads or donations to private people (see section 7).
@@ -304,9 +310,9 @@ This is general information, not legal advice.
 |---|---|---|
 | Empty forum at launch | People stay on WhatsApp | Write 20 threads and 2 guides first (section 5) |
 | Moderators lose interest | Queues fill up, spam stays | 4–6 moderators, a weekly routine, thank them on the Contributors page |
-| Database pauses or data is lost | Site down or content gone | Keep-awake job (#45), backups (option B) |
+| Database pauses or data is lost | Site down or content gone | Keep-awake job (live), backups (option B) |
 | Sign-in emails stop | New people can't sign in | Own email sending (#17); Google sign-in as backup |
-| Spam or abuse | Bad content, notification spam | Approval queue, reports, anti-spam limits (#42), mute and ban (#39) |
+| Spam or abuse | Bad content, notification spam | Approval queue, reports, mute and ban (live), anti-spam limits (#42) |
 | Only one person knows the setup | Project stops if that person leaves | Both founders have access to GitHub, Vercel, Supabase and the domain; README (#22) |
 | Wrong or outdated information | Someone follows bad advice | Verified badge, "Request an update", "Marked as outdated", the official office is always the final source |
 | Legal complaint | Stress, possible fine | Impressum and privacy policy before launch, remove illegal content when reported |
