@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: number
+          is_pinned: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: never
+          is_pinned?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: never
+          is_pinned?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_by: string | null
@@ -58,6 +96,7 @@ export type Database = {
           hidden_at: string | null
           hidden_by: string | null
           id: number
+          parent_id: number | null
           search: unknown
           thread_id: number
         }
@@ -69,6 +108,7 @@ export type Database = {
           hidden_at?: string | null
           hidden_by?: string | null
           id?: never
+          parent_id?: number | null
           search?: never
           thread_id: number
         }
@@ -80,6 +120,7 @@ export type Database = {
           hidden_at?: string | null
           hidden_by?: string | null
           id?: never
+          parent_id?: number | null
           search?: never
           thread_id?: number
         }
@@ -96,6 +137,13 @@ export type Database = {
             columns: ["hidden_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {
@@ -152,6 +200,78 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          announcement_id: number | null
+          comment_id: number | null
+          created_at: string
+          id: number
+          read_at: string | null
+          recipient_id: string
+          thread_id: number | null
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          actor_id?: string | null
+          announcement_id?: number | null
+          comment_id?: number | null
+          created_at?: string
+          id?: never
+          read_at?: string | null
+          recipient_id: string
+          thread_id?: number | null
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          actor_id?: string | null
+          announcement_id?: number | null
+          comment_id?: number | null
+          created_at?: string
+          id?: never
+          read_at?: string | null
+          recipient_id?: string
+          thread_id?: number | null
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           affiliation: Database["public"]["Enums"]["affiliation"] | null
@@ -159,6 +279,7 @@ export type Database = {
           display_name: string
           id: string
           role: Database["public"]["Enums"]["user_role"]
+          username: string
         }
         Insert: {
           affiliation?: Database["public"]["Enums"]["affiliation"] | null
@@ -166,6 +287,7 @@ export type Database = {
           display_name: string
           id: string
           role?: Database["public"]["Enums"]["user_role"]
+          username: string
         }
         Update: {
           affiliation?: Database["public"]["Enums"]["affiliation"] | null
@@ -173,8 +295,77 @@ export type Database = {
           display_name?: string
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
+          username?: string
         }
         Relationships: []
+      }
+      reports: {
+        Row: {
+          comment_id: number | null
+          created_at: string
+          details: string | null
+          id: number
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["report_status"]
+          thread_id: number | null
+        }
+        Insert: {
+          comment_id?: number | null
+          created_at?: string
+          details?: string | null
+          id?: never
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          thread_id?: number | null
+        }
+        Update: {
+          comment_id?: number | null
+          created_at?: string
+          details?: string | null
+          id?: never
+          reason?: Database["public"]["Enums"]["report_reason"]
+          reporter_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          thread_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       thread_revisions: {
         Row: {
@@ -315,8 +506,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_own_account: { Args: never; Returns: undefined }
       is_moderator: { Args: never; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
+      mark_all_notifications_read: { Args: never; Returns: undefined }
       review_moderator_application: {
         Args: {
           application_id: number
@@ -362,6 +555,26 @@ export type Database = {
       affiliation: "student" | "graduate" | "postgrad" | "resident"
       application_status: "pending" | "approved" | "rejected"
       city: "erlangen" | "nuremberg" | "both"
+      notification_type:
+        | "reply"
+        | "mention"
+        | "thread_comment"
+        | "thread_approved"
+        | "thread_rejected"
+        | "best_answer"
+        | "application_approved"
+        | "application_rejected"
+        | "mod_new_thread"
+        | "mod_new_application"
+        | "mod_new_report"
+        | "announcement"
+      report_reason:
+        | "spam"
+        | "offensive"
+        | "wrong_info"
+        | "personal_data"
+        | "other"
+      report_status: "open" | "resolved" | "dismissed"
       thread_status: "pending" | "published" | "rejected" | "archived"
       user_role: "member" | "moderator" | "superadmin"
     }
@@ -494,6 +707,22 @@ export const Constants = {
       affiliation: ["student", "graduate", "postgrad", "resident"],
       application_status: ["pending", "approved", "rejected"],
       city: ["erlangen", "nuremberg", "both"],
+      notification_type: [
+        "reply",
+        "mention",
+        "thread_comment",
+        "thread_approved",
+        "thread_rejected",
+        "best_answer",
+        "application_approved",
+        "application_rejected",
+        "mod_new_thread",
+        "mod_new_application",
+        "mod_new_report",
+        "announcement",
+      ],
+      report_reason: ["spam", "offensive", "wrong_info", "personal_data", "other"],
+      report_status: ["open", "resolved", "dismissed"],
       thread_status: ["pending", "published", "rejected", "archived"],
       user_role: ["member", "moderator", "superadmin"],
     },

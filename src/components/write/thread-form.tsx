@@ -1,8 +1,14 @@
 "use client";
 
+import { AlertCircle, Loader2 } from "lucide-react";
 import { useId, useRef, useState, useTransition } from "react";
 
 import { Markdown } from "@/components/markdown";
+import { MentionTextarea } from "@/components/mentions/mention-textarea";
+import { Button } from "@/components/ui/button";
+import { FieldError, Input, Label, Select } from "@/components/ui/field";
+import { cn } from "@/components/ui/cn";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { cityLabels } from "@/lib/labels";
 import type { FormState } from "./actions";
 
@@ -20,14 +26,19 @@ type Props = {
   action: (formData: FormData) => Promise<FormState>;
 };
 
-const inputClass = "min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground";
+const editorModes = [
+  { value: "write", label: "Write" },
+  { value: "preview", label: "Preview" },
+] as const;
 
-function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) return null;
+const TITLE_MAX = 150;
+const BODY_MAX = 20000;
+
+function Counter({ value, max }: { value: number; max: number }) {
   return (
-    <p id={id} role="alert" className="text-sm text-red-600 dark:text-red-400">
-      {message}
-    </p>
+    <span className={cn("shrink-0 text-meta tabular-nums", value > max * 0.95 ? "text-warning" : "text-subtle")}>
+      {value.toLocaleString("en")}/{max.toLocaleString("en")}
+    </span>
   );
 }
 
@@ -51,6 +62,7 @@ export function ThreadForm({ categories, initial, submitLabel, action }: Props) 
       const result = await action(formData);
       setState(result);
       if (result.fieldErrors) {
+        setPreview(false);
         // Wait for the invalid state to render before looking for the field.
         requestAnimationFrame(() => {
           formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
@@ -64,130 +76,128 @@ export function ThreadForm({ categories, initial, submitLabel, action }: Props) 
     [message ? `${id}-${field}-error` : null, hint].filter(Boolean).join(" ") || undefined;
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+    <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-6" noValidate>
       {state.error ? (
-        <p role="alert" className="rounded-md border border-red-600 p-3 text-sm text-red-600 dark:text-red-400">
+        <p
+          role="alert"
+          className="flex items-start gap-2 rounded-md border border-danger/25 bg-danger/10 p-3 text-meta text-danger"
+        >
+          <AlertCircle aria-hidden strokeWidth={1.75} className="mt-0.5 size-4 shrink-0" />
           {state.error}
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor={`${id}-title`} className="text-sm font-medium">
-          Title
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-baseline justify-between gap-2">
+          <Label htmlFor={`${id}-title`}>Title</Label>
+          <Counter value={title.length} max={TITLE_MAX} />
+        </div>
+        <Input
           id={`${id}-title`}
           name="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
           minLength={8}
-          maxLength={150}
+          maxLength={TITLE_MAX}
           aria-invalid={fe.title ? true : undefined}
           aria-describedby={describe("title", fe.title, `${id}-title-hint`)}
-          className={inputClass}
         />
-        <p id={`${id}-title-hint`} className="text-xs text-muted">
+        <p id={`${id}-title-hint`} className="text-meta text-muted">
           8 to 150 characters. Be specific so others can find it.
         </p>
         <FieldError id={`${id}-title-error`} message={fe.title} />
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor={`${id}-category`} className="text-sm font-medium">
-          Category
-        </label>
-        <select
-          id={`${id}-category`}
-          name="categoryId"
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          required
-          aria-invalid={fe.categoryId ? true : undefined}
-          aria-describedby={describe("category", fe.categoryId)}
-          className={inputClass}
-        >
-          <option value="" disabled>
-            Choose a category
-          </option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <FieldError id={`${id}-category-error`} message={fe.categoryId} />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor={`${id}-city`} className="text-sm font-medium">
-          City (optional)
-        </label>
-        <select
-          id={`${id}-city`}
-          name="city"
-          value={city}
-          onChange={(e) => setCity(e.target.value as typeof city)}
-          aria-invalid={fe.city ? true : undefined}
-          aria-describedby={describe("city", fe.city)}
-          className={inputClass}
-        >
-          <option value="">Not city-specific</option>
-          {(Object.keys(cityLabels) as (keyof typeof cityLabels)[]).map((key) => (
-            <option key={key} value={key}>
-              {cityLabels[key]}
-            </option>
-          ))}
-        </select>
-        <FieldError id={`${id}-city-error`} message={fe.city} />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between gap-2">
-          <label htmlFor={`${id}-body`} className="text-sm font-medium">
-            Text
-          </label>
-          <button
-            type="button"
-            onClick={() => setPreview((p) => !p)}
-            className="min-h-11 rounded-md px-2 text-sm text-muted underline"
+      <div className="grid gap-6 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${id}-category`}>Category</Label>
+          <Select
+            id={`${id}-category`}
+            name="categoryId"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            required
+            aria-invalid={fe.categoryId ? true : undefined}
+            aria-describedby={describe("category", fe.categoryId)}
           >
-            {preview ? "Back to editing" : "Preview"}
-          </button>
+            <option value="" disabled>
+              Choose a category
+            </option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+          <FieldError id={`${id}-category-error`} message={fe.categoryId} />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${id}-city`}>City (optional)</Label>
+          <Select
+            id={`${id}-city`}
+            name="city"
+            value={city}
+            onChange={(e) => setCity(e.target.value as typeof city)}
+            aria-invalid={fe.city ? true : undefined}
+            aria-describedby={describe("city", fe.city)}
+          >
+            <option value="">Not city-specific</option>
+            {(Object.keys(cityLabels) as (keyof typeof cityLabels)[]).map((key) => (
+              <option key={key} value={key}>
+                {cityLabels[key]}
+              </option>
+            ))}
+          </Select>
+          <FieldError id={`${id}-city-error`} message={fe.city} />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor={`${id}-body`}>Text</Label>
+          <SegmentedControl
+            label="Editor mode"
+            value={preview ? "preview" : "write"}
+            options={editorModes}
+            onChange={(mode) => setPreview(mode === "preview")}
+          />
         </div>
         {/* Kept mounted while previewing so the value is still submitted. */}
-        <textarea
+        <MentionTextarea
           id={`${id}-body`}
           name="body"
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onValueChange={setBody}
           required
-          maxLength={20000}
+          maxLength={BODY_MAX}
           rows={12}
           hidden={preview}
+          className="min-h-56"
           aria-invalid={fe.body ? true : undefined}
           aria-describedby={describe("body", fe.body, `${id}-body-hint`)}
-          className={inputClass}
         />
         {preview ? (
-          <div className="min-h-32 rounded-md border border-border p-3">
+          <div className="min-h-56 rounded-md border border-border bg-background p-3 text-body">
             {body.trim() ? <Markdown>{body}</Markdown> : <p className="text-muted">Nothing to preview yet.</p>}
           </div>
         ) : null}
-        <p id={`${id}-body-hint`} className="text-xs text-muted">
-          Markdown: **bold**, *italic*, [link](https://example.com), lists with - and quotes with &gt;.{" "}
-          {body.length}/20000
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <p id={`${id}-body-hint`} className="text-meta text-muted">
+            Markdown: <code className="font-mono">**bold**</code>, <code className="font-mono">*italic*</code>,{" "}
+            <code className="font-mono">[link](https://…)</code>, lists with <code className="font-mono">-</code>,
+            quotes with <code className="font-mono">&gt;</code>. Type @ to mention someone.
+          </p>
+          <Counter value={body.length} max={BODY_MAX} />
+        </div>
         <FieldError id={`${id}-body-error`} message={fe.body} />
       </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="min-h-11 self-start rounded-md bg-accent px-5 text-accent-foreground disabled:opacity-60"
-      >
+      <Button type="submit" disabled={pending} className="self-start">
+        {pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
         {pending ? "Saving…" : submitLabel}
-      </button>
+      </Button>
     </form>
   );
 }

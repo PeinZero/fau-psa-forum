@@ -1,7 +1,13 @@
 "use client";
 
+import { AlertCircle, Loader2, MailCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input, Label } from "@/components/ui/field";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyAuthError } from "./auth-errors";
 
 type Props = { next: string; initialError?: string };
 
@@ -11,11 +17,51 @@ function getClient() {
   return (browserClient ??= createClient());
 }
 
+function LogoMark() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className="size-10 shrink-0">
+      <rect width="24" height="24" rx="6" className="fill-accent" />
+      <rect x="0.5" y="0.5" width="23" height="23" rx="5.5" className="fill-none stroke-white/20" />
+      <path
+        d="M9 17.5V6.5h4a3.25 3.25 0 0 1 0 6.5H9"
+        className="fill-none stroke-accent-foreground"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
+      />
+    </svg>
+  );
+}
+
 export default function LoginForm({ next, initialError }: Props) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState(initialError ?? "");
   const [pending, setPending] = useState(false);
+  const [googlePending, setGooglePending] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const switched = useRef(false);
@@ -35,98 +81,117 @@ export default function LoginForm({ next, initialError }: Props) {
     event.preventDefault();
     setPending(true);
     setError("");
-    const { error } = await getClient().auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: callbackUrl() },
-    });
-    setPending(false);
-    if (error) setError(error.message);
-    else {
-      switched.current = true;
-      setSent(true);
+    try {
+      const { error } = await getClient().auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: callbackUrl() },
+      });
+      if (error) setError(friendlyAuthError(error));
+      else {
+        switched.current = true;
+        setSent(true);
+      }
+    } catch (e) {
+      setError(friendlyAuthError(e instanceof Error ? { name: e.name } : {}));
+    } finally {
+      setPending(false);
     }
   }
 
   async function signInWithGoogle() {
     setError("");
-    const { error } = await getClient().auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: callbackUrl() },
-    });
-    if (error) setError(error.message);
+    setGooglePending(true);
+    try {
+      const { error } = await getClient().auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: callbackUrl() },
+      });
+      if (error) {
+        setError(friendlyAuthError(error));
+        setGooglePending(false);
+      }
+    } catch (e) {
+      setError(friendlyAuthError(e instanceof Error ? { name: e.name } : {}));
+      setGooglePending(false);
+    }
   }
 
   return (
-    <div className="space-y-4">
-      <div role="status">
-        {sent && (
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            We sent a sign-in link to <strong className="break-all">{email}</strong>. Open it on
-            this device to continue.
-          </p>
-        )}
-      </div>
-
+    <Card className="animate-fade-up flex flex-col gap-6 p-5 sm:p-7">
       {sent ? (
-        <div className="space-y-2">
-          <h2 ref={headingRef} tabIndex={-1} className="text-lg font-semibold outline-none">
-            Check your inbox
-          </h2>
-          <button
-            type="button"
-            onClick={() => setSent(false)}
-            className="inline-flex min-h-11 items-center text-sm underline underline-offset-2"
-          >
+        <div className="animate-fade-in flex flex-col items-center gap-4 text-center">
+          <span className="flex size-12 items-center justify-center rounded-full bg-accent-soft text-accent">
+            <MailCheck aria-hidden strokeWidth={1.75} className="size-6" />
+          </span>
+          <div className="flex flex-col gap-1.5">
+            <h1 ref={headingRef} tabIndex={-1} className="text-xl font-semibold tracking-tight outline-none">
+              Check your inbox
+            </h1>
+            <p role="status" className="text-body text-muted">
+              We sent a sign-in link to <strong className="break-all font-medium text-foreground">{email}</strong>. Open
+              it on this device to continue.
+            </p>
+          </div>
+          <Button variant="ghost" onClick={() => setSent(false)}>
             Use a different email
-          </button>
+          </Button>
         </div>
       ) : (
         <>
-          <form onSubmit={sendMagicLink} className="space-y-3">
-            <label htmlFor="email" className="block text-sm font-medium">
-              Email
-            </label>
-            <input
-              ref={emailRef}
-              id="email"
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-            />
-            <button
-              type="submit"
-              disabled={pending}
-              className="min-h-11 w-full rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background disabled:opacity-60"
-            >
-              {pending ? "Sending..." : "Email me a sign-in link"}
-            </button>
-          </form>
-
-          <div className="flex items-center gap-3 text-xs text-neutral-500">
-            <span className="h-px flex-1 bg-neutral-300 dark:bg-neutral-700" />
-            or
-            <span className="h-px flex-1 bg-neutral-300 dark:bg-neutral-700" />
+          <div className="flex flex-col items-center gap-3 text-center">
+            <LogoMark />
+            <div className="flex flex-col gap-1">
+              <h1 className="text-xl font-semibold tracking-tight">Sign in to PSA Forum</h1>
+              <p className="text-meta text-muted">
+                You only need an account to post or comment. Reading is open to everyone.
+              </p>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={signInWithGoogle}
-            className="min-h-11 w-full rounded-md border border-input px-3 py-2 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800"
-          >
-            Continue with Google
-          </button>
+          {error ? (
+            <p
+              role="alert"
+              className="flex items-start gap-2 rounded-md border border-danger/25 bg-danger/10 p-3 text-meta text-danger"
+            >
+              <AlertCircle aria-hidden strokeWidth={1.75} className="mt-0.5 size-4 shrink-0" />
+              {error}
+            </p>
+          ) : null}
+
+          <div className="flex flex-col gap-4">
+            <Button variant="primary" onClick={signInWithGoogle} disabled={googlePending} className="w-full">
+              {googlePending ? <Loader2 aria-hidden className="animate-spin" /> : <GoogleIcon />}
+              Continue with Google
+            </Button>
+
+            <div className="flex items-center gap-3 text-meta text-subtle" aria-hidden>
+              <span className="h-px flex-1 bg-border" />
+              or
+              <span className="h-px flex-1 bg-border" />
+            </div>
+
+            <form onSubmit={sendMagicLink} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  ref={emailRef}
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+              <Button type="submit" variant="secondary" disabled={pending} className="w-full">
+                {pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
+                {pending ? "Sending…" : "Email me a sign-in link"}
+              </Button>
+            </form>
+          </div>
         </>
       )}
-
-      {error && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-          {error}
-        </p>
-      )}
-    </div>
+    </Card>
   );
 }

@@ -2,6 +2,9 @@
 
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Label, Select } from "@/components/ui/field";
+
 import { changeRole } from "./actions";
 
 type Role = "member" | "moderator" | "superadmin";
@@ -28,11 +31,11 @@ export function RoleForm({ target, name, role }: { target: string; name: string;
   return (
     <form action={formAction} className="grid gap-2" aria-describedby={state ? `${uid}-msg` : undefined}>
       <input type="hidden" name="target" value={target} />
-      <label htmlFor={`${uid}-role`} className="text-sm font-medium">
+      <Label htmlFor={`${uid}-role`} className="sr-only">
         Role of {name}
-      </label>
+      </Label>
       <div className="flex flex-wrap gap-2">
-        <select
+        <Select
           ref={selectRef}
           id={`${uid}-role`}
           name="role"
@@ -41,51 +44,42 @@ export function RoleForm({ target, name, role }: { target: string; name: string;
             setValue(e.target.value as Role);
             setConfirming(false);
           }}
-          className="min-h-11 rounded-md border border-input bg-background px-3 text-sm"
+          className="min-w-0 flex-1 sm:w-40 sm:flex-none"
         >
           <option value="member">Member</option>
           <option value="moderator">Moderator</option>
           <option value="superadmin">Superadmin</option>
-        </select>
+        </Select>
         {changed && !confirming && (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="inline-flex min-h-11 items-center rounded-md border border-input px-3 text-sm font-medium"
-          >
+          <Button variant="secondary" onClick={() => setConfirming(true)}>
             Change role
-          </button>
+          </Button>
         )}
       </div>
       {changed && confirming && (
-        <div ref={panelRef} className="flex flex-col gap-2 rounded-md border border-border p-3">
-          <p className="text-sm">
+        <div ref={panelRef} className="flex flex-col gap-3 rounded-lg border border-border bg-background p-3">
+          <p className="text-meta text-muted">
             Change {name} from {role} to {value}?
           </p>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="submit"
-              disabled={pending}
-              className="inline-flex min-h-11 items-center rounded-md bg-red-700 px-3 text-sm font-medium text-white disabled:opacity-60"
-            >
+            <Button type="submit" variant="danger" disabled={pending}>
               {pending ? "Saving..." : "Confirm"}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => {
                 returnFocus.current = true;
                 setConfirming(false);
                 setValue(role);
               }}
-              className="inline-flex min-h-11 items-center rounded-md border border-input px-3 text-sm font-medium"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
       {state && (
-        <p id={`${uid}-msg`} role={state.ok ? "status" : "alert"} className={state.ok ? "text-sm text-muted" : "text-sm text-red-700 dark:text-red-400"}>
+        <p id={`${uid}-msg`} role={state.ok ? "status" : "alert"} className={state.ok ? "text-meta text-muted" : "text-meta text-danger"}>
           {state.message}
         </p>
       )}
