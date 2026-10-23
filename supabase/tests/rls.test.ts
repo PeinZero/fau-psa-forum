@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 
 const migrationsDir = join(import.meta.dirname, "..", "migrations");
+const reviewFixesMigration = "20261023130000_review_fixes.sql";
 
 const supabaseBootstrap = `
   create role anon nologin noinherit;
@@ -188,6 +189,24 @@ describe("profiles", () => {
       /roles change only through set_user_role/,
     );
   });
+
+  test("accounts created before the profile trigger get a profile from the backfill", async () => {
+    await sql("alter table auth.users disable trigger on_auth_user_created");
+    const early = await createUser("owner.early@example.com", { name: "  Early Owner  " });
+    await sql("alter table auth.users enable trigger on_auth_user_created");
+    await sql("update public.profiles set display_name = 'Ayesha K' where id = $1", [ids.a]);
+    assert.equal((await sql("select 1 from public.profiles where id = $1", [early])).length, 0);
+
+    await db.exec(readFileSync(join(migrationsDir, reviewFixesMigration), "utf8"));
+
+    const rows = await sql<{ id: string; display_name: string; role: string }>(
+      "select id, display_name, role from public.profiles where id = any($1::uuid[])",
+      [[early, ids.a]],
+    );
+    const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
+    assert.deepEqual(byId[early], { id: early, display_name: "Early Owner", role: "member" });
+    assert.equal(byId[ids.a].display_name, "Ayesha K");
+  });
 });
 
 describe("thread visibility", () => {
@@ -245,6 +264,26 @@ describe("thread submission and editing", () => {
       as(B, "insert into public.threads (title, body, category_id, author_id) values ('Impersonation', 'x', $1, $2)", [coursesId, ids.a]),
       /permission denied/,
     );
+  });
+
+  test("the app's insert without author_id makes the caller the author and generates a slug", async () => {
+    const [thread] = await as<{ id: number; author_id: string; slug: string; status: string }>(
+      A,
+      "insert into threads (title, body, category_id, city) values ('Werkstudent hours during semester?', 'Is 20 hours the limit?', $1, 'erlangen') returning id, author_id, slug, status",
+      [coursesId],
+    );
+    assert.deepEqual(
+      { author_id: thread.author_id, status: thread.status },
+      { author_id: ids.a, status: "pending" },
+    );
+    assert.match(thread.slug, /^werkstudent-hours-during-semester-[0-9a-f]{6}$/);
+
+    const [comment] = await as<{ author_id: string }>(
+      B,
+      "insert into comments (thread_id, body) values ($1, '20 hours a week while lectures run') returning author_id",
+      [threads.otherPublished],
+    );
+    assert.equal(comment.author_id, ids.b);
   });
 
   test("a 4th pending thread is rejected for members but not for moderators", async () => {
@@ -312,6 +351,23 @@ describe("thread submission and editing", () => {
     const [count] = await sql<{ n: number }>("select count(*)::int as n from public.thread_revisions");
     assert.equal(count.n, 0);
   });
+
+  test("a moderator editing someone else's pending thread writes a revision without edited_at", async () => {
+    const [edited] = await as<{ title: string; edited_at: Date | null }>(
+      MOD,
+      "update public.threads set title = 'Pending question, curated', category_id = $2 where id = $1 returning title, edited_at",
+      [threads.pending, coursesId],
+    );
+    assert.deepEqual(edited, { title: "Pending question, curated", edited_at: null });
+    const revisions = await as<{ title: string; edited_by: string }>(MOD, "select title, edited_by from public.thread_revisions where thread_id = $1", [threads.pending]);
+    assert.deepEqual(revisions, [{ title: "Pending question from Ayesha", edited_by: ids.mod }]);
+  });
+
+  test("a moderator editing someone else's published thread is recorded like an author edit", async () => {
+    await as(MOD, "update public.threads set body = 'Bring your Anmeldung and passport' where id = $1", [threads.published]);
+    const revisions = await as<{ body: string; edited_by: string }>(MOD, "select body, edited_by from public.thread_revisions where thread_id = $1", [threads.published]);
+    assert.deepEqual(revisions, [{ body: "Bring your Anmeldung", edited_by: ids.mod }]);
+  });
 });
 
 describe("comments", () => {
@@ -363,6 +419,31 @@ describe("comments", () => {
     await assert.rejects(as(B, "update public.comments set hidden_by = $2 where id = $1", [comments.visible, ids.b]), /permission denied/);
   });
 
+  test("moderators cannot rewrite someone else's comment, only hide it", async () => {
+    for (const actor of [MOD, ADMIN]) {
+      await assert.rejects(
+        as(actor, "update public.comments set body = 'Words the author never wrote' where id = $1", [comments.visible]),
+        /only the author can edit a comment/,
+      );
+    }
+    await assert.rejects(
+      as(MOD, "update public.comments set body = 'Edited while hiding', hidden_at = now() where id = $1", [comments.visible]),
+      /only the author can edit a comment/,
+    );
+    const [hidden] = await as<{ body: string; hidden_by: string }>(MOD, "update public.comments set hidden_at = now() where id = $1 returning body, hidden_by", [comments.visible]);
+    assert.deepEqual(hidden, { body: "The Ausländerbehörde needs a Sperrkonto statement", hidden_by: ids.mod });
+  });
+
+  test("authors cannot edit their comment once a moderator hid it", async () => {
+    // No WHERE or RETURNING: the select policy would otherwise filter the hidden row on its own.
+    await as(A, "update public.comments set body = 'Totally legit now'");
+    const rows = await sql<{ id: number; body: string }>("select id, body from public.comments where author_id = $1 order by id", [ids.a]);
+    assert.deepEqual(rows, [
+      { id: comments.hidden, body: "Spam about cryptocurrency giveaway" },
+      { id: comments.onOther, body: "Totally legit now" },
+    ]);
+  });
+
   test("moderators hide and unhide comments; hidden_by records who did it", async () => {
     const [hidden] = await as<{ hidden_by: string }>(MOD, "update public.comments set hidden_at = now() where id = $1 returning hidden_by", [comments.visible]);
     assert.equal(hidden.hidden_by, ids.mod);
@@ -382,6 +463,17 @@ describe("moderation", () => {
 
     const [rejected] = await as<{ status: string; reviewed_by: string }>(ADMIN, "update public.threads set status = 'rejected', rejection_reason = 'Off topic' where id = $1 returning status, reviewed_by", [threads.otherPublished]);
     assert.deepEqual(rejected, { status: "rejected", reviewed_by: ids.admin });
+  });
+
+  test("approving a pending or rejected thread moves it to the top of the lists", async () => {
+    const dayAgo = "now() - interval '1 day'";
+    await sql(`update public.threads set last_activity_at = ${dayAgo} where id = any($1::bigint[])`, [[threads.pending, threads.rejected, threads.archived]]);
+    for (const id of [threads.pending, threads.rejected]) {
+      const [row] = await as<{ bumped: boolean }>(MOD, "update public.threads set status = 'published' where id = $1 returning last_activity_at = now() as bumped", [id]);
+      assert.equal(row.bumped, true);
+    }
+    const [unarchived] = await as<{ bumped: boolean }>(MOD, "update public.threads set status = 'published' where id = $1 returning last_activity_at = now() as bumped", [threads.archived]);
+    assert.equal(unarchived.bumped, false);
   });
 
   test("moderators archive, mark outdated and pin", async () => {

@@ -24,6 +24,9 @@ One row per auth user, created by a trigger on `auth.users` insert.
 | role | user_role | default `member`; changed only via `set_user_role()` |
 | created_at | timestamptz | |
 
+Accounts that signed in before the trigger existed are backfilled with the same naming rule
+(`default_display_name()`).
+
 ### categories
 Seeded: RP & Visa, Courses, Accommodation, Jobs, First Steps, Other.
 
@@ -54,7 +57,7 @@ Seeded: RP & Visa, Courses, Accommodation, Jobs, First Steps, Other.
 | rejection_reason | text null | visible to the author |
 | reviewed_by / reviewed_at | uuid null / timestamptz null | last moderation decision |
 | edited_at | timestamptz null | set when title/body change after publishing |
-| last_activity_at | timestamptz | bumped by new comments; list sort order |
+| last_activity_at | timestamptz | bumped by new comments and on approval (pending/rejected → published); list sort order |
 | created_at | timestamptz | |
 | search | tsvector generated | title (weight A) + body (weight B), English config |
 
@@ -62,7 +65,8 @@ Seeded: RP & Visa, Courses, Accommodation, Jobs, First Steps, Other.
 
 ### thread_revisions
 History for the "edits go live, moderators notified" rule. A trigger inserts the previous
-title/body whenever a published thread's title or body changes.
+title/body whenever the title or body changes on a published/archived thread, or on a thread
+in any status when the editor is not its author (moderator curation).
 
 | column | type | notes |
 |---|---|---|
@@ -116,9 +120,9 @@ Approval runs through `review_moderator_application(id, decision)`, which also s
 | read own pending/rejected threads | | ✓ | ✓ | ✓ |
 | read all pending/rejected threads, hidden comments, revisions | | | ✓ | ✓ |
 | submit thread (always `pending`) | | ✓ (max 3 pending) | ✓ | ✓ |
-| edit own thread title/body/category/city | | ✓ | ✓ | ✓ |
+| edit thread title/body/category/city | | own | any (revisions recorded) | any (revisions recorded) |
 | comment on published, non-archived threads | | ✓ | ✓ | ✓ |
-| edit own comment | | ✓ | ✓ | ✓ |
+| edit own comment (not once hidden); nobody edits others' comments | | ✓ | ✓ | ✓ |
 | approve/reject/archive/outdate/pin threads, set best answer, hide comments | | | ✓ | ✓ |
 | create/rename categories | | | ✓ | ✓ |
 | delete categories | | | | ✓ |
@@ -128,7 +132,7 @@ Approval runs through `review_moderator_application(id, decision)`, which also s
 
 Status, review, pin and role columns are never writable by authors directly; moderation goes
 through `security definer` functions or moderator-only policies, and a trigger rejects
-member updates to protected columns.
+member updates to protected columns. Moderators hide comments but cannot change their body.
 
 ## Search
 `search_threads(q text)` uses `websearch_to_tsquery('english', q)` over thread `search` and

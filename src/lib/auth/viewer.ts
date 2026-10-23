@@ -1,3 +1,4 @@
+import "server-only";
 import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
@@ -6,6 +7,10 @@ import type { Database } from "@/lib/supabase/database.types";
 export type UserRole = Database["public"]["Enums"]["user_role"];
 
 export type Viewer = { userId: string; role: UserRole; displayName: string };
+
+export function isModerator(role: UserRole): boolean {
+  return role === "moderator" || role === "superadmin";
+}
 
 /**
  * The signed-in visitor with their profile role, cached per request; null for anonymous visitors.

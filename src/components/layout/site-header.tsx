@@ -39,12 +39,18 @@ export function SiteHeader() {
             Search
           </button>
         </Form>
-        <div className="ml-auto">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <Link
+            href="/new"
+            className="inline-flex min-h-11 items-center rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground"
+          >
+            New thread
+          </Link>
           <Suspense
             fallback={
               <div
                 aria-hidden
-                className="h-8 w-20 animate-pulse rounded-md bg-border"
+                className="h-11 w-20 animate-pulse rounded-md bg-border"
               />
             }
           >
