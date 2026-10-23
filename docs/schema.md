@@ -405,6 +405,14 @@ Status, review, pin and role columns are never writable by authors directly; mod
 through `security definer` functions or moderator-only policies, and a trigger rejects
 member updates to protected columns. Moderators hide comments but cannot change their body.
 
+## Link limits
+
+`comments_link_limit` rejects comments (inserts and body edits) that contain a link unless the
+account is at least a day old and has written 3 comments, hidden ones included
+(`my_comment_count()` bypasses RLS to count them). Moderators and the service role are exempt.
+Threads are not covered: moderators review them before anyone sees them. A link is a scheme
+(`http://`, `https://`), `www.` or a markdown `](`; bare domains are not detected.
+
 ## Search
 `search_threads(q text)` uses `websearch_to_tsquery('english', q)` over thread `search` and
 visible comment `search`, returns published + archived threads ranked by `ts_rank`
