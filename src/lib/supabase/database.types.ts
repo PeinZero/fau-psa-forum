@@ -671,6 +671,42 @@ export type Database = {
           },
         ]
       }
+      user_restrictions: {
+        Row: {
+          created_at: string
+          reason: string
+          restricted_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          reason: string
+          restricted_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          reason?: string
+          restricted_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_restrictions_restricted_by_fkey"
+            columns: ["restricted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_restrictions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       thread_revisions: {
         Row: {
           body: string
@@ -971,6 +1007,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      set_user_restricted: {
+        Args: { reason?: string; restricted: boolean; target: string }
+        Returns: undefined
       }
       set_user_role: {
         Args: { new_role: Database["public"]["Enums"]["user_role"]; target: string }

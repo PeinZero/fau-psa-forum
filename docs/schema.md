@@ -405,6 +405,14 @@ Status, review, pin and role columns are never writable by authors directly; mod
 through `security definer` functions or moderator-only policies, and a trigger rejects
 member updates to protected columns. Moderators hide comments but cannot change their body.
 
+## Restrictions
+
+`user_restrictions (user_id, restricted_by, reason, created_at)`: moderators restrict a member through
+`set_user_restricted(target, restricted, reason)`; there are no direct writes. Only moderators read the
+table (the reason is internal). A restricted member can read but not post or edit comments, create
+threads, report or vote: `reject_if_restricted()` runs before those inserts. Moderators and the
+superadmin cannot be restricted. The UI is `/mod/signups` (the 50 newest accounts).
+
 ## Search
 `search_threads(q text)` uses `websearch_to_tsquery('english', q)` over thread `search` and
 visible comment `search`, returns published + archived threads ranked by `ts_rank`
