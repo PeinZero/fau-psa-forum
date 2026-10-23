@@ -124,7 +124,8 @@ test.describe("thread menu as a moderator", () => {
     await page.goto(`/t/${slug}`);
 
     await (await threadMenuItem(page, "Mark outdated")).click();
-    const banner = page.getByRole("status").filter({ hasText: "Marked as outdated" });
+    const banner = page.getByRole("status").filter({ hasText: "A moderator flagged" });
+    await expect(banner).toContainText("Marked as outdated");
     await expect(banner).toContainText("A moderator flagged that parts of this thread may no longer be correct.");
     await expect(page.getByText("Outdated", { exact: true })).toBeVisible();
   });
@@ -162,7 +163,8 @@ test("an author's edit removes the verified badge", async ({ browser }) => {
   await memberPage.getByLabel("Text", { exact: true }).fill(newBody);
   await memberPage.getByRole("button", { name: "Save changes" }).click();
   await expect(memberPage).toHaveURL(new RegExp(`/t/${slug}$`));
-  await expect(memberPage.getByText(newBody)).toBeVisible();
+  // The edit form stays mounted but hidden after navigating away, so only the visible copy counts.
+  await expect(memberPage.getByText(newBody).filter({ visible: true })).toBeVisible();
   await expect(verifiedBadge(memberPage)).toHaveCount(0);
 });
 

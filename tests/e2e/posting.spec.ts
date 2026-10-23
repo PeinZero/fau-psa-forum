@@ -32,7 +32,12 @@ test("suggests similar threads while the title is typed", async ({ browser }) =>
 
   const page = await pageAs(browser, await newUser());
   await page.goto("/new");
-  await page.getByLabel("Title", { exact: true }).pressSequentially(`Blocked account renewal ${tag}`);
+  // Keystrokes before hydration are dropped by the controlled field; the counter proves React has them.
+  const draft = `Blocked account renewal ${tag}`;
+  await expect(async () => {
+    await page.getByLabel("Title", { exact: true }).fill(draft);
+    await expect(page.getByText(`${draft.length}/150`)).toBeVisible({ timeout: 1000 });
+  }).toPass();
 
   const similar = page.getByRole("region", { name: "Similar threads" });
   await expect(similar).toBeVisible();

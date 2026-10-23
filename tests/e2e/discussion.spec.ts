@@ -243,6 +243,6 @@ test("a hidden comment disappears for members and comes back when unhidden", asy
   await modPage.getByRole("menuitem", { name: "Unhide comment" }).click();
   await expect(commentAnchor(modPage, comment.id)).not.toContainText("Hidden by a moderator");
 
-  await memberPage.reload();
+  await openThread(memberPage, slug);
   await expect(memberPage.getByText(body)).toBeVisible();
 });

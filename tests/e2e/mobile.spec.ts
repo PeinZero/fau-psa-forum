@@ -46,9 +46,10 @@ test.describe("seeded pages at 390px", () => {
 
   test("search results", async ({ page }) => {
     const tag = uid();
-    await seedThread(`Wohnungssuche Erlangen Nuremberg commute ${tag}`);
+    const title = `Wohnungssuche Erlangen Nuremberg commute ${tag}`;
+    await seedThread(title);
     await page.goto(`/search?q=${tag}`);
-    await expect(page.getByRole("heading", { level: 3 })).toContainText(tag);
+    await expect(page.getByRole("link", { name: title })).toBeVisible();
     await expectNoHorizontalScroll(page);
   });
 

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import { createClient } from "@supabase/supabase-js";
-import { test as base, type Browser, type Page } from "@playwright/test";
+import { test as base, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 import { AUTH_DIR, createSignedInUser, e2eEnv, type SeedRole, type SeededUser } from "./global-setup";
 
@@ -46,9 +46,12 @@ export async function newUser(role: SeedRole = "member", name?: string): Promise
   });
 }
 
-/** A page in its own browser context signed in as `user`; closed with the test's browser. */
+const openContexts: BrowserContext[] = [];
+
+/** A page in its own browser context signed in as `user` (null: signed out); closed after the test. */
 export async function pageAs(browser: Browser, user: SeededUser | null): Promise<Page> {
   const context = await browser.newContext(user ? { storageState: user.state } : {});
+  openContexts.push(context);
   return context.newPage();
 }
 
@@ -170,5 +173,16 @@ export async function unreadNotifications(userId: string, type?: string): Promis
   return count ?? 0;
 }
 
-export const test = base;
+// Closing records each context's trace and failure screenshot under the test that opened it, and
+// stops its Realtime socket before the next test starts.
+export const test = base.extend<{ closeContexts: void }>({
+  closeContexts: [
+    // eslint-disable-next-line no-empty-pattern
+    async ({}, use) => {
+      await use();
+      await Promise.all(openContexts.splice(0).map((context) => context.close()));
+    },
+    { auto: true },
+  ],
+});
 export { expect } from "@playwright/test";
