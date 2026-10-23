@@ -12,6 +12,8 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # The secrets live in this GitHub environment, not at repository level.
+    environment: wake up call for superbase
     steps:
       - name: Read one row through the REST API
         env:
@@ -19,7 +21,7 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
-            echo "::error::Set the SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY repository secrets (see docs/deployment.md)."
+            echo "::error::Set the SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY environment secrets (see docs/deployment.md)."
             exit 1
           fi
           # A failure fails the run, and GitHub emails the people watching workflow failures.
