@@ -12,6 +12,8 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
+    // GitHub's ubuntu runners ship Chrome, so CI skips downloading a browser.
+    ...(process.env.CI ? { channel: "chrome" } : {}),
     baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
