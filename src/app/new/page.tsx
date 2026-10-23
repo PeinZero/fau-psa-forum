@@ -1,6 +1,8 @@
 import { Info } from "lucide-react";
 import { Suspense } from "react";
 
+import { getOwnRestriction } from "@/components/restrictions/data";
+import { RestrictionBanner } from "@/components/restrictions/restriction-banner";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { getViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
@@ -19,10 +21,14 @@ async function NewThread() {
   }
 
   const supabase = await createClient();
-  const { data: categories } = await supabase.from("categories").select("id, name").order("sort_order");
+  const [{ data: categories }, restriction] = await Promise.all([
+    supabase.from("categories").select("id, name").order("sort_order"),
+    getOwnRestriction(viewer.userId),
+  ]);
 
   return (
     <>
+      {restriction && <RestrictionBanner restriction={restriction} className="animate-fade-up" />}
       <Card className="animate-fade-up flex items-start gap-3 bg-accent-soft/40">
         <Info aria-hidden strokeWidth={1.75} className="mt-0.5 size-4 shrink-0 text-accent" />
         <div className="text-meta text-muted">

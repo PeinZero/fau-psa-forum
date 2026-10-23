@@ -3,6 +3,8 @@ import Link from "next/link";
 
 import { Author, Avatar } from "@/components/author";
 import { Markdown } from "@/components/markdown";
+import { getOwnRestriction } from "@/components/restrictions/data";
+import { RestrictionBanner } from "@/components/restrictions/restriction-banner";
 import { CommentMenu } from "@/components/thread/comment-menu";
 import { CommentSortControl } from "@/components/thread/comment-sort";
 import { type CommentGroup, groupComments, sortGroups } from "@/components/thread/comment-groups";
@@ -26,17 +28,20 @@ import { CommentEditor, CommentEditScope } from "@/components/write/comment-edit
 import { CommentForm } from "@/components/write/comment-form";
 import { getEffectiveViewer, isModerator, type Viewer } from "@/lib/auth/viewer";
 import { formatDate } from "@/lib/labels";
+import type { Restriction } from "@/lib/restrictions";
 
 /** Viewer-independent comments, shown while the signed-in state streams in. */
 export function PublicComments({ thread, sort }: { thread: ThreadDetail; sort: CommentSort }) {
-  return <Comments thread={thread} viewer={null} sort={sort} votes={NO_VOTES} />;
+  return <Comments thread={thread} viewer={null} sort={sort} votes={NO_VOTES} restriction={null} />;
 }
 
 /** Renders for the effective viewer: a moderator viewing as a member gets the member page. */
 export async function ViewerComments({ thread, sort }: { thread: ThreadDetail; sort: CommentSort }) {
   const viewer = await getEffectiveViewer();
-  const votes = viewer ? await getMyVotes(viewer.userId, thread.comments.map((c) => c.id)) : NO_VOTES;
-  return <Comments thread={thread} viewer={viewer} sort={sort} votes={votes} />;
+  const [votes, restriction] = viewer
+    ? await Promise.all([getMyVotes(viewer.userId, thread.comments.map((c) => c.id)), getOwnRestriction(viewer.userId)])
+    : [NO_VOTES, null];
+  return <Comments thread={thread} viewer={viewer} sort={sort} votes={votes} restriction={restriction} />;
 }
 
 const NO_VOTES: ReadonlyMap<number, MyVote> = new Map();
@@ -54,11 +59,14 @@ function Comments({
   viewer,
   sort,
   votes,
+  restriction,
 }: {
   thread: ThreadDetail;
   viewer: Viewer | null;
   sort: CommentSort;
   votes: ReadonlyMap<number, MyVote>;
+  /** The viewer's mute or ban, which replaces the comment form with an explanation. */
+  restriction: Restriction | null;
 }) {
   const isMod = viewer !== null && isModerator(viewer.role);
   // RLS still returns hidden comments to a moderator viewing as a member; members never see them.
@@ -66,7 +74,7 @@ function Comments({
   const best = comments.find((c) => c.id === thread.best_comment_id);
   const groups = sortGroups(groupComments(comments), sort);
   const canComment = thread.status === "published";
-  const ctx: ItemContext = { thread, viewer, isMod, canReply: canComment && viewer !== null, votes };
+  const ctx: ItemContext = { thread, viewer, isMod, canReply: canComment && viewer !== null && restriction === null, votes };
   const count = comments.length;
 
   return (
@@ -112,7 +120,9 @@ function Comments({
       )}
 
       {canComment &&
-        (viewer ? (
+        (restriction ? (
+          <RestrictionBanner restriction={restriction} />
+        ) : viewer ? (
           <div className={cardClasses()}>
             <CommentForm threadId={thread.id} />
           </div>
@@ -228,7 +238,7 @@ function CommentItem({
               slug={thread.slug}
               commentId={comment.id}
               canReport={canReport}
-              mod={isMod ? { isBest, isHidden } : null}
+              mod={isMod ? { isBest, isHidden, author: isOwn ? null : mutableAuthor(comment) } : null}
             />
           )}
         </div>
@@ -250,6 +260,12 @@ function CommentItem({
   );
 
   return canEdit ? <CommentEditScope>{item}</CommentEditScope> : item;
+}
+
+/** Moderators mute members from the menu; staff accounts are restricted by the superadmin on /mod/users. */
+function mutableAuthor(comment: CommentDetail) {
+  if (!comment.author_id || comment.author?.role !== "member") return null;
+  return { id: comment.author_id, name: comment.author.display_name };
 }
 
 export function CommentsSkeleton() {

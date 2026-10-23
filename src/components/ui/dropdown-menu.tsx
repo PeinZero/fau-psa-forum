@@ -16,13 +16,16 @@ import {
 
 import { Button, buttonClasses } from "./button";
 import { cn } from "./cn";
-import { Label, Textarea } from "./field";
+import { Label, Select } from "./field";
+import { ReasonField, type ReasonSpec } from "./reason-field";
 
-/** A second step inside the menu before `onSelect` runs, optionally asking for a reason. */
+/** A second step inside the menu before `onSelect` runs, optionally asking for a choice and a reason. */
 export type MenuConfirm = {
   message: string;
   action: string;
-  reason?: { label: string; max: number };
+  /** A required pick from a short list, submitted as `choice` (e.g. a duration). */
+  choice?: { label: string; options: readonly { value: string; label: string }[] };
+  reason?: ReasonSpec;
 };
 
 export type MenuItem = {
@@ -34,7 +37,7 @@ export type MenuItem = {
   /** Renders an on/off switch (menuitemcheckbox). */
   checked?: boolean;
   confirm?: MenuConfirm;
-  onSelect?: (input: { reason?: string }) => void;
+  onSelect?: (input: { reason?: string; choice?: string }) => void;
 };
 
 /** Falsy entries are skipped, so callers can write `isMod && {...}`. */
@@ -127,7 +130,7 @@ export function DropdownMenu({ label, items, trigger, triggerClassName, heading,
     const menu = menuRef.current;
     if (!open || !menu) return;
     if (confirming) {
-      menu.querySelector<HTMLElement>("textarea, button")?.focus();
+      menu.querySelector<HTMLElement>("select, textarea, button")?.focus();
       return;
     }
     const list = Array.from(menu.querySelectorAll<HTMLElement>(ITEM_SELECTOR));
@@ -206,10 +209,15 @@ export function DropdownMenu({ label, items, trigger, triggerClassName, heading,
   function onConfirm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!confirming) return;
-    const reason = new FormData(event.currentTarget).get("reason");
+    const data = new FormData(event.currentTarget);
+    const reason = data.get("reason");
+    const choice = data.get("choice");
     const item = confirming;
     close(true);
-    item.onSelect?.({ reason: typeof reason === "string" ? reason.trim() : undefined });
+    item.onSelect?.({
+      reason: typeof reason === "string" ? reason.trim() : undefined,
+      choice: typeof choice === "string" ? choice : undefined,
+    });
   }
 
   let itemIndex = -1;
@@ -256,19 +264,19 @@ export function DropdownMenu({ label, items, trigger, triggerClassName, heading,
           {confirming?.confirm ? (
             <form onSubmit={onConfirm} className="flex flex-col gap-3 p-2">
               <p className="text-meta text-muted">{confirming.confirm.message}</p>
-              {confirming.confirm.reason && (
+              {confirming.confirm.choice && (
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor={`${uid}-reason`}>{confirming.confirm.reason.label}</Label>
-                  <Textarea
-                    id={`${uid}-reason`}
-                    name="reason"
-                    required
-                    maxLength={confirming.confirm.reason.max}
-                    rows={3}
-                    className="min-h-20"
-                  />
+                  <Label htmlFor={`${uid}-choice`}>{confirming.confirm.choice.label}</Label>
+                  <Select id={`${uid}-choice`} name="choice" required>
+                    {confirming.confirm.choice.options.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
               )}
+              {confirming.confirm.reason && <ReasonField id={uid} spec={confirming.confirm.reason} />}
               <div className="flex flex-wrap justify-end gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setConfirming(null)}>
                   Cancel

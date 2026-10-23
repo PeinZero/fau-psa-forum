@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -35,6 +36,8 @@ jobs:
       - run: npm run build
 
   e2e:
+    # Paused on PRs and pushes because it slows down merging; run it manually from the Actions tab.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

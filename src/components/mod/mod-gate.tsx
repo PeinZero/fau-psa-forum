@@ -37,15 +37,18 @@ export async function ModGate({ children }: { children: ReactNode }) {
     { href: "/mod/reports", label: "Reports", icon: "reports", count: counts.reports },
     { href: "/mod/updates", label: "Update requests", icon: "updates", count: counts.updates },
     { href: "/mod/edits", label: "Recent edits", icon: "edits", count: counts.edits },
+    { href: "/mod/signups", label: "Recent sign-ups", icon: "signups" },
     { href: "/mod/applications", label: "Applications", icon: "applications", count: counts.applications },
     { href: "/mod/announcements", label: "Announcements", icon: "announcements" },
     { ...GUIDES_MOD_NAV_ITEM, icon: "guides" },
     { href: "/mod/categories", label: "Categories", icon: "categories" },
-    ...(viewer.role === "superadmin" ? [{ href: "/mod/users", label: "Users", icon: "users" as const }] : []),
+    { href: "/mod/replies", label: "Canned replies", icon: "replies" },
+    { href: "/mod/users", label: "Users", icon: "users" },
+    { href: "/mod/log", label: "Log", icon: "log" },
   ];
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
       <ModNav items={items} />
       <div className="min-w-0">{children}</div>
     </div>

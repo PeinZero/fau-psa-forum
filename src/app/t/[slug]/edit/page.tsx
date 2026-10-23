@@ -12,6 +12,8 @@ import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { updateThreadAction } from "@/components/write/actions";
 import { ThreadForm } from "@/components/write/thread-form";
+import { getOwnRestriction } from "@/components/restrictions/data";
+import { RestrictionBanner } from "@/components/restrictions/restriction-banner";
 
 export const metadata = { title: "Edit thread" };
 
@@ -42,7 +44,10 @@ async function EditThread({ params }: { params: Promise<{ slug: string }> }) {
     );
   }
 
-  const { data: categories } = await supabase.from("categories").select("id, name").order("sort_order");
+  const [{ data: categories }, restriction] = await Promise.all([
+    supabase.from("categories").select("id, name").order("sort_order"),
+    getOwnRestriction(viewer.userId),
+  ]);
 
   const note =
     thread.status === "published"
@@ -53,6 +58,7 @@ async function EditThread({ params }: { params: Promise<{ slug: string }> }) {
 
   return (
     <>
+      {restriction?.kind === "ban" && <RestrictionBanner restriction={restriction} />}
       {note ? (
         <Card role="note" className="animate-fade-up flex items-start gap-3 bg-accent-soft/40">
           <Info aria-hidden strokeWidth={1.75} className="mt-0.5 size-4 shrink-0 text-accent" />
