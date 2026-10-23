@@ -15,9 +15,9 @@ that needs server-only modules in a pure file so it can be imported (see `commen
 
 ## End-to-end
 
-Password sign-in exists only for tests: `tests/e2e/global-setup.ts` creates a seeded member and
-moderator through the Supabase admin API and stores a signed-in browser state per role. Without
-the variables below the signed-in specs skip and only the public specs run.
+Password sign-in exists only for tests: `tests/e2e/global-setup.ts` creates a seeded member,
+moderator and superadmin through the Supabase admin API and stores a signed-in browser state per
+role. Without the variables below the signed-in specs skip and only the public specs run.
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
@@ -30,13 +30,29 @@ project. Never point it at production: the setup creates users and the specs ins
 
 Locally, `npm run test:e2e` reuses the dev server you already have running.
 
+One spec per area (`account`, `posting`, `moderation`, `discussion`, `saved`, `reports`,
+`announcements`, `guides`, `edits`, `account-deletion`, `share`, `public`, `mobile`).
+`tests/e2e/fixtures.ts` provides:
+
+- `newUser(role)` + `pageAs(browser, user)`: a fresh signed-in user in its own context, so
+  notification counts and per-user limits never leak between tests; contexts close after each test.
+- `seedThread`, `seedComment`, `seedReport`, `seedAnnouncement`, `seedGuide`: arrange data through
+  the service role; `unreadNotifications(userId, type)` asserts what was delivered.
+- Titles carry `uid()` so the shared database never confuses one test's rows with another's.
+
+Things that bite: clicks and keystrokes before hydration are lost (wait for something only the
+hydrated page renders, or retry the action inside `expect(...).toPass()`); visited routes stay
+mounted but hidden, so match text with `.filter({ visible: true })` after client navigation;
+fuzzy search matches similar `uid()`s, so assert on your own title.
+
+`mobile.spec.ts` checks for horizontal overflow at 390px under the desktop project.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every PR: lint, typecheck, `npm test`, `npm run test:db`, build,
-then a small desktop-only e2e run (sign-in, comment, vote, public pages) against a throwaway `supabase start` stack. Failures upload the Playwright report, traces,
-and screenshots.
+then the full desktop e2e suite (about 3 minutes) against a throwaway `supabase start` stack that
+includes Realtime. Failures upload the Playwright report, traces, and screenshots.
 
 ## Not done yet
 
-The live @mention bell and moderator pages (dropped to keep CI fast), thread posting and approval, reply scoping, reporting and resolving, account deletion, and a
-Lighthouse CI budget for the home and thread pages.
+Email notifications (no SMTP yet) and a Lighthouse CI budget for the home and thread pages.

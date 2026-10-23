@@ -48,7 +48,7 @@ export async function ModGate({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
       <ModNav items={items} />
       <div className="min-w-0">{children}</div>
     </div>
