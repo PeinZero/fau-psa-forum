@@ -14,7 +14,9 @@ Authorization lives in Postgres Row Level Security; the UI only mirrors it.
 - `report_status`: `open`, `resolved`, `dismissed`
 - `notification_type`: `reply`, `mention`, `thread_comment`, `thread_approved`, `thread_rejected`,
   `best_answer`, `application_approved`, `application_rejected`, `mod_new_thread`,
-  `mod_new_application`, `mod_new_report`, `announcement`
+  `mod_new_application`, `mod_new_report`, `announcement`, `mod_new_update_request`,
+  `followed_thread_activity`
+- `update_request_status`: `open`, `resolved`, `dismissed`
 
 ## Tables
 
@@ -28,7 +30,10 @@ One row per auth user, created by a trigger on `auth.users` insert.
 | username | text unique | @handle, 3–20 chars `[a-z0-9_]`, stored lowercase; editable by the user |
 | affiliation | affiliation null | self-chosen, unverified badge |
 | role | user_role | default `member`; changed only via `set_user_role()` |
+| reputation | int | default 0; cached sum of `reputation_events.points`, not client-writable |
+| best_answer_count | int | default 0; cached number of current best answers, not client-writable |
 | created_at | timestamptz | |
+| announcements_seen_at | timestamptz null | default `now()`; when the member last opened `/announcements`, own row only; announcements newer than this are unseen |
 
 Accounts that signed in before the trigger existed are backfilled with the same naming rule
 (`default_display_name()`).
@@ -82,8 +87,18 @@ Seeded: RP & Visa, Courses, Accommodation, Jobs, First Steps, Other.
 | reviewed_by / reviewed_at | uuid null / timestamptz null | last moderation decision |
 | edited_at | timestamptz null | set when title/body change after publishing |
 | last_activity_at | timestamptz | bumped by new comments and on approval (pending/rejected → published); list sort order |
+| last_verified_at | timestamptz null | set by `mark_thread_verified()`: "Verified Oct 2026" badge; cleared with `verified_by` when a non-moderator changes title or body |
+| verified_by | uuid null → profiles | moderator who verified last; set null on account deletion |
 | created_at | timestamptz | |
 | search | tsvector generated | title (weight A) + body (weight B), English config |
+
+Trigram index `threads_title_trgm_idx` (`pg_trgm`, schema `extensions`) on `title` for typo-tolerant search.
+`mark_thread_verified(thread_id)` (moderators/superadmin): sets `last_verified_at = now()`,
+`verified_by = caller`; errors `only moderators can verify threads` (42501), `thread not found`
+(P0002). A title or body edit by the author (any non-moderator) resets `last_verified_at` and
+`verified_by` to null, since the edit goes live unreviewed; moderator edits keep the badge.
+Threads unverified for more than 6 months get a soft "may be outdated" hint in the UI
+(not the `is_outdated` flag).
 
 `archived` = read-only (no new comments), hidden from lists, still reachable by link and search.
 
@@ -146,6 +161,85 @@ policies enforce the rules; a guard trigger reports them first with:
 `comments.score` changes only through the vote triggers (`the score of a comment changes only
 through votes`, 42501, even if a column grant were widened).
 
+### update_requests
+"This needs an update" flags from members; moderators work through them in `/mod`.
+
+| column | type | notes |
+|---|---|---|
+| id | bigint identity PK | |
+| thread_id | bigint → threads | cascade; must be `published` |
+| requester_id | uuid null → profiles | default `auth.uid()`; set null on account deletion |
+| note | text null | ≤ 300 chars |
+| status | update_request_status | default `open`; moderators change it |
+| resolved_by / resolved_at | uuid null / timestamptz null | set by trigger on a status change; cleared on reopen |
+| created_at | timestamptz | |
+
+One open request per member per thread (`update_requests_one_open_per_thread_idx`), at most 5
+open per member (moderators included). Errors from the insert trigger:
+- `updates can only be requested for published threads` (42501)
+- `you already asked for an update of this thread` (23505)
+- `you already have 5 open update requests` (P0001)
+
+### bookmarks / thread_follows
+Private to their owner. Same shape: `user_id` (default `auth.uid()`, → profiles cascade),
+`thread_id` (→ threads cascade), `created_at`, PK `(user_id, thread_id)`. Only threads the person
+can read can be saved or followed. `/saved` lists bookmarks.
+
+Authors follow their thread on insert and commenters the thread they comment on (`on conflict do
+nothing`; commenting again after unfollowing follows again). Existing authors and commenters were
+backfilled. Unfollow = delete the row.
+
+### notification_preferences
+One optional row per user (no row = everything on).
+
+| column | type | notes |
+|---|---|---|
+| user_id | uuid PK → profiles | default `auth.uid()`; cascade |
+| muted_types | notification_type[] | default `{}`; in-app notifications of these types are not created |
+| email_frequency | text | `off` (default), `instant`, `daily`; stored only, emails need custom SMTP |
+| updated_at | timestamptz | bumped by trigger |
+
+Clients upsert on `user_id`. `notification_muted(recipient, type)` is the central check: a
+`before insert` trigger on `notifications` drops muted rows for every notify trigger, and the
+per-comment dedupe picks the highest-priority type the recipient has not muted.
+
+### guides / guide_steps / guide_progress
+Moderator-curated checklists ("Arriving in Erlangen").
+
+`guides`: id identity, `slug` unique (`^[a-z0-9]+(-[a-z0-9]+)*$`, ≤ 80), `title` 4–120,
+`summary` ≤ 300 (default `''`), `is_featured` (home page), `sort_order`, `created_by` (default
+`auth.uid()`, set null on deletion), `created_at`, `updated_at` (bumped by any guide or step edit).
+
+`guide_steps`: id identity, `guide_id` → guides cascade, `position` int (unique per guide, so
+reorder through a temporary position), `title` 2–120, `body` markdown ≤ 5000 null, `thread_id` →
+threads null (set null when the thread is deleted).
+
+`guide_progress`: `user_id` (default `auth.uid()`, cascade), `step_id` → guide_steps cascade,
+`completed_at` default now(); PK `(user_id, step_id)`. Tick = insert (`on conflict do nothing`
+for repeats), untick = delete. Signed-out progress lives in local storage.
+
+### reputation_events
+Append-only points ledger written only by triggers; private: no client grants or policies, since
+its rows would reveal who wrote hidden comments and who received each downvote.
+
+| column | type | notes |
+|---|---|---|
+| id | bigint identity PK | |
+| user_id | uuid → profiles | cascade; who earned (or lost) the points |
+| points | int | |
+| reason | text | `upvote`, `downvote`, `best_answer` |
+| comment_id | bigint null → comments | cascade: deleting a comment takes its points with it |
+| created_at | timestamptz | |
+
+Received upvote +1, downvote −1, best answer +15, always to the comment's author; never from a
+vote on one's own comment. Changing or withdrawing a vote and unsetting or switching a best
+answer append the opposite points with the same reason, so sums over any period stay right.
+`profiles.reputation` / `best_answer_count` follow every ledger insert and delete (cascades
+included); a guard rejects client writes (`reputation changes only through votes and best
+answers`, 42501). Votes and best answers from before the ledger were backfilled.
+`top_helpers(since)` (anon too, `security definer`) returns the 10 users with the highest positive point total since
+`since`: `user_id, username, display_name, points`.
+
 ### moderator_applications
 
 | column | type | notes |
@@ -195,7 +289,7 @@ Posting one notifies every profile except the author (`announcement`).
 
 ### Account deletion
 `delete_own_account()` (authenticated only) deletes the caller's `auth.users` row. The profile,
-moderator applications and comment votes cascade (scores drop accordingly); threads, comments, revisions and reports stay with the
+moderator applications, comment votes (scores and the voted authors' reputation drop accordingly), bookmarks, follows, notification preferences, guide progress and the user's own reputation events cascade; threads, comments, revisions and reports stay with the
 user column set to null ("Deleted user"). The last superadmin cannot delete their account
 ("the last superadmin cannot delete their account").
 The function is owned by `postgres`, which on hosted Supabase may delete from `auth.users`;
@@ -233,14 +327,15 @@ cannot read, so pending threads and hidden comments notify nobody but moderators
 
 | event | recipients → type |
 |---|---|
-| visible comment on a published thread | parent comment's author → `reply`, mentioned users → `mention`, thread author → `thread_comment`; one per recipient, reply beats mention beats thread_comment |
+| visible comment on a published thread | parent comment's author → `reply`, mentioned users → `mention`, thread author → `thread_comment`, followers → `followed_thread_activity`; one per recipient, reply beats mention beats thread_comment beats followed_thread_activity (muted types are skipped, so the next one applies) |
 | comment edited | newly mentioned users not yet notified about that comment → `mention` (max 10 mentions per comment in total) |
-| comment hidden | its `reply` / `mention` / `thread_comment` notifications are deleted |
+| comment hidden | its `reply` / `mention` / `thread_comment` / `followed_thread_activity` notifications are deleted |
 | new pending thread | every moderator and superadmin → `mod_new_thread` |
 | thread pending/rejected → published | author → `thread_approved`; users mentioned in the body → `mention` (as from the author) |
 | published thread body edited | users mentioned for the first time on this thread → `mention` (max 10 mentions per thread in total) |
 | thread → rejected | author → `thread_rejected` |
-| best answer set | comment author → `best_answer` |
+| best answer set | comment author → `best_answer`; followers except the comment author and the actor → `followed_thread_activity` |
+| new update request | every moderator and superadmin → `mod_new_update_request` (thread_id) |
 | new moderator application | every moderator and superadmin → `mod_new_application` |
 | application approved / rejected | applicant → `application_approved` / `application_rejected` |
 | new report | every moderator and superadmin → `mod_new_report` (thread_id and comment_id of the target) |
@@ -253,7 +348,8 @@ which rows each one receives.
 
 ### Planned next
 - Public profile page `/u/[username]` (name, badge, published threads).
-- Email copies of notifications once custom SMTP exists, with a per-user opt-out.
+- Email copies of notifications once custom SMTP exists (`notification_preferences.email_frequency`
+  is already stored).
 
 ### Later
 - `voice_notes`: comment_id, R2 object key, mime type, duration (cap ~3 min).
@@ -289,6 +385,17 @@ which rows each one receives.
 | read own notifications, set `read_at`, `mark_all_notifications_read()` | | ✓ | ✓ | ✓ |
 | read announcements | ✓ | ✓ | ✓ | ✓ |
 | post, edit, pin and delete announcements | | | ✓ | ✓ |
+| `mark_thread_verified()` | | | ✓ | ✓ |
+| request an update of a published thread | | ✓ (one open per thread, max 5 open) | ✓ | ✓ |
+| read update requests | | own | all | all |
+| resolve/dismiss update requests | | | ✓ | ✓ |
+| bookmark / follow threads they can read; read and delete own | | ✓ | ✓ | ✓ |
+| read and write own notification preferences | | ✓ | ✓ | ✓ |
+| read guides and steps | ✓ | ✓ | ✓ | ✓ |
+| create, edit and delete guides and steps | | | ✓ | ✓ |
+| tick/untick own guide progress; read own progress | | ✓ | ✓ | ✓ |
+| read reputation (profiles, `top_helpers()`) | ✓ | ✓ | ✓ | ✓ |
+| read `reputation_events` | | | | |
 
 Status, review, pin and role columns are never writable by authors directly; moderation goes
 through `security definer` functions or moderator-only policies, and a trigger rejects
@@ -297,7 +404,18 @@ member updates to protected columns. Moderators hide comments but cannot change 
 ## Search
 `search_threads(q text)` uses `websearch_to_tsquery('english', q)` over thread `search` and
 visible comment `search`, returns published + archived threads ranked by `ts_rank`
-(threads matched in the title rank first).
+(threads matched in the title rank first). Unchanged for existing callers.
+
+`search_threads_v2(q, p_category_id, p_city, p_has_best_answer, p_verified, p_sort)` (anon too,
+runs as the caller) adds filters and sorts, published + archived only:
+- full-text matches as above; when they are fewer than 5, titles with `word_similarity ≥ 0.4`
+  (pg_trgm, `extensions` schema) join after them, so "anmledung" finds Anmeldung
+- empty `q` lists every thread matching the filters; `q` longer than 100 characters raises
+  `search is limited to 100 characters` (22001), matching `SEARCH_QUERY_MAX` in the UI
+- `p_city`: that city or `both` (`both` = only `both`); `p_has_best_answer`: best_comment_id set
+  or not; `p_verified`: verified within the last 6 months or not
+- `p_sort`: `relevance` (default; full text, title first, then fuzzy), `newest` (created_at),
+  `top` (visible comment count); ties by last activity
 
 ## Applying migrations
 

@@ -43,3 +43,12 @@ Authorization belongs in Postgres Row Level Security, not only in the UI.
 - Notifications for replies, mentions, comments on your thread, moderation results and the
   moderator queue (new threads, applications, reports): in-app bell with live updates now,
   email later.
+
+## Wave 4 (database built, UI in progress; see schema.md)
+
+- Verified date: moderators mark a thread "still accurate" (badge "Verified Oct 2026"); members flag "needs an update" with a short note (one open per thread, max 5 open), handled in a `/mod` queue; threads unverified for 6+ months show a soft hint.
+- Bookmarks on `/saved` and thread follows: authors and commenters follow automatically, followers get notified about new comments and best answers, unfollow anytime.
+- Notification preferences on `/account/notifications`: mute in-app types and choose an email frequency (stored now, emails once SMTP exists).
+- Guides: moderator-curated step-by-step checklists linking threads; members tick steps off privately (local storage when signed out); featured guides on the home page.
+- Advanced search: filters (category, city, best answer, verified), sort by relevance/newest/top, typo tolerance.
+- Reputation: +1 per received upvote, −1 per downvote, +15 per best answer, never from self-votes; shown on profiles and as monthly Top helpers.

@@ -1,6 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { ModeratorAccountMenu } from "@/components/member-view/account-menu";
+import { AccountMenu } from "@/components/notification-settings/account-menu";
 import { getModCounts } from "@/components/mod/counts";
 import { buttonClasses } from "@/components/ui/button";
 import { getViewer, getViewMode } from "@/lib/auth/viewer";
@@ -24,7 +24,7 @@ export default async function UserMenu() {
 
   const isMod = viewer.role !== "member";
   const [counts, viewMode] = isMod ? await Promise.all([getModCounts(), getViewMode()]) : [null, "default"];
-  const pending = counts ? counts.threads + counts.applications + counts.reports : 0;
+  const pending = counts ? counts.threads + counts.applications + counts.reports + counts.updates : 0;
 
   return (
     <div className="flex items-center gap-1">
@@ -51,27 +51,12 @@ export default async function UserMenu() {
           )}
         </Link>
       )}
-      {isMod ? (
-        <ModeratorAccountMenu
-          displayName={viewer.displayName}
-          initials={initials(viewer.displayName)}
-          viewingAsMember={viewMode === "member"}
-        />
-      ) : (
-        <Link
-          href="/account"
-          title={viewer.displayName}
-          className="group inline-flex size-11 items-center max-[399px]:pointer-coarse:size-10 justify-center rounded-full"
-        >
-          <span
-            aria-hidden
-            className="flex size-7 items-center justify-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent ring-1 ring-accent/25 transition-shadow duration-150 group-hover:ring-accent/50"
-          >
-            {initials(viewer.displayName)}
-          </span>
-          <span className="sr-only">Account: {viewer.displayName}</span>
-        </Link>
-      )}
+      <AccountMenu
+        displayName={viewer.displayName}
+        initials={initials(viewer.displayName)}
+        moderator={isMod}
+        viewingAsMember={viewMode === "member"}
+      />
     </div>
   );
 }

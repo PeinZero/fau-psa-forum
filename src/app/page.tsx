@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { LatestAnnouncementBanner } from "@/components/announcements/latest-banner";
+import { FeaturedGuides } from "@/components/guides/featured-guides";
 import { CategoryIcon } from "@/components/thread/category-icon";
 import { OpenSearchButton } from "@/components/thread/open-search-button";
 import { SearchShortcut } from "@/components/thread/search-shortcut";
@@ -59,6 +60,10 @@ export default function Home({ searchParams }: { searchParams: Promise<{ deleted
           </OpenSearchButton>
         </div>
       </section>
+
+      <Suspense fallback={null}>
+        <FeaturedGuides />
+      </Suspense>
 
       <section aria-labelledby="categories-heading" className="flex flex-col gap-4">
         <SectionHeading id="categories-heading">Categories</SectionHeading>

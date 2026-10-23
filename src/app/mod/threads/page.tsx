@@ -2,6 +2,8 @@ import { CheckCircle2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PossibleDuplicates } from "@/components/duplicates/possible-duplicates";
+import { findSimilarThreads } from "@/components/duplicates/server";
 import { Author } from "@/components/author";
 import { Markdown } from "@/components/markdown";
 import { ActionButton } from "@/components/mod/action-button";
@@ -30,6 +32,8 @@ export default async function PendingThreadsPage() {
     return <EmptyState icon={<CheckCircle2 />} title="All caught up">No threads are waiting for review.</EmptyState>;
   }
 
+  const duplicates = await Promise.all(threads.map((thread) => findSimilarThreads(thread.title)));
+
   return (
     <ul className="grid gap-3">
       {threads.map((thread, index) => (
@@ -56,6 +60,7 @@ export default async function PendingThreadsPage() {
                 <Markdown>{thread.body}</Markdown>
               </div>
             </details>
+            <PossibleDuplicates threads={duplicates[index]} />
             <div className="flex flex-wrap items-start gap-2 border-t border-border pt-4">
               <ActionButton
                 action={moderateThread}

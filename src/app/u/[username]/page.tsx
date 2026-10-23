@@ -1,10 +1,11 @@
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, MessageSquareCheck, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache, Suspense } from "react";
 
 import { Avatar } from "@/components/author";
 import { fetchThreadsByIds, ThreadList, ThreadListSkeleton } from "@/components/thread/thread-list";
+import { isTopHelper, TopHelperBadge } from "@/components/reputation/reputation";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { affiliationLabels, formatDate } from "@/lib/labels";
@@ -21,7 +22,7 @@ const getProfile = cache(async (rawHandle: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("id, display_name, username, affiliation, role, created_at")
+    .select("id, display_name, username, affiliation, role, created_at, reputation, best_answer_count")
     .eq("username", handle)
     .maybeSingle();
   return data;
@@ -69,6 +70,7 @@ async function ProfileContent({ params }: { params: Params }) {
               <Badge variant="accent">{profile.role === "superadmin" ? "Superadmin" : "Moderator"}</Badge>
             )}
             {profile.affiliation && <Badge>{affiliationLabels[profile.affiliation]}</Badge>}
+            {isTopHelper(profile.best_answer_count) && <TopHelperBadge />}
             <span className="inline-flex items-center gap-1.5">
               <CalendarDays aria-hidden strokeWidth={1.75} className="size-3.5" />
               Joined <time dateTime={profile.created_at}>{formatDate(profile.created_at)}</time>
@@ -76,6 +78,15 @@ async function ProfileContent({ params }: { params: Params }) {
           </div>
         </div>
       </header>
+
+      <dl className="animate-fade-up grid grid-cols-2 gap-3" style={{ "--i": 1 } as React.CSSProperties}>
+        <Stat icon={<Sparkles aria-hidden strokeWidth={1.75} />} label="Reputation" value={profile.reputation} />
+        <Stat
+          icon={<MessageSquareCheck aria-hidden strokeWidth={1.75} />}
+          label="Best answers"
+          value={profile.best_answer_count}
+        />
+      </dl>
 
       <section aria-labelledby="profile-threads" className="flex flex-col gap-3">
         <h2 id="profile-threads" className="text-base font-semibold tracking-tight">
@@ -85,6 +96,20 @@ async function ProfileContent({ params }: { params: Params }) {
           <ProfileThreads userId={profile.id} name={profile.display_name} />
         </Suspense>
       </section>
+    </div>
+  );
+}
+
+function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3">
+      <span aria-hidden className="text-accent [&_svg]:size-4">
+        {icon}
+      </span>
+      <div>
+        <dd className="text-lg font-semibold tabular-nums leading-tight tracking-tight">{value}</dd>
+        <dt className="text-meta text-muted">{label}</dt>
+      </div>
     </div>
   );
 }

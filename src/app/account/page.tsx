@@ -1,4 +1,4 @@
-import { ChevronRight, LogOut, Plus } from "lucide-react";
+import { Bell, ChevronRight, LogOut, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { Avatar } from "@/components/author";
@@ -237,6 +237,20 @@ async function AccountContent() {
             <MyThreads userId={viewer.userId} />
           </Suspense>
         </Section>
+
+        <Link
+          href="/account/notifications"
+          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4 transition-colors duration-150 hover:bg-surface-hover sm:p-5"
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <Bell strokeWidth={1.75} className="size-4 shrink-0 text-muted" aria-hidden />
+            <span className="min-w-0">
+              <span className="block text-base font-semibold tracking-tight">Notification settings</span>
+              <span className="block text-meta text-muted">Choose what you get notified about.</span>
+            </span>
+          </span>
+          <ChevronRight strokeWidth={1.75} className="size-4 shrink-0 text-muted" aria-hidden />
+        </Link>
 
         <Section title="Become a moderator" index={2}>
           <Suspense fallback={<Skeleton className="h-16 w-full" />}>

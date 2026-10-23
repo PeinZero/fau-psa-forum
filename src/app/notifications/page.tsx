@@ -2,8 +2,10 @@ import {
   AtSign,
   Award,
   Bell,
+  BellRing,
   CircleCheck,
   CircleX,
+  FileClock,
   Flag,
   Inbox,
   Megaphone,
@@ -39,8 +41,9 @@ const LIMIT = 50;
 type NotificationType = Enums<"notification_type">;
 
 const notificationSelect = `
-  id, type, created_at, read_at, thread_id, comment_id,
+  id, type, created_at, read_at, thread_id, comment_id, actor_id,
   actor:profiles!notifications_actor_id_fkey(display_name),
+  comment:comments!notifications_comment_id_fkey(author_id),
   thread:threads!notifications_thread_id_fkey(slug, title),
   announcement:announcements!notifications_announcement_id_fkey(id, title)
 `;
@@ -72,6 +75,8 @@ const icons: Record<NotificationType, LucideIcon> = {
   mod_new_application: UserPlus,
   mod_new_report: Flag,
   announcement: Megaphone,
+  followed_thread_activity: BellRing,
+  mod_new_update_request: FileClock,
 };
 
 // Decisions and announcements come from the moderation team as a whole, so they show no moderator's name.
@@ -83,6 +88,11 @@ const systemTypes: ReadonlySet<NotificationType> = new Set([
   "application_rejected",
   "announcement",
 ]);
+
+/** Followers hear about a best answer too; then the actor is the moderator, not the comment's author. */
+function isFollowedBestAnswer(n: NotificationRow): boolean {
+  return n.type === "followed_thread_activity" && n.comment !== null && n.comment.author_id !== n.actor_id;
+}
 
 function Quoted({ children }: { children: ReactNode }) {
   return <span className="font-medium text-foreground">“{children}”</span>;
@@ -116,6 +126,14 @@ function sentence(n: NotificationRow): ReactNode {
       return n.comment_id ? <>New report on a comment in {title}</> : <>New report on {title}</>;
     case "announcement":
       return n.announcement ? <>New announcement: <Quoted>{n.announcement.title}</Quoted></> : <>New announcement</>;
+    case "followed_thread_activity":
+      return isFollowedBestAnswer(n) ? (
+        <>An answer in {title}, a thread you follow, was marked as the best answer</>
+      ) : (
+        <>{actor} commented in {title}, a thread you follow</>
+      );
+    case "mod_new_update_request":
+      return <>{actor} asked for an update of {title}</>;
   }
 }
 
@@ -127,6 +145,8 @@ function target(n: NotificationRow): string {
       return "/mod/applications";
     case "mod_new_report":
       return "/mod/reports";
+    case "mod_new_update_request":
+      return "/mod/updates";
     case "application_approved":
       return "/mod";
     case "application_rejected":
@@ -141,7 +161,7 @@ function target(n: NotificationRow): string {
 function NotificationItem({ n, index, now }: { n: NotificationRow; index: number; now: number }) {
   const Icon = icons[n.type];
   const unread = n.read_at === null;
-  const system = systemTypes.has(n.type);
+  const system = systemTypes.has(n.type) || isFollowedBestAnswer(n);
 
   return (
     <li className="animate-fade-up" style={stagger(index)}>

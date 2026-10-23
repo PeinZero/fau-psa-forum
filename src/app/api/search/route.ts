@@ -49,7 +49,7 @@ async function search(q: string): Promise<SearchThread[]> {
       .limit(TITLE_CANDIDATES)
       .overrideTypes<ThreadRow[], { merge: false }>(),
     supabase
-      .rpc("search_threads", { q })
+      .rpc("search_threads_v2", { q })
       .select(threadSelect)
       .limit(LIMIT)
       .overrideTypes<ThreadRow[], { merge: false }>(),

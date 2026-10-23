@@ -1,6 +1,7 @@
 import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { GUIDES_MOD_NAV_ITEM } from "@/components/guides/limits";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
@@ -34,9 +35,11 @@ export async function ModGate({ children }: { children: ReactNode }) {
     { href: "/mod", label: "Overview", icon: "overview" },
     { href: "/mod/threads", label: "Pending threads", icon: "threads", count: counts.threads },
     { href: "/mod/reports", label: "Reports", icon: "reports", count: counts.reports },
+    { href: "/mod/updates", label: "Update requests", icon: "updates", count: counts.updates },
     { href: "/mod/edits", label: "Recent edits", icon: "edits", count: counts.edits },
     { href: "/mod/applications", label: "Applications", icon: "applications", count: counts.applications },
     { href: "/mod/announcements", label: "Announcements", icon: "announcements" },
+    { ...GUIDES_MOD_NAV_ITEM, icon: "guides" },
     { href: "/mod/categories", label: "Categories", icon: "categories" },
     ...(viewer.role === "superadmin" ? [{ href: "/mod/users", label: "Users", icon: "users" as const }] : []),
   ];

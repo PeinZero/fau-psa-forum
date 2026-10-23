@@ -311,3 +311,47 @@ export async function moderateAnnouncement(_prev: ActionState, formData: FormDat
   const messages = { pin: "Announcement pinned.", unpin: "Announcement unpinned.", delete: "Announcement deleted." };
   return done(messages[op]);
 }
+
+/** Confirms a thread is still accurate; the open "needs update" requests on it are answered by that. */
+export async function markThreadVerified(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = z.object({ threadId: id }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail("Invalid request.");
+
+  const denied = await requireRole("moderator");
+  if (denied) return fail(denied);
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("mark_thread_verified", { thread_id: parsed.data.threadId });
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+
+  const { error: resolveError } = await supabase
+    .from("update_requests")
+    .update({ status: "resolved" })
+    .eq("thread_id", parsed.data.threadId)
+    .eq("status", "open");
+  if (resolveError) return fail(friendlyError(resolveError, MOD_ERRORS));
+  return done("Marked as still accurate.");
+}
+
+const updateRequestSchema = z.object({
+  requestId: id,
+  status: z.enum(["resolved", "dismissed"]),
+});
+
+export async function setUpdateRequestStatus(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = updateRequestSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail("Invalid request.");
+
+  const denied = await requireRole("moderator");
+  if (denied) return fail(denied);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("update_requests")
+    .update({ status: parsed.data.status })
+    .eq("id", parsed.data.requestId)
+    .select("id");
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+  if (!data?.length) return fail("Request not found, or you don't have permission.");
+  return done(parsed.data.status === "resolved" ? "Request resolved." : "Request dismissed.");
+}

@@ -1,7 +1,8 @@
-import { Code2, ExternalLink, PenLine, ShieldCheck, Users } from "lucide-react";
+import { Award, Code2, ExternalLink, PenLine, ShieldCheck, Users } from "lucide-react";
 import type { Metadata } from "next";
 import { cacheLife } from "next/cache";
 import { Suspense } from "react";
+import { Avatar } from "@/components/author";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { Card, cardClasses } from "@/components/ui/card";
@@ -153,6 +154,46 @@ async function Community() {
   );
 }
 
+async function TopHelpers() {
+  const supabase = await createClient();
+  const now = new Date();
+  const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+  const { data, error } = await supabase.rpc("top_helpers", { since });
+
+  if (error) return <p className="text-sm text-muted">Top helpers could not be loaded.</p>;
+  if (!data.length) {
+    return (
+      <EmptyState icon={<Award />} title="No helpers ranked yet this month">
+        Answer a question and earn points from upvotes and best answers.
+      </EmptyState>
+    );
+  }
+  return (
+    <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {data.map((helper, i) => (
+        <li key={helper.user_id} className="animate-fade-up" style={stagger(i)}>
+          <Link
+            href={`/u/${helper.username}`}
+            className={cardClasses({ interactive: true, padding: "none", className: "flex items-center gap-3 p-3" })}
+          >
+            <span aria-hidden className="w-4 text-center text-meta tabular-nums text-subtle">
+              {i + 1}
+            </span>
+            <Avatar name={helper.display_name} size="md" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium text-foreground">{helper.display_name}</span>
+              <span className="block truncate text-meta text-muted">@{helper.username}</span>
+            </span>
+            <Badge variant="accent">
+              {helper.points} {helper.points === 1 ? "pt" : "pts"}
+            </Badge>
+          </Link>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function GridSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -211,6 +252,15 @@ export default function ContributorsPage() {
         </h2>
         <Suspense fallback={<GridSkeleton />}>
           <CodeContributors />
+        </Suspense>
+      </section>
+
+      <section aria-labelledby="helpers-heading" className="mb-12">
+        <h2 id="helpers-heading" className="mb-4 text-lg font-semibold tracking-tight">
+          Top helpers this month
+        </h2>
+        <Suspense fallback={<GridSkeleton />}>
+          <TopHelpers />
         </Suspense>
       </section>
 

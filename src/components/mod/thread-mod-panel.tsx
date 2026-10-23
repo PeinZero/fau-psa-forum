@@ -1,9 +1,9 @@
-import { Archive, ArchiveRestore, CircleCheck, CircleX, Pin, PinOff, TriangleAlert } from "lucide-react";
+import { Archive, ArchiveRestore, CircleCheck, CircleX, Pin, PinOff, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import type { RunAction } from "@/components/thread/menu-action";
 import type { MenuEntry } from "@/components/ui/dropdown-menu";
 
-import { moderateThread } from "./actions";
+import { markThreadVerified, moderateThread } from "./actions";
 
 export type ModThread = {
   id: number;
@@ -43,6 +43,11 @@ export function threadModItems({ id, status, is_outdated, is_pinned }: ModThread
       label: is_outdated ? "Not outdated" : "Mark outdated",
       icon: TriangleAlert,
       onSelect: () => op(is_outdated ? "current" : "outdated"),
+    },
+    status === "published" && {
+      label: "Mark as still accurate",
+      icon: ShieldCheck,
+      onSelect: () => run(markThreadVerified, { threadId: id }),
     },
     status === "published" && {
       label: "Archive",

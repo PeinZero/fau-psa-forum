@@ -1,23 +1,26 @@
 "use client";
 
-import { Eye, UserRound } from "lucide-react";
+import { Bell, Bookmark, Eye, Megaphone, UserRound } from "lucide-react";
 import { useTransition } from "react";
 
+import { unseenLabel, useUnseenAnnouncements } from "@/components/announcements/unseen-store";
+import { setMemberView } from "@/components/member-view/actions";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 
-import { setMemberView } from "./actions";
-
-/** The avatar menu for moderators: account link and the "View as member" switch. */
-export function ModeratorAccountMenu({
+/** Avatar menu for every signed-in user; moderators additionally get the "View as member" switch. */
+export function AccountMenu({
   displayName,
   initials,
+  moderator,
   viewingAsMember,
 }: {
   displayName: string;
   initials: string;
+  moderator: boolean;
   viewingAsMember: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const unseen = useUnseenAnnouncements();
 
   return (
     <DropdownMenu
@@ -45,8 +48,15 @@ export function ModeratorAccountMenu({
       }
       items={[
         { label: "Account", icon: UserRound, href: "/account" },
-        "separator",
+        { label: "Saved", icon: Bookmark, href: "/saved" },
         {
+          label: unseen ? `Announcements (${unseenLabel(unseen)} new)` : "Announcements",
+          icon: Megaphone,
+          href: "/announcements",
+        },
+        { label: "Notification settings", icon: Bell, href: "/account/notifications" },
+        moderator && "separator",
+        moderator && {
           label: "View as member",
           icon: Eye,
           checked: viewingAsMember,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AnnouncementCard } from "@/components/announcements/announcement-card";
+import { MarkAnnouncementsSeen } from "@/components/announcements/unseen-mark-seen";
 import { fetchAnnouncements } from "@/components/announcements/data";
 import { buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
@@ -92,6 +93,7 @@ export default function AnnouncementsPage() {
           </Suspense>
         }
       />
+      <MarkAnnouncementsSeen />
       <Suspense fallback={<ListSkeleton />}>
         <AnnouncementList />
       </Suspense>

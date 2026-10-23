@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { type ReactNode, Suspense } from "react";
 
 import { Author } from "@/components/author";
+import { getSavedState } from "@/components/bookmarks/data";
 import { Markdown } from "@/components/markdown";
 import { MemberViewBanner } from "@/components/member-view/member-view-banner";
 import { CommentsSkeleton, PublicComments, ViewerComments } from "@/components/thread/thread-comments";
@@ -13,6 +14,7 @@ import { ThreadMenu } from "@/components/thread/thread-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/cn";
 import { Skeleton } from "@/components/ui/skeleton";
+import { needsVerificationHint, UnverifiedHint, VerifiedBadge } from "@/components/update-requests/verified";
 import { getEffectiveViewer, isModerator } from "@/lib/auth/viewer";
 import { cityLabels, formatDate, statusLabels } from "@/lib/labels";
 
@@ -158,6 +160,8 @@ function ThreadBadges({ thread }: { thread: ThreadDetail }) {
         </Badge>
       )}
       {thread.is_outdated && <Badge variant="warning">Outdated</Badge>}
+      {thread.last_verified_at && <VerifiedBadge at={thread.last_verified_at} />}
+      {!thread.is_outdated && needsVerificationHint(thread) && <UnverifiedHint />}
     </div>
   );
 }
@@ -237,13 +241,16 @@ async function ViewerThreadMenu({ thread }: { thread: ThreadDetail }) {
   const isMod = viewer !== null && isModerator(viewer.role);
   const isAuthor = viewer !== null && viewer.userId === thread.author_id;
   const isPublic = thread.status === "published" || thread.status === "archived";
+  const saved = viewer ? await getSavedState(viewer.userId, thread.id) : undefined;
 
   return (
     <ThreadMenu
       thread={modFields(thread)}
       slug={thread.slug}
+      saved={saved}
       canEdit={isMod || isAuthor}
       canReport={viewer !== null && !isMod && !isAuthor && isPublic}
+      canRequestUpdate={viewer !== null && !isMod && thread.status === "published"}
       isMod={isMod}
     />
   );
