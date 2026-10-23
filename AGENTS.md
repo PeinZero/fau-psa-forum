@@ -14,5 +14,6 @@ at FAU Erlangen-Nürnberg. Next.js 16 App Router + TypeScript + Tailwind v4, Sup
 ## Read when needed
 
 - [docs/product.md](docs/product.md): product rules and roles. Read before any user-facing feature or schema work.
+- [docs/schema.md](docs/schema.md): tables, RLS matrix, search. Read before migrations, queries or policies.
 - [docs/delegation.md](docs/delegation.md): subagent split and review lenses. Read before multi-step work or reviews.
 - [docs/deployment.md](docs/deployment.md): hosting, env vars, regions.
