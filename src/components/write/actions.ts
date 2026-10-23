@@ -27,6 +27,10 @@ const commentSchema = z.object({
     .refine((v) => v.trim().length > 0, "Please write a comment."),
 });
 
+const newCommentSchema = commentSchema.extend({
+  parentId: z.number().int().positive().optional(),
+});
+
 const THREAD_ERRORS = {
   messages: [
     [
@@ -36,6 +40,14 @@ const THREAD_ERRORS = {
     ["only possible on published threads", "This thread is not open for comments."],
   ],
   codes: { "23503": "That category no longer exists. Please choose another one." },
+} as const;
+
+const COMMENT_ERRORS = {
+  messages: [
+    ...THREAD_ERRORS.messages,
+    // The parent was hidden (or never visible to this user) after the page loaded.
+    ["a reply must belong to a visible comment", "You can't reply to that comment anymore."],
+  ],
 } as const;
 
 function parseThread(formData: FormData) {
@@ -105,16 +117,16 @@ export async function updateThreadAction(threadId: number, formData: FormData): 
 
 export type CommentResult = { ok: true } | { ok: false; error: string };
 
-export async function createCommentAction(threadId: number, body: string): Promise<CommentResult> {
-  const parsed = commentSchema.safeParse({ body });
+export async function createCommentAction(threadId: number, body: string, parentId?: number): Promise<CommentResult> {
+  const parsed = newCommentSchema.safeParse({ body, parentId });
   if (!parsed.success) return { ok: false, error: firstIssue(parsed) };
   if (!(await getViewer())) return { ok: false, error: SIGN_IN_REQUIRED };
   const supabase = await createClient();
 
   const { error } = await supabase
     .from("comments")
-    .insert({ thread_id: threadId, body: parsed.data.body });
-  if (error) return { ok: false, error: friendlyError(error, THREAD_ERRORS) };
+    .insert({ thread_id: threadId, body: parsed.data.body, parent_id: parsed.data.parentId ?? null });
+  if (error) return { ok: false, error: friendlyError(error, COMMENT_ERRORS) };
 
   await revalidateThread(threadId);
   return { ok: true };
@@ -132,7 +144,7 @@ export async function updateCommentAction(commentId: number, body: string): Prom
     .eq("id", commentId)
     .select("thread_id")
     .maybeSingle();
-  if (error) return { ok: false, error: friendlyError(error, THREAD_ERRORS) };
+  if (error) return { ok: false, error: friendlyError(error, COMMENT_ERRORS) };
   if (!data) return { ok: false, error: "You are not allowed to edit this comment." };
 
   await revalidateThread(data.thread_id);

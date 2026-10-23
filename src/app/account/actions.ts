@@ -1,16 +1,47 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
 import { friendlyError, SIGN_IN_REQUIRED } from "@/lib/supabase/errors";
 import { createClient } from "@/lib/supabase/server";
 import type { Enums } from "@/lib/supabase/database.types";
 
-export type FormState = { ok: boolean; message: string } | null;
+export type FormState = { ok: boolean; message: string; field?: "username" } | null;
 
-const AFFILIATIONS: readonly string[] = ["student", "graduate", "postgrad", "resident"] satisfies Enums<"affiliation">[];
+const AFFILIATIONS: readonly string[] = [
+  "student",
+  "graduate",
+  "postgrad",
+  "resident",
+] satisfies Enums<"affiliation">[];
 
-export async function updateProfile(_prev: FormState, formData: FormData): Promise<FormState> {
+// Mirrors the profiles_set_username() trigger so most mistakes are caught before the database.
+const USERNAME = /^[a-z0-9_]{3,20}$/;
+const USERNAME_FORMAT = "3–20 letters, numbers or underscores.";
+const RESERVED_USERNAMES: readonly string[] = [
+  "admin",
+  "mod",
+  "moderator",
+  "support",
+  "root",
+  "system",
+  "null",
+  "me",
+  "new",
+  "settings",
+];
+const USERNAME_ERRORS = [
+  ["username must be 3 to 20", USERNAME_FORMAT],
+  ["username is reserved", "That username is reserved."],
+  ["username is already taken", "That username is taken."],
+  ["profiles_username_key", "That username is taken."],
+] as const;
+
+export async function updateProfile(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const viewer = await getViewer();
   if (!viewer) return { ok: false, message: SIGN_IN_REQUIRED };
 
@@ -22,25 +53,46 @@ export async function updateProfile(_prev: FormState, formData: FormData): Promi
   if (rawAffiliation && !AFFILIATIONS.includes(rawAffiliation)) {
     return { ok: false, message: "Choose one of the listed affiliations." };
   }
+  const username = String(formData.get("username") ?? "").trim().replace(/^@/, "").toLowerCase();
+  if (!USERNAME.test(username)) {
+    return { ok: false, message: USERNAME_FORMAT, field: "username" };
+  }
+  if (RESERVED_USERNAMES.includes(username)) {
+    return { ok: false, message: "That username is reserved.", field: "username" };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("profiles")
     .update({
       display_name: displayName,
-      affiliation: rawAffiliation ? (rawAffiliation as Enums<"affiliation">) : null,
+      affiliation: rawAffiliation
+        ? (rawAffiliation as Enums<"affiliation">)
+        : null,
+      username,
     })
     .eq("id", viewer.userId);
-  if (error) return { ok: false, message: friendlyError(error) };
+  if (error) {
+    const raw = error.message ?? "";
+    return {
+      ok: false,
+      message: friendlyError(error, { messages: USERNAME_ERRORS }),
+      ...(USERNAME_ERRORS.some(([needle]) => raw.includes(needle)) && { field: "username" as const }),
+    };
+  }
 
   revalidatePath("/", "layout");
   return { ok: true, message: "Profile saved." };
 }
 
-export async function applyForModerator(_prev: FormState, formData: FormData): Promise<FormState> {
+export async function applyForModerator(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const viewer = await getViewer();
   if (!viewer) return { ok: false, message: SIGN_IN_REQUIRED };
-  if (isModerator(viewer.role)) return { ok: false, message: "You are already a moderator." };
+  if (isModerator(viewer.role))
+    return { ok: false, message: "You are already a moderator." };
 
   const motivation = String(formData.get("motivation") ?? "").trim();
   if (motivation.length < 20 || motivation.length > 1000) {
@@ -48,15 +100,51 @@ export async function applyForModerator(_prev: FormState, formData: FormData): P
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("moderator_applications").insert({ motivation });
+  const { error } = await supabase
+    .from("moderator_applications")
+    .insert({ motivation });
   if (error) {
     return {
       ok: false,
-      message: friendlyError(error, { codes: { "23505": "Your application is already being reviewed." } }),
+      message: friendlyError(error, {
+        codes: { "23505": "Your application is already being reviewed." },
+      }),
     };
   }
 
   revalidatePath("/account");
   revalidatePath("/", "layout");
   return { ok: true, message: "Application sent." };
+}
+
+export async function deleteAccount(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  if (String(formData.get("confirm") ?? "").trim() !== "DELETE") {
+    return { ok: false, message: "Type DELETE to confirm." };
+  }
+  const viewer = await getViewer();
+  if (!viewer) return { ok: false, message: "Sign in to delete your account." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_own_account");
+  if (error) {
+    return {
+      ok: false,
+      message: friendlyError(error, {
+        messages: [
+          [
+            "last superadmin",
+            "You are the last superadmin. Promote another superadmin before deleting your account.",
+          ],
+          ["not signed in", "Sign in to delete your account."],
+          ["sign in", "Sign in to delete your account."],
+        ],
+      }),
+    };
+  }
+
+  await supabase.auth.signOut();
+  redirect("/?deleted=1");
 }

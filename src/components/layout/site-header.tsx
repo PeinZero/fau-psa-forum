@@ -1,59 +1,74 @@
-import Form from "next/form";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import UserMenu from "@/components/auth/user-menu";
+import { HeaderSearch } from "@/components/layout/header-search";
+import { NavLinkList, NavLinks } from "@/components/layout/nav-links";
+import { NotificationBellSlot } from "@/components/notifications/bell-slot";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { buttonClasses } from "@/components/ui/button";
+import { getViewer, isModerator } from "@/lib/auth/viewer";
+
+function LogoMark() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className="size-6 shrink-0">
+      <rect width="24" height="24" rx="6" className="fill-accent" />
+      <rect x="0.5" y="0.5" width="23" height="23" rx="5.5" className="fill-none stroke-white/20" />
+      <path
+        d="M9 17.5V6.5h4a3.25 3.25 0 0 1 0 6.5H9"
+        className="fill-none stroke-accent-foreground"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+async function ViewerHeaderSearch() {
+  const viewer = await getViewer();
+  return <HeaderSearch canModerate={viewer !== null && isModerator(viewer.role)} />;
+}
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-border">
+    <header
+      className="sticky top-0 z-40 border-b border-border bg-background/70 backdrop-blur-xl backdrop-saturate-150"
+      style={{ viewTransitionName: "site-header" }}
+    >
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-50 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:font-medium focus:text-accent-foreground"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-50 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-accent-foreground"
       >
         Skip to content
       </a>
-      <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
-        <Link href="/" className="font-semibold tracking-tight text-accent">
-          FAU PSA Forum
-        </Link>
-        <Form
-          action="/search"
-          role="search"
-          aria-label="Site search"
-          className="order-last flex w-full gap-2 sm:order-none sm:w-auto sm:flex-1"
+      <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-1 px-4 sm:px-6">
+        <Link
+          href="/"
+          className="-ml-1 mr-2 inline-flex min-h-11 items-center justify-center gap-2.5 pointer-coarse:min-w-11 rounded-md px-1 text-sm font-semibold tracking-tight text-foreground"
         >
-          <label htmlFor="header-search" className="sr-only">
-            Search threads
-          </label>
-          <input
-            id="header-search"
-            type="search"
-            name="q"
-            placeholder="Search threads"
-            className="min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1.5 min-h-11 text-sm"
-          />
-          <button
-            type="submit"
-            className="rounded-md bg-accent px-3 py-1.5 min-h-11 text-sm font-medium text-accent-foreground"
-          >
-            Search
-          </button>
-        </Form>
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <LogoMark />
+          <span className="max-[399px]:sr-only">PSA Forum</span>
+        </Link>
+        <Suspense fallback={<NavLinkList pathname={null} />}>
+          <NavLinks />
+        </Suspense>
+        <div className="ml-auto flex items-center gap-1 max-[399px]:pointer-coarse:[&>a:not([href='/login'])]:size-10! max-[399px]:pointer-coarse:[&>button]:size-10!">
+          <Suspense fallback={<HeaderSearch canModerate={false} />}>
+            <ViewerHeaderSearch />
+          </Suspense>
           <Link
             href="/new"
-            className="inline-flex min-h-11 items-center rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground"
+            aria-label="New thread"
+            className={buttonClasses({ variant: "ghost", size: "icon", className: "md:hidden" })}
           >
-            New thread
+            <Plus strokeWidth={1.75} />
           </Link>
-          <Suspense
-            fallback={
-              <div
-                aria-hidden
-                className="h-11 w-20 animate-pulse rounded-md bg-border"
-              />
-            }
-          >
+          <ThemeToggle />
+          <Suspense fallback={null}>
+            <NotificationBellSlot />
+          </Suspense>
+          <Suspense fallback={<div aria-hidden className="skeleton mx-2 size-7 rounded-full" />}>
             <UserMenu />
           </Suspense>
         </div>

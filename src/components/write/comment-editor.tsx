@@ -1,8 +1,13 @@
 "use client";
 
+import { Loader2, Pencil } from "lucide-react";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 
 import { Markdown } from "@/components/markdown";
+import { MentionTextarea } from "@/components/mentions/mention-textarea";
+import { Button } from "@/components/ui/button";
+import { FieldError, Label } from "@/components/ui/field";
+import { Kbd } from "@/components/ui/kbd";
 import { updateCommentAction } from "./actions";
 
 export function CommentEditor({ commentId, body }: { commentId: number; body: string }) {
@@ -15,6 +20,7 @@ export function CommentEditor({ commentId, body }: { commentId: number; body: st
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editRef = useRef<HTMLButtonElement>(null);
   const restoreFocus = useRef(false);
+  const empty = draft.trim().length === 0;
 
   useEffect(() => {
     if (editing) textareaRef.current?.focus();
@@ -26,78 +32,87 @@ export function CommentEditor({ commentId, body }: { commentId: number; body: st
 
   if (!editing) {
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1">
         <Markdown>{body}</Markdown>
-        <button
+        <Button
           ref={editRef}
-          type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => {
             setDraft(body);
             setError(null);
             setEditing(true);
           }}
-          className="min-h-11 self-start rounded-md px-2 text-sm text-muted underline"
+          className="-ml-3 self-start text-subtle"
         >
+          <Pencil aria-hidden strokeWidth={1.75} />
           Edit
-        </button>
+        </Button>
       </div>
     );
   }
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function save() {
+    if (pending || empty) return;
     setError(null);
     startTransition(async () => {
       const result = await updateCommentAction(commentId, draft);
       if (result.ok) {
         restoreFocus.current = true;
         setEditing(false);
-      }
-      else setError(result.error);
+      } else setError(result.error);
     });
   }
 
+  function cancel() {
+    restoreFocus.current = true;
+    setEditing(false);
+  }
+
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-2" noValidate>
-      <label htmlFor={`${id}-body`} className="text-sm font-medium">
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        save();
+      }}
+      className="flex flex-col gap-2"
+      noValidate
+    >
+      <Label htmlFor={`${id}-body`} className="sr-only">
         Edit comment
-      </label>
-      <textarea
+      </Label>
+      <MentionTextarea
         ref={textareaRef}
         id={`${id}-body`}
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        onValueChange={setDraft}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            save();
+          } else if (e.key === "Escape") cancel();
+        }}
         required
         maxLength={5000}
-        rows={4}
+        rows={3}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className="min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+        className="min-h-20 [field-sizing:content] max-h-80"
       />
-      {error ? (
-        <p id={errorId} role="alert" className="text-sm text-red-600 dark:text-red-400">
-          {error}
-        </p>
-      ) : null}
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={pending || draft.trim().length === 0}
-          className="min-h-11 rounded-md bg-accent px-4 text-accent-foreground disabled:opacity-60"
-        >
+      <p className="text-meta text-muted">Type @ to mention someone.</p>
+      <FieldError id={errorId} message={error ?? undefined} />
+      <div className="flex items-center gap-2">
+        <Button type="submit" size="sm" disabled={pending || empty}>
+          {pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
           {pending ? "Saving…" : "Save"}
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => {
-            restoreFocus.current = true;
-            setEditing(false);
-          }}
-          className="min-h-11 rounded-md border border-border px-4"
-        >
+        </Button>
+        <Button size="sm" variant="ghost" disabled={pending} onClick={cancel}>
           Cancel
-        </button>
+        </Button>
+        <span className="ml-auto hidden items-center gap-1 text-meta text-subtle pointer-fine:inline-flex" aria-hidden>
+          <Kbd>⌘</Kbd>
+          <Kbd>Enter</Kbd>
+        </span>
       </div>
     </form>
   );

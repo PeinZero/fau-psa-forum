@@ -2,6 +2,9 @@
 
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 
+import { Button, type ButtonSize, type ButtonVariant } from "@/components/ui/button";
+import { Label, Textarea } from "@/components/ui/field";
+
 import type { ActionState } from "./actions";
 
 type Props = {
@@ -14,12 +17,22 @@ type Props = {
   /** Asks for a required free-text reason, submitted as `reason`. */
   reason?: { label: string; max: number };
   tone?: "default" | "danger";
+  /** Overrides the look derived from `tone`. */
+  variant?: ButtonVariant;
+  size?: ButtonSize;
 };
 
-const buttonBase =
-  "inline-flex min-h-11 items-center justify-center rounded-md px-3 text-sm font-medium disabled:opacity-60";
-
-export function ActionButton({ action, fields, label, pendingLabel, confirm, reason, tone = "default" }: Props) {
+export function ActionButton({
+  action,
+  fields,
+  label,
+  pendingLabel,
+  confirm,
+  reason,
+  tone = "default",
+  variant,
+  size = "sm",
+}: Props) {
   const [state, formAction, pending] = useActionState(action, null);
   const [open, setOpen] = useState(false);
   const uid = useId();
@@ -35,72 +48,66 @@ export function ActionButton({ action, fields, label, pendingLabel, confirm, rea
       triggerRef.current?.focus();
     }
   }, [open]);
+
   const messageId = `${uid}-msg`;
   const needsStep = Boolean(confirm || reason);
-  const primary =
-    tone === "danger"
-      ? "bg-red-700 text-white"
-      : "border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground";
+  const look: ButtonVariant = variant ?? (tone === "danger" ? "danger" : "secondary");
+  // The final submit stays recognisable: danger actions confirm in danger, everything else in the accent.
+  const submitLook: ButtonVariant = look === "danger" ? "danger" : look === "ghost" ? "secondary" : look;
 
   return (
-    <form action={formAction} className="flex flex-col gap-2" aria-describedby={state ? messageId : undefined}>
+    <form action={formAction} className="flex min-w-0 flex-col gap-2" aria-describedby={state ? messageId : undefined}>
       {Object.entries(fields).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
 
       {needsStep && open && (
-        <div ref={panelRef} className="flex flex-col gap-2 rounded-md border border-border p-3">
-          {confirm && <p className="text-sm">{confirm}</p>}
+        <div
+          ref={panelRef}
+          className="flex w-full min-w-0 flex-col gap-3 rounded-lg border border-border bg-background p-3 sm:min-w-72"
+        >
+          {confirm && <p className="text-meta text-muted">{confirm}</p>}
           {reason && (
-            <div className="flex flex-col gap-1">
-              <label htmlFor={`${uid}-reason`} className="text-sm font-medium">
-                {reason.label}
-              </label>
-              <textarea
-                id={`${uid}-reason`}
-                name="reason"
-                required
-                maxLength={reason.max}
-                rows={3}
-                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${uid}-reason`}>{reason.label}</Label>
+              <Textarea id={`${uid}-reason`} name="reason" required maxLength={reason.max} rows={3} className="min-h-20" />
             </div>
           )}
           <div className="flex flex-wrap gap-2">
-            <button type="submit" disabled={pending} className={`${buttonBase} ${tone === "danger" ? primary : "bg-accent text-accent-foreground"}`}>
+            <Button type="submit" variant={submitLook === "secondary" ? "primary" : submitLook} size={size} disabled={pending}>
               {pending ? (pendingLabel ?? "Working...") : label}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size={size}
               onClick={() => {
                 returnFocus.current = true;
                 setOpen(false);
               }}
-              className={`${buttonBase} border border-input bg-background text-foreground`}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {needsStep && !open && (
-        <button ref={triggerRef} type="button" onClick={() => setOpen(true)} className={`${buttonBase} ${primary}`}>
+        <Button ref={triggerRef} variant={look} size={size} onClick={() => setOpen(true)}>
           {label}
-        </button>
+        </Button>
       )}
 
       {!needsStep && (
-        <button type="submit" disabled={pending} className={`${buttonBase} ${primary}`}>
+        <Button type="submit" variant={look} size={size} disabled={pending}>
           {pending ? (pendingLabel ?? "Working...") : label}
-        </button>
+        </Button>
       )}
 
       {state && (
         <p
           id={messageId}
           role={state.ok ? "status" : "alert"}
-          className={state.ok ? "text-sm text-muted" : "text-sm text-red-700 dark:text-red-400"}
+          className={state.ok ? "text-meta text-muted" : "text-meta text-danger"}
         >
           {state.message}
         </p>

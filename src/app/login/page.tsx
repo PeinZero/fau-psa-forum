@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { safeNextPath } from "@/lib/safe-next";
+import { AUTH_FAILED_MESSAGE } from "./auth-errors";
 import LoginForm from "./login-form";
 
 type LoginPageProps = {
@@ -7,9 +8,9 @@ type LoginPageProps = {
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
-  auth_failed: "Sign-in failed or the link has expired. Please try again.",
+  auth_failed: AUTH_FAILED_MESSAGE,
 };
-const GENERIC_ERROR = "Something went wrong signing you in. Please try again.";
+const GENERIC_ERROR = "We couldn't sign you in. Please try again.";
 
 export const metadata = { title: "Sign in" };
 
@@ -24,11 +25,7 @@ async function LoginContent({ searchParams }: LoginPageProps) {
 
 export default function LoginPage(props: LoginPageProps) {
   return (
-    <div className="mx-auto w-full max-w-sm px-4 py-12">
-      <h1 className="mb-1 text-2xl font-semibold">Sign in</h1>
-      <p className="mb-6 text-sm text-neutral-600 dark:text-neutral-400">
-        You only need an account to post or comment. Reading is open to everyone.
-      </p>
+    <div className="mx-auto flex w-full max-w-sm flex-col px-4 py-8 sm:py-16">
       <Suspense>
         <LoginContent {...props} />
       </Suspense>
