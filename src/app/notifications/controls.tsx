@@ -36,7 +36,11 @@ export function MarkAllReadButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-/** Opening an unread notification marks it read in the background while navigation proceeds. */
+/**
+ * Opening an unread notification marks it read in the background while navigation proceeds.
+ * Revalidating would re-render the list mid-navigation, so the item drops its own `data-unread`
+ * (which the row styles from) and stays read when the visitor comes back.
+ */
 export function NotificationLink({
   id,
   href,
@@ -50,14 +54,18 @@ export function NotificationLink({
   className?: string;
   children: ReactNode;
 }) {
+  const [opened, setOpened] = useState(false);
   return (
     <Link
       href={href}
       className={className}
+      data-unread={unread && !opened ? "" : undefined}
       onClick={() => {
-        if (!unread) return;
+        if (!unread || opened) return;
+        setOpened(true);
         void markNotificationRead(id).then((result) => {
           if (result?.ok) announceNotificationsChanged();
+          else setOpened(false);
         });
       }}
     >

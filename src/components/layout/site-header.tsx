@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import UserMenu from "@/components/auth/user-menu";
 import { HeaderSearch } from "@/components/layout/header-search";
 import { NavLinkList, NavLinks } from "@/components/layout/nav-links";
+import { ShortcutsDialog } from "@/components/shortcuts/shortcuts-dialog";
 import { NotificationBellSlot } from "@/components/notifications/bell-slot";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonClasses } from "@/components/ui/button";
@@ -73,6 +74,7 @@ export function SiteHeader() {
           </Suspense>
         </div>
       </div>
+      <ShortcutsDialog />
     </header>
   );
 }

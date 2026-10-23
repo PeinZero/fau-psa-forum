@@ -110,7 +110,12 @@ export function GuideProgressProvider({
   initialDone: number[];
   children: ReactNode;
 }) {
-  const [confirmed, setConfirmed] = useState<ReadonlySet<number>>(() => new Set(initialDone));
+  // The server's ticks are the truth; each save re-renders the page with them.
+  const doneKey = initialDone.join(",");
+  const confirmed = useMemo<ReadonlySet<number>>(
+    () => new Set(doneKey ? doneKey.split(",").map(Number) : []),
+    [doneKey],
+  );
   const [optimistic, applyOptimistic] = useOptimistic(confirmed, applyChange);
   const [error, setError] = useState<string | null>(null);
   const [memoryOnly, setMemoryOnly] = useState<ReadonlySet<number> | null>(null);
@@ -132,9 +137,7 @@ export function GuideProgressProvider({
     }
     startTransition(async () => {
       const result = await importGuideProgress(pending);
-      if (!result?.ok) return;
-      writeStored(guideId, null);
-      startTransition(() => setConfirmed((prev) => new Set([...prev, ...pending])));
+      if (result?.ok) writeStored(guideId, null);
     });
   }, [signedIn, guideId, stepIds, initialDone]);
 
@@ -150,8 +153,7 @@ export function GuideProgressProvider({
     startTransition(async () => {
       applyOptimistic(change);
       const result = await setGuideStepDone(change.stepId, change.done);
-      if (result?.ok) setConfirmed((prev) => applyChange(prev, change));
-      else setError(result?.message ?? "Could not save your progress. Please try again.");
+      if (!result?.ok) setError(result?.message ?? "Could not save your progress. Please try again.");
     });
   }
 

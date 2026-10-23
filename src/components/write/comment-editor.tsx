@@ -65,8 +65,11 @@ function EditForm({ commentId, body, onDone }: { commentId: number; body: string
     setError(null);
     startTransition(async () => {
       const result = await updateCommentAction(commentId, draft);
-      if (result.ok) onDone();
-      else setError(result.error);
+      // Committed with the re-rendered thread, so the old text never flashes after saving.
+      startTransition(() => {
+        if (result.ok) onDone();
+        else setError(result.error);
+      });
     });
   }
 

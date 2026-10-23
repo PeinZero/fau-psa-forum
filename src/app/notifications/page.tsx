@@ -23,7 +23,6 @@ import { announcementHref } from "@/components/announcements/data";
 import { Avatar } from "@/components/author";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { Card, cardClasses } from "@/components/ui/card";
-import { cn } from "@/components/ui/cn";
 import { EmptyState } from "@/components/ui/empty-state";
 import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
@@ -169,10 +168,7 @@ function NotificationItem({ n, index, now }: { n: NotificationRow; index: number
         id={n.id}
         href={target(n)}
         unread={unread}
-        className={cn(
-          "group flex items-start gap-3 px-4 py-3.5 transition-colors duration-150 ease-out hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-5",
-          unread && "bg-accent-soft/40",
-        )}
+        className="group flex items-start gap-3 px-4 py-3.5 transition-colors duration-150 ease-out hover:bg-surface-hover focus-visible:-outline-offset-2 data-unread:bg-accent-soft/40 data-unread:hover:bg-surface-hover sm:px-5"
       >
         <span className="relative mt-0.5 shrink-0">
           {system ? (
@@ -195,19 +191,17 @@ function NotificationItem({ n, index, now }: { n: NotificationRow; index: number
           )}
         </span>
         <span className="min-w-0 flex-1">
-          <span className={cn("block break-words text-sm leading-snug", unread ? "text-foreground" : "text-muted")}>
+          <span className="block break-words text-sm leading-snug text-muted group-data-unread:text-foreground">
             {sentence(n)}
           </span>
           <time dateTime={n.created_at} className="mt-1 block text-meta text-subtle">
             {relativeTime(n.created_at, now)}
           </time>
         </span>
-        {unread ? (
-          <span className="mt-2 flex shrink-0 items-center">
-            <span aria-hidden className="size-2 rounded-full bg-accent" />
-            <span className="sr-only">Unread</span>
-          </span>
-        ) : null}
+        <span className="mt-2 hidden shrink-0 items-center group-data-unread:flex">
+          <span aria-hidden className="size-2 rounded-full bg-accent" />
+          <span className="sr-only">Unread</span>
+        </span>
       </NotificationLink>
     </li>
   );

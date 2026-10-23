@@ -20,6 +20,8 @@ type Props = {
   /** Overrides the look derived from `tone`. */
   variant?: ButtonVariant;
   size?: ButtonSize;
+  /** Runs after the action succeeded, for client-side state the page re-render can't reach. */
+  onDone?: () => void;
 };
 
 export function ActionButton({
@@ -32,13 +34,22 @@ export function ActionButton({
   tone = "default",
   variant,
   size = "sm",
+  onDone,
 }: Props) {
-  const [state, formAction, pending] = useActionState(action, null);
   const [open, setOpen] = useState(false);
   const uid = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
+  const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
+    const result = await action(prev, formData);
+    if (result?.ok) {
+      returnFocus.current = true;
+      setOpen(false);
+      onDone?.();
+    }
+    return result;
+  }, null);
 
   useEffect(() => {
     if (open) {

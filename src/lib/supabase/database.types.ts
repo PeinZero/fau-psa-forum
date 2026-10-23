@@ -677,6 +677,8 @@ export type Database = {
           created_at: string
           edited_by: string | null
           id: number
+          reviewed_at: string | null
+          reviewed_by: string | null
           thread_id: number
           title: string
         }
@@ -685,6 +687,8 @@ export type Database = {
           created_at?: string
           edited_by?: string | null
           id?: never
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           thread_id: number
           title: string
         }
@@ -693,6 +697,8 @@ export type Database = {
           created_at?: string
           edited_by?: string | null
           id?: never
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           thread_id?: number
           title?: string
         }
@@ -700,6 +706,13 @@ export type Database = {
           {
             foreignKeyName: "thread_revisions_edited_by_fkey"
             columns: ["edited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_revisions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

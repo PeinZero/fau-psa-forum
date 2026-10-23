@@ -6,8 +6,13 @@ import { usePathname } from "next/navigation";
 import { UnseenAnnouncementsBadge } from "@/components/announcements/unseen-badge";
 import { useUnseenAnnouncements } from "@/components/announcements/unseen-store";
 import { cn } from "@/components/ui/cn";
+import { LinkPending } from "./link-pending";
 
 // "About" waits for lg: at md the bar only has room for three labels beside the search field.
+// While another link is loading, the current one lets go of its highlight.
+const dimWhilePending =
+  "group-has-data-pending/main-nav:bg-transparent group-has-data-pending/main-nav:text-muted";
+
 const links = [
   { href: "/", label: "Browse", matches: (path: string) => path === "/" || path.startsWith("/c/") },
   { href: "/guides", label: "Guides", matches: (path: string) => path === "/guides" || path.startsWith("/guides/") },
@@ -18,7 +23,7 @@ const links = [
 export function NavLinkList({ pathname }: { pathname: string | null }) {
   const unseen = useUnseenAnnouncements();
   return (
-    <nav aria-label="Main" className="hidden items-center gap-0.5 md:flex">
+    <nav aria-label="Main" className="group/main-nav hidden items-center gap-0.5 md:flex">
       {links.map(({ href, label, matches, wide }) => {
         const active = pathname !== null && matches(pathname);
         return (
@@ -27,12 +32,15 @@ export function NavLinkList({ pathname }: { pathname: string | null }) {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "min-h-8 items-center whitespace-nowrap rounded-md px-2.5 text-meta font-medium transition-colors duration-150",
+              "relative isolate min-h-8 items-center whitespace-nowrap rounded-md px-2.5 text-meta font-medium transition-colors duration-150 has-data-pending:text-foreground",
               wide ? "hidden lg:inline-flex" : "inline-flex",
-              active ? "bg-surface-hover text-foreground" : "text-muted hover:bg-surface-hover hover:text-foreground",
+              active
+                ? cn("bg-surface-hover text-foreground", dimWhilePending)
+                : "text-muted hover:bg-surface-hover hover:text-foreground",
             )}
           >
             {label}
+            <LinkPending className="bg-surface-hover" />
           </Link>
         );
       })}
@@ -43,14 +51,15 @@ export function NavLinkList({ pathname }: { pathname: string | null }) {
         title="Announcements"
         aria-current={pathname === "/announcements" ? "page" : undefined}
         className={cn(
-          "relative hidden size-8 items-center justify-center rounded-md transition-colors duration-150 pointer-coarse:size-11 lg:inline-flex",
+          "relative isolate hidden size-8 items-center justify-center rounded-md transition-colors duration-150 pointer-coarse:size-11 has-data-pending:text-foreground lg:inline-flex",
           pathname === "/announcements"
-            ? "bg-surface-hover text-foreground"
+            ? cn("bg-surface-hover text-foreground", dimWhilePending)
             : "text-muted hover:bg-surface-hover hover:text-foreground",
         )}
       >
         <Megaphone aria-hidden strokeWidth={1.75} className="size-4" />
         <UnseenAnnouncementsBadge />
+        <LinkPending className="bg-surface-hover" />
       </Link>
     </nav>
   );

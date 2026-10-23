@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ShortcutsLink } from "@/components/shortcuts/shortcuts-link";
 import { cn } from "@/components/ui/cn";
 
 const linkClass =
@@ -31,6 +32,7 @@ export function SiteFooter() {
               {label}
             </Link>
           ))}
+          <ShortcutsLink className={cn(linkClass, "max-md:hidden")} />
           <a
             href="https://github.com/PeinZero/fau-psa-forum"
             className={cn(linkClass, "gap-2")}

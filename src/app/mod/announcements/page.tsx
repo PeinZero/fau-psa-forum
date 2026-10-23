@@ -6,6 +6,7 @@ import { announcementHref, fetchAnnouncements } from "@/components/announcements
 import { Author } from "@/components/author";
 import { ActionButton } from "@/components/mod/action-button";
 import { moderateAnnouncement } from "@/components/mod/actions";
+import { AnnouncementActionButton } from "@/components/mod/announcement-action-button";
 import { AnnouncementForm } from "@/components/mod/announcement-form";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
@@ -90,8 +91,7 @@ export default async function ModAnnouncementsPage() {
                           <ArrowRight aria-hidden strokeWidth={1.75} />
                         </Link>
                         <div className="sm:ml-auto">
-                          <ActionButton
-                            action={moderateAnnouncement}
+                          <AnnouncementActionButton
                             fields={{ announcementId: announcement.id, op: "delete" }}
                             label="Delete"
                             pendingLabel="Deleting..."

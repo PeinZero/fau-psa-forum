@@ -4,6 +4,7 @@ import { useActionState, useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label, Select } from "@/components/ui/field";
+import { submitWithoutReset, useSyncedState } from "@/lib/form-sync";
 
 import { changeRole } from "./actions";
 
@@ -12,7 +13,7 @@ type Role = "member" | "moderator" | "superadmin";
 export function RoleForm({ target, name, role }: { target: string; name: string; role: Role }) {
   const [state, formAction, pending] = useActionState(changeRole, null);
   const uid = useId();
-  const [value, setValue] = useState<Role>(role);
+  const [value, setValue] = useSyncedState<Role>(role);
   const [confirming, setConfirming] = useState(false);
   const changed = value !== role;
   const panelRef = useRef<HTMLDivElement>(null);
@@ -29,7 +30,11 @@ export function RoleForm({ target, name, role }: { target: string; name: string;
   }, [confirming]);
 
   return (
-    <form action={formAction} className="grid gap-2" aria-describedby={state ? `${uid}-msg` : undefined}>
+    <form
+      onSubmit={submitWithoutReset(formAction)}
+      className="grid gap-2"
+      aria-describedby={state ? `${uid}-msg` : undefined}
+    >
       <input type="hidden" name="target" value={target} />
       <Label htmlFor={`${uid}-role`} className="sr-only">
         Role of {name}
