@@ -1,4 +1,5 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
@@ -30,4 +31,24 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   if (!profile) return null;
 
   return { userId, role: profile.role, displayName: profile.display_name };
+});
+
+export const VIEW_AS_MEMBER_COOKIE = "view_as_member";
+
+export type ViewMode = "member" | "default";
+
+/** Whether a moderator chose to see pages as a member would; reads cookies, so render inside <Suspense>. */
+export async function getViewMode(): Promise<ViewMode> {
+  const store = await cookies();
+  return store.get(VIEW_AS_MEMBER_COOKIE)?.value === "1" ? "member" : "default";
+}
+
+/**
+ * The viewer as pages should render them: a moderator viewing as a member gets the member role.
+ * Purely visual; server actions and RLS keep checking the real role.
+ */
+export const getEffectiveViewer = cache(async (): Promise<Viewer | null> => {
+  const viewer = await getViewer();
+  if (!viewer || !isModerator(viewer.role)) return viewer;
+  return (await getViewMode()) === "member" ? { ...viewer, role: "member" } : viewer;
 });

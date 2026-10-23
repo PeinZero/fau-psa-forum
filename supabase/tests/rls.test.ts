@@ -1137,6 +1137,139 @@ describe("announcements", () => {
   });
 });
 
+describe("comment votes", () => {
+  // The statement supabase-js sends for upsert({ comment_id, value }, { onConflict: "comment_id,user_id" }).
+  const vote = (actor: Actor, comment: number, value: number) =>
+    as(
+      actor,
+      `insert into public.comment_votes (comment_id, value) values ($1, $2)
+       on conflict (comment_id, user_id) do update set comment_id = excluded.comment_id, value = excluded.value`,
+      [comment, value],
+    );
+  const unvote = (actor: Actor, comment: number) =>
+    as(actor, "delete from public.comment_votes where comment_id = $1", [comment]);
+  const score = async (comment: number) =>
+    (await sql<{ score: number }>("select score from public.comments where id = $1", [comment]))[0].score;
+
+  test("members vote, change and withdraw their vote; the cached score follows", async () => {
+    assert.equal(await score(comments.visible), 0);
+    await vote(A, comments.visible, 1);
+    await vote(MOD, comments.visible, 1);
+    assert.equal(await score(comments.visible), 2);
+    await vote(A, comments.visible, -1);
+    assert.equal(await score(comments.visible), 0);
+    await vote(A, comments.visible, -1);
+    assert.equal(await score(comments.visible), 0);
+    await unvote(MOD, comments.visible);
+    assert.equal(await score(comments.visible), -1);
+    await unvote(A, comments.visible);
+    assert.equal(await score(comments.visible), 0);
+    assert.deepEqual(await sql("select * from public.comment_votes"), []);
+    await assert.rejects(vote(A, comments.visible, 0), /comment_votes_value_check/);
+    await assert.rejects(vote(A, comments.visible, 2), /comment_votes_value_check/);
+  });
+
+  test("self-votes are rejected", async () => {
+    await assert.rejects(vote(B, comments.visible, 1), /you cannot vote on your own comment/);
+    await assert.rejects(vote(A, comments.onOther, -1), /you cannot vote on your own comment/);
+    assert.equal(await score(comments.visible), 0);
+  });
+
+  test("row level security alone rejects self-votes and votes on hidden comments", async () => {
+    await sql("alter table public.comment_votes disable trigger comment_votes_guard");
+    await assert.rejects(vote(B, comments.visible, 1), /row-level security/);
+    await assert.rejects(vote(MOD, comments.hidden, 1), /row-level security/);
+    await vote(A, comments.visible, 1);
+    await sql("update public.comments set hidden_at = now() where id = $1", [comments.visible]);
+    await assert.rejects(vote(A, comments.visible, -1), /row-level security/);
+  });
+
+  test("hidden comments and pending threads take no votes; archived threads freeze theirs", async () => {
+    await assert.rejects(vote(B, comments.hidden, 1), /voting is only possible on visible comments of published threads/);
+    await assert.rejects(vote(MOD, comments.hidden, 1), /voting is only possible on visible comments of published threads/);
+
+    await vote(B, comments.onOther, 1);
+    await sql("update public.threads set status = 'archived' where id = $1", [threads.otherPublished]);
+    await assert.rejects(vote(MOD, comments.onOther, 1), /voting is only possible/);
+    await assert.rejects(vote(B, comments.onOther, -1), /voting is only possible/);
+    await assert.rejects(unvote(B, comments.onOther), /voting is only possible/);
+    assert.equal(await score(comments.onOther), 1);
+
+    await sql("update public.threads set status = 'pending' where id = $1", [threads.otherPublished]);
+    await assert.rejects(vote(MOD, comments.onOther, 1), /voting is only possible/);
+    await assert.rejects(vote(B, comments.onOther, 1), /voting is only possible/);
+  });
+
+  test("voters read only their own votes; scores are public; anon reads and writes nothing", async () => {
+    await vote(A, comments.visible, 1);
+    await vote(MOD, comments.visible, -1);
+    await vote(B, comments.onOther, 1);
+    assert.deepEqual(
+      await as(A, "select comment_id, user_id, value from public.comment_votes"),
+      [{ comment_id: comments.visible, user_id: ids.a, value: 1 }],
+    );
+    assert.equal((await as(ADMIN, "select 1 from public.comment_votes")).length, 0);
+    assert.equal((await as(MOD, "select 1 from public.comment_votes where user_id <> $1", [ids.mod])).length, 0);
+    await assert.rejects(as(anon, "select * from public.comment_votes"), /permission denied/);
+    await assert.rejects(vote(anon, comments.visible, 1), /permission denied/);
+    await assert.rejects(unvote(anon, comments.visible), /permission denied/);
+    const scores = await as<{ id: number; score: number }>(anon, "select id, score from public.comments where id = any($1::bigint[]) order by id", [[comments.visible, comments.onOther]]);
+    assert.deepEqual(scores, [{ id: comments.visible, score: 0 }, { id: comments.onOther, score: 1 }]);
+  });
+
+  test("clients cannot write the score or someone else's vote, not even with a widened grant", async () => {
+    await vote(B, comments.onOther, 1);
+    await assert.rejects(as(A, "update public.comments set score = 100 where id = $1", [comments.onOther]), /permission denied/);
+    await assert.rejects(as(A, "insert into public.comments (thread_id, body, score) values ($1, 'Hi', 5)", [threads.published]), /permission denied/);
+    await assert.rejects(as(A, "insert into public.comment_votes (comment_id, user_id, value) values ($1, $2, 1)", [comments.visible, ids.mod]), /permission denied/);
+    assert.equal((await as(A, "update public.comment_votes set value = -1 where comment_id = $1 returning 1", [comments.onOther])).length, 0);
+    assert.equal((await as(A, "delete from public.comment_votes where comment_id = $1 returning 1", [comments.onOther])).length, 0);
+    await assert.rejects(
+      as(B, "update public.comment_votes set comment_id = $1 where comment_id = $2", [comments.visible, comments.onOther]),
+      /a vote cannot be moved to another comment/,
+    );
+
+    await sql("grant update (score) on public.comments to authenticated");
+    await assert.rejects(
+      as(A, "update public.comments set score = 100 where id = $1", [comments.onOther]),
+      /the score of a comment changes only through votes/,
+    );
+    await assert.rejects(
+      as(MOD, "update public.comments set score = 100 where id = $1", [comments.visible]),
+      /the score of a comment changes only through votes/,
+    );
+    assert.equal(await score(comments.onOther), 1);
+  });
+
+  test("deleting a voter's account takes their votes out of the scores; deleting a comment removes its votes", async () => {
+    await vote(A, comments.visible, 1);
+    await vote(MOD, comments.visible, 1);
+    await vote(B, comments.onOther, -1);
+    await vote(MOD, comments.onOther, -1);
+    assert.deepEqual([await score(comments.visible), await score(comments.onOther)], [2, -2]);
+
+    await as(MOD, "select public.delete_own_account()");
+    assert.deepEqual([await score(comments.visible), await score(comments.onOther)], [1, -1]);
+    assert.equal((await sql("select 1 from public.comment_votes where user_id = $1", [ids.mod])).length, 0);
+
+    await sql("delete from auth.users where id = $1", [ids.a]);
+    assert.deepEqual([await score(comments.visible), await score(comments.onOther)], [0, -1]);
+    assert.deepEqual(await sql("select user_id from public.comment_votes"), [{ user_id: ids.b }]);
+
+    await sql("delete from public.comments where id = $1", [comments.onOther]);
+    assert.deepEqual(await sql("select 1 from public.comment_votes"), []);
+  });
+
+  test("votes notify nobody", async () => {
+    const [{ count: before }] = await sql<{ count: number }>("select count(*)::int as count from public.notifications");
+    await vote(A, comments.visible, 1);
+    await vote(A, comments.visible, -1);
+    await unvote(A, comments.visible);
+    const [{ count: afterwards }] = await sql<{ count: number }>("select count(*)::int as count from public.notifications");
+    assert.equal(afterwards, before);
+  });
+});
+
 describe("handle backfill on an existing database", () => {
   const fresh = new PGlite();
   after(async () => {

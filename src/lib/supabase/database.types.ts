@@ -87,6 +87,42 @@ export type Database = {
           },
         ]
       }
+      comment_votes: {
+        Row: {
+          comment_id: number
+          created_at: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          comment_id: number
+          created_at?: string
+          user_id?: string
+          value: number
+        }
+        Update: {
+          comment_id?: number
+          created_at?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_votes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           author_id: string | null
@@ -97,6 +133,7 @@ export type Database = {
           hidden_by: string | null
           id: number
           parent_id: number | null
+          score: number
           search: unknown
           thread_id: number
         }
@@ -109,6 +146,7 @@ export type Database = {
           hidden_by?: string | null
           id?: never
           parent_id?: number | null
+          score?: number
           search?: never
           thread_id: number
         }
@@ -121,6 +159,7 @@ export type Database = {
           hidden_by?: string | null
           id?: never
           parent_id?: number | null
+          score?: number
           search?: never
           thread_id?: number
         }

@@ -1,4 +1,4 @@
-import { Archive, ChevronRight, CircleAlert, Clock, MapPin, Pencil, Pin, TriangleAlert } from "lucide-react";
+import { Archive, ChevronRight, CircleAlert, Clock, MapPin, Pin, TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,18 +6,18 @@ import { type ReactNode, Suspense } from "react";
 
 import { Author } from "@/components/author";
 import { Markdown } from "@/components/markdown";
-import { ThreadModPanel } from "@/components/mod/thread-mod-panel";
-import { ReportButton } from "@/components/report/report-button";
+import { MemberViewBanner } from "@/components/member-view/member-view-banner";
 import { CommentsSkeleton, PublicComments, ViewerComments } from "@/components/thread/thread-comments";
-import { getThread, plainTextExcerpt, type ThreadDetail } from "@/components/thread/thread-data";
+import { getThread, parseCommentSort, plainTextExcerpt, type ThreadDetail } from "@/components/thread/thread-data";
+import { ThreadMenu } from "@/components/thread/thread-menu";
 import { Badge } from "@/components/ui/badge";
-import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getViewer, isModerator } from "@/lib/auth/viewer";
+import { getEffectiveViewer, isModerator } from "@/lib/auth/viewer";
 import { cityLabels, formatDate, statusLabels } from "@/lib/labels";
 
 type Params = Promise<{ slug: string }>;
+type SearchParams = Promise<{ sort?: string | string[] }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
@@ -40,20 +40,24 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
-export default function ThreadPage({ params }: { params: Params }) {
+export default function ThreadPage({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   return (
     <div className="mx-auto w-full max-w-3xl">
+      <Suspense fallback={null}>
+        <MemberViewBanner className="mb-6" />
+      </Suspense>
       <Suspense fallback={<ThreadSkeleton />}>
-        <ThreadContent params={params} />
+        <ThreadContent params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function ThreadContent({ params }: { params: Params }) {
-  const { slug } = await params;
+async function ThreadContent({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
+  const [{ slug }, { sort: sortParam }] = await Promise.all([params, searchParams]);
   const thread = await getThread(slug);
   if (!thread) notFound();
+  const sort = parseCommentSort(sortParam);
 
   return (
     <article className="flex flex-col">
@@ -77,8 +81,8 @@ async function ThreadContent({ params }: { params: Params }) {
               </span>
             )}
           </p>
-          <Suspense fallback={null}>
-            <ViewerActions thread={thread} />
+          <Suspense fallback={<ThreadMenu thread={modFields(thread)} slug={thread.slug} />}>
+            <ViewerThreadMenu thread={thread} />
           </Suspense>
         </div>
       </header>
@@ -87,17 +91,13 @@ async function ThreadContent({ params }: { params: Params }) {
         <Banners thread={thread} />
       </div>
 
-      <Suspense fallback={null}>
-        <ModPanel thread={thread} />
-      </Suspense>
-
       <div className="mt-8 border-t border-border pt-8">
         <Markdown>{thread.body}</Markdown>
       </div>
 
       <div className="mt-12">
-        <Suspense fallback={<PublicComments thread={thread} />}>
-          <ViewerComments thread={thread} />
+        <Suspense fallback={<PublicComments thread={thread} sort={sort} />}>
+          <ViewerComments thread={thread} sort={sort} />
         </Suspense>
       </div>
     </article>
@@ -228,43 +228,24 @@ function Banners({ thread }: { thread: ThreadDetail }) {
   );
 }
 
-async function ViewerActions({ thread }: { thread: ThreadDetail }) {
-  const viewer = await getViewer();
-  if (!viewer) return null;
-
-  const isMod = isModerator(viewer.role);
-  const isAuthor = viewer.userId === thread.author_id;
-  const canReport = !isMod && !isAuthor && (thread.status === "published" || thread.status === "archived");
-
-  return (
-    <div className="-my-1 flex items-center gap-1">
-      {(isMod || isAuthor) && (
-        <Link href={`/t/${thread.slug}/edit`} className={buttonClasses({ variant: "ghost", size: "sm" })}>
-          <Pencil strokeWidth={1.75} />
-          Edit
-        </Link>
-      )}
-      {canReport && <ReportButton target={{ threadId: thread.id }} />}
-    </div>
-  );
+function modFields({ id, status, is_outdated, is_pinned }: ThreadDetail) {
+  return { id, status, is_outdated, is_pinned };
 }
 
-async function ModPanel({ thread }: { thread: ThreadDetail }) {
-  const viewer = await getViewer();
-  if (!viewer || !isModerator(viewer.role)) return null;
+async function ViewerThreadMenu({ thread }: { thread: ThreadDetail }) {
+  const viewer = await getEffectiveViewer();
+  const isMod = viewer !== null && isModerator(viewer.role);
+  const isAuthor = viewer !== null && viewer.userId === thread.author_id;
+  const isPublic = thread.status === "published" || thread.status === "archived";
 
   return (
-    <div className="mt-6">
-      <ThreadModPanel
-        thread={{
-          id: thread.id,
-          slug: thread.slug,
-          status: thread.status,
-          is_outdated: thread.is_outdated,
-          is_pinned: thread.is_pinned,
-        }}
-      />
-    </div>
+    <ThreadMenu
+      thread={modFields(thread)}
+      slug={thread.slug}
+      canEdit={isMod || isAuthor}
+      canReport={viewer !== null && !isMod && !isAuthor && isPublic}
+      isMod={isMod}
+    />
   );
 }
 

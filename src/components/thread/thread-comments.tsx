@@ -3,9 +3,15 @@ import Link from "next/link";
 
 import { Author, Avatar } from "@/components/author";
 import { Markdown } from "@/components/markdown";
-import { CommentModActions } from "@/components/mod/comment-mod-actions";
-import { ReportButton } from "@/components/report/report-button";
-import type { CommentDetail, ThreadDetail } from "@/components/thread/thread-data";
+import { CommentMenu } from "@/components/thread/comment-menu";
+import { CommentSortControl } from "@/components/thread/comment-sort";
+import {
+  type CommentDetail,
+  type CommentSort,
+  getMyVotes,
+  type MyVote,
+  type ThreadDetail,
+} from "@/components/thread/thread-data";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
@@ -14,20 +20,25 @@ import { stagger } from "@/components/ui/motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CommentAnchor, ReplyList } from "@/components/thread/reply-list";
 import { ReplyButton, ReplyColumn, ReplyScope } from "@/components/thread/reply-scope";
-import { CommentEditor } from "@/components/write/comment-editor";
+import { VoteControl } from "@/components/votes/vote-control";
+import { CommentEditor, CommentEditScope } from "@/components/write/comment-editor";
 import { CommentForm } from "@/components/write/comment-form";
-import { getViewer, isModerator, type Viewer } from "@/lib/auth/viewer";
+import { getEffectiveViewer, isModerator, type Viewer } from "@/lib/auth/viewer";
 import { formatDate } from "@/lib/labels";
 
 /** Viewer-independent comments, shown while the signed-in state streams in. */
-export function PublicComments({ thread }: { thread: ThreadDetail }) {
-  return <Comments thread={thread} viewer={null} />;
+export function PublicComments({ thread, sort }: { thread: ThreadDetail; sort: CommentSort }) {
+  return <Comments thread={thread} viewer={null} sort={sort} votes={NO_VOTES} />;
 }
 
-export async function ViewerComments({ thread }: { thread: ThreadDetail }) {
-  const viewer = await getViewer();
-  return <Comments thread={thread} viewer={viewer} />;
+/** Renders for the effective viewer: a moderator viewing as a member gets the member page. */
+export async function ViewerComments({ thread, sort }: { thread: ThreadDetail; sort: CommentSort }) {
+  const viewer = await getEffectiveViewer();
+  const votes = viewer ? await getMyVotes(viewer.userId, thread.comments.map((c) => c.id)) : NO_VOTES;
+  return <Comments thread={thread} viewer={viewer} sort={sort} votes={votes} />;
 }
+
+const NO_VOTES: ReadonlyMap<number, MyVote> = new Map();
 
 type CommentGroup = { id: number; comment: CommentDetail | null; replies: CommentDetail[] };
 
@@ -48,22 +59,55 @@ function groupComments(comments: CommentDetail[]): CommentGroup[] {
   return [...groups.values()];
 }
 
-type ItemContext = { thread: ThreadDetail; viewer: Viewer | null; isMod: boolean; canReply: boolean };
+/**
+ * Top: highest score first, older first on ties. Newest: latest first. Replies stay chronological
+ * under their parent; a group whose parent is hidden sorts by its first reply with no score.
+ */
+function sortGroups(groups: CommentGroup[], sort: CommentSort): CommentGroup[] {
+  const time = (g: CommentGroup) => Date.parse((g.comment ?? g.replies[0]).created_at);
+  const score = (g: CommentGroup) => g.comment?.score ?? 0;
+  return [...groups].sort((a, b) =>
+    sort === "new" ? time(b) - time(a) : score(b) - score(a) || time(a) - time(b),
+  );
+}
 
-function Comments({ thread, viewer }: { thread: ThreadDetail; viewer: Viewer | null }) {
-  const best = thread.comments.find((c) => c.id === thread.best_comment_id);
-  const groups = groupComments(thread.comments);
+type ItemContext = {
+  thread: ThreadDetail;
+  viewer: Viewer | null;
+  isMod: boolean;
+  canReply: boolean;
+  votes: ReadonlyMap<number, MyVote>;
+};
+
+function Comments({
+  thread,
+  viewer,
+  sort,
+  votes,
+}: {
+  thread: ThreadDetail;
+  viewer: Viewer | null;
+  sort: CommentSort;
+  votes: ReadonlyMap<number, MyVote>;
+}) {
   const isMod = viewer !== null && isModerator(viewer.role);
+  // RLS still returns hidden comments to a moderator viewing as a member; members never see them.
+  const comments = isMod ? thread.comments : thread.comments.filter((c) => c.hidden_at === null);
+  const best = comments.find((c) => c.id === thread.best_comment_id);
+  const groups = sortGroups(groupComments(comments), sort);
   const canComment = thread.status === "published";
-  const ctx: ItemContext = { thread, viewer, isMod, canReply: canComment && viewer !== null };
-  const count = thread.comments.length;
+  const ctx: ItemContext = { thread, viewer, isMod, canReply: canComment && viewer !== null, votes };
+  const count = comments.length;
 
   return (
     <section aria-labelledby="comments-heading" className="flex flex-col gap-5">
-      <h2 id="comments-heading" className="flex items-center gap-2 text-base font-semibold tracking-tight">
-        <MessageSquare aria-hidden strokeWidth={1.75} className="size-4 text-muted" />
-        {count} {count === 1 ? "comment" : "comments"}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="comments-heading" className="flex items-center gap-2 text-base font-semibold tracking-tight">
+          <MessageSquare aria-hidden strokeWidth={1.75} className="size-4 text-muted" />
+          {count} {count === 1 ? "comment" : "comments"}
+        </h2>
+        {groups.length > 1 && <CommentSortControl slug={thread.slug} value={sort} />}
+      </div>
 
       {best && (
         <div className="overflow-hidden rounded-xl border border-accent/40 bg-accent-soft shadow-[0_0_0_3px_var(--accent-soft)]">
@@ -162,7 +206,7 @@ function Group({ group, ctx }: { group: CommentGroup; ctx: ItemContext }) {
 
 function CommentItem({
   comment,
-  ctx: { thread, viewer, isMod, canReply },
+  ctx: { thread, viewer, isMod, canReply, votes },
   variant,
 }: {
   comment: CommentDetail;
@@ -176,52 +220,66 @@ function CommentItem({
   const canReport = viewer !== null && !isMod && !isOwn && !isHidden && isPublic;
   const mention = comment.author && !isOwn ? comment.author.username : null;
   const isReply = variant === "reply";
+  // The pinned copy repeats the comment for reading; its controls live on the original below.
   const isBestCopy = variant === "best";
+  const canEdit = isOwn && !isHidden && thread.status === "published" && !isBestCopy;
 
-  return (
+  const item = (
     <div className={cn("flex", isReply ? "gap-2.5 py-3" : "gap-3 py-5")}>
       <Avatar
         name={comment.author?.display_name ?? null}
         className={isReply ? "mt-px size-6 text-[10px]" : "mt-px size-7 text-[11px]"}
       />
       <div className={cn("flex min-w-0 flex-1 flex-col gap-2", isHidden && "opacity-60")}>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-muted">
-          <Author profile={comment.author} avatar={false} />
-          <span className="inline-flex items-center gap-2 whitespace-nowrap">
-            <span aria-hidden className="text-subtle">·</span>
-            <time dateTime={comment.created_at}>{formatDate(comment.created_at)}</time>
-            {comment.edited_at && <span className="text-subtle">edited</span>}
-          </span>
-          {isBest && variant !== "best" && (
-            <Badge variant="accent">
-              <CircleCheck aria-hidden strokeWidth={1.75} />
-              Best answer
-            </Badge>
-          )}
-          {isHidden && (
-            <Badge>
-              <EyeOff aria-hidden strokeWidth={1.75} />
-              Hidden by a moderator
-            </Badge>
-          )}
-        </p>
-        {isOwn && thread.status === "published" && !isBestCopy ? (
-          <CommentEditor commentId={comment.id} body={comment.body} />
-        ) : (
-          <Markdown>{comment.body}</Markdown>
-        )}
-        {!isBestCopy && (canReply || isMod || canReport) && (
-          <div className="-ml-3 flex flex-wrap items-center gap-1 text-meta">
-            {canReply && <ReplyButton mention={mention} />}
-            {canReport && <ReportButton target={{ commentId: comment.id }} />}
-            {isMod && (
-              <CommentModActions threadId={thread.id} commentId={comment.id} isBest={isBest} isHidden={isHidden} />
+        <div className="flex items-start gap-2">
+          <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-meta text-muted">
+            <Author profile={comment.author} avatar={false} />
+            <span className="inline-flex items-center gap-2 whitespace-nowrap">
+              <span aria-hidden className="text-subtle">·</span>
+              <time dateTime={comment.created_at}>{formatDate(comment.created_at)}</time>
+              {comment.edited_at && <span className="text-subtle">edited</span>}
+            </span>
+            {isBest && !isBestCopy && (
+              <Badge variant="accent">
+                <CircleCheck aria-hidden strokeWidth={1.75} />
+                Best answer
+              </Badge>
             )}
+            {isHidden && (
+              <Badge>
+                <EyeOff aria-hidden strokeWidth={1.75} />
+                Hidden by a moderator
+              </Badge>
+            )}
+          </p>
+          {!isBestCopy && (
+            <CommentMenu
+              threadId={thread.id}
+              slug={thread.slug}
+              commentId={comment.id}
+              canReport={canReport}
+              mod={isMod ? { isBest, isHidden } : null}
+            />
+          )}
+        </div>
+        {canEdit ? <CommentEditor commentId={comment.id} body={comment.body} /> : <Markdown>{comment.body}</Markdown>}
+        {!isBestCopy && (
+          <div className="-ml-1.5 flex flex-wrap items-center gap-1 text-meta">
+            <VoteControl
+              commentId={comment.id}
+              score={comment.score}
+              myVote={votes.get(comment.id) ?? 0}
+              signedIn={viewer !== null}
+              disabled={isOwn || isHidden || thread.status !== "published"}
+            />
+            {canReply && <ReplyButton mention={mention} />}
           </div>
         )}
       </div>
     </div>
   );
+
+  return canEdit ? <CommentEditScope>{item}</CommentEditScope> : item;
 }
 
 export function CommentsSkeleton() {
