@@ -62,9 +62,10 @@ test.describe("seeded content", () => {
     await expect(page.locator(`a[href="/t/${slug}"]`)).toBeVisible();
   });
 
-  test("the command palette finds a thread by a partial title and opens it", async ({ page }) => {
+  test("the command palette finds threads by a partial word and opens one with the arrow keys", async ({ page }) => {
     const tag = uid();
-    const { slug } = await seedThread(`Mietvertrag Kaution ${tag}`);
+    const old = await seedThread(`Mietvertrag Kaution ${tag} Altbau`);
+    const fresh = await seedThread(`Mietvertrag Kaution ${tag} Neubau`);
     await page.goto("/");
     // Kbd hints render only after hydration, so the shortcut listener is attached by then.
     await expect(page.getByRole("button", { name: /Search threads/ }).locator("kbd").first()).toBeVisible();
@@ -75,12 +76,18 @@ test.describe("seeded content", () => {
       await expect(dialog).toBeVisible({ timeout: 1000 });
     }).toPass();
 
-    await dialog.getByRole("combobox", { name: "Search threads" }).fill(`kaution ${tag.slice(0, 5)}`);
-    const option = dialog.getByRole("option", { name: new RegExp(`Mietvertrag Kaution ${tag}`) });
-    await expect(option).toBeVisible();
-    await expect(option).toHaveAttribute("aria-selected", "true");
+    // Lowercase and cut short: the palette matches the start of a word, not only whole words.
+    await dialog.getByRole("combobox", { name: "Search threads" }).fill(`kaution ${tag.slice(0, -2)}`);
+    const options = dialog.getByRole("option", { name: new RegExp(`Mietvertrag Kaution ${tag}`) });
+    await expect(options).toHaveCount(2);
+    await expect(options.first()).toHaveAttribute("aria-selected", "true");
+
+    await page.keyboard.press("ArrowDown");
+    await expect(options.first()).toHaveAttribute("aria-selected", "false");
+    await expect(options.nth(1)).toHaveAttribute("aria-selected", "true");
+    const second = (await options.nth(1).textContent()) ?? "";
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(`/t/${slug}`);
+    await expect(page).toHaveURL(`/t/${second.includes("Neubau") ? fresh.slug : old.slug}`);
   });
 
   test("search tolerates a typo in the title", async ({ page }) => {

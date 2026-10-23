@@ -177,7 +177,6 @@ export async function unreadNotifications(userId: string, type?: string): Promis
 // stops its Realtime socket before the next test starts.
 export const test = base.extend<{ closeContexts: void }>({
   closeContexts: [
-    // eslint-disable-next-line no-empty-pattern
     async ({}, use) => {
       await use();
       await Promise.all(openContexts.splice(0).map((context) => context.close()));
