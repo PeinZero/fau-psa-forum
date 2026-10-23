@@ -34,7 +34,7 @@ Locally, `npm run test:e2e` reuses the dev server you already have running.
 
 `.github/workflows/ci.yml` runs on every PR: lint, typecheck, `npm test`, `npm run test:db`, build,
 then a small desktop-only e2e run (sign-in, comment, vote, public pages) against a throwaway `supabase start` stack. Failures upload the Playwright report, traces,
-screenshots and videos.
+and screenshots.
 
 ## Not done yet
 

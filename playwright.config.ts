@@ -17,7 +17,8 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    // Video needs a separate ffmpeg download; traces and screenshots cover failures without it.
+    video: "off",
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
