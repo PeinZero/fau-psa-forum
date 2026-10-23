@@ -23,6 +23,12 @@ describe("friendlyError", () => {
     );
   });
 
+  it("shows rate-limit messages from the database as written", () => {
+    expect(friendlyError({ code: "P0001", message: "rate limit: Please wait a minute." }, { codes: { P0001: "Other." } })).toBe(
+      "Please wait a minute.",
+    );
+  });
+
   it("prefers a module message over the code, and a module code over the default", () => {
     const options = {
       messages: [["cannot vote on your own", "Not your own."]] as const,
