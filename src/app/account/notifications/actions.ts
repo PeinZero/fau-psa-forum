@@ -27,7 +27,6 @@ export async function savePreferences(input: unknown): Promise<PreferencesResult
       user_id: viewer.userId,
       muted_types: [...new Set(parsed.data.mutedTypes)] as Enums<"notification_type">[],
       email_frequency: parsed.data.emailFrequency,
-      updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
   );

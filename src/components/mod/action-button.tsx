@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 
 import { Button, type ButtonSize, type ButtonVariant } from "@/components/ui/button";
-import { Label, Textarea } from "@/components/ui/field";
+import { ReasonField, type ReasonSpec } from "@/components/ui/reason-field";
 
 import type { ActionState } from "./actions";
 
@@ -15,7 +15,7 @@ type Props = {
   /** Asks for a second click before submitting. */
   confirm?: string;
   /** Asks for a required free-text reason, submitted as `reason`. */
-  reason?: { label: string; max: number };
+  reason?: ReasonSpec;
   tone?: "default" | "danger";
   /** Overrides the look derived from `tone`. */
   variant?: ButtonVariant;
@@ -78,12 +78,7 @@ export function ActionButton({
           className="flex w-full min-w-0 flex-col gap-3 rounded-lg border border-border bg-background p-3 sm:min-w-72"
         >
           {confirm && <p className="text-meta text-muted">{confirm}</p>}
-          {reason && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${uid}-reason`}>{reason.label}</Label>
-              <Textarea id={`${uid}-reason`} name="reason" required maxLength={reason.max} rows={3} className="min-h-20" />
-            </div>
-          )}
+          {reason && <ReasonField id={uid} spec={reason} />}
           <div className="flex flex-wrap gap-2">
             <Button type="submit" variant={submitLook === "secondary" ? "primary" : submitLook} size={size} disabled={pending}>
               {pending ? (pendingLabel ?? "Working...") : label}

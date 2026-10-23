@@ -1,4 +1,4 @@
-import { Bell, ChevronRight, LogOut, Plus } from "lucide-react";
+import { Bell, ChevronRight, Download, LogOut, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { Avatar } from "@/components/author";
@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ViewerRestrictionBanner } from "@/components/restrictions/restriction-banner";
 import { getViewer } from "@/lib/auth/viewer";
 import { formatDate, statusLabels } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
@@ -259,9 +260,36 @@ async function AccountContent() {
         </Section>
 
         <Section
+          title="Your data"
+          description="Get a copy of everything the forum stores about you."
+          index={3}
+        >
+          <p className="text-sm text-muted">
+            A JSON file with your profile, threads (including pending and rejected), comments, votes,
+            bookmarks, follows, notification settings and your latest 500 notifications, reports and
+            update requests you filed, moderator applications and guide progress.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* A plain link: the route sends the file as an attachment, so no client JS is needed. */}
+            <a
+              href="/account/export"
+              download
+              className={buttonClasses({ variant: "secondary", size: "md" })}
+            >
+              <Download strokeWidth={1.75} />
+              Download my data
+            </a>
+            <span className="text-meta text-muted">Available once every 10 minutes.</span>
+          </div>
+          <p className="text-meta text-muted">
+            To delete your account instead, see the Danger zone below.
+          </p>
+        </Section>
+
+        <Section
           title="Danger zone"
           description="Deleting your account cannot be undone."
-          index={3}
+          index={4}
           className="border-danger/30"
         >
           <DeleteAccountForm />
@@ -274,6 +302,9 @@ async function AccountContent() {
 export default function AccountPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-10">
+      <Suspense fallback={null}>
+        <ViewerRestrictionBanner className="mb-6" />
+      </Suspense>
       <Suspense fallback={<Skeleton className="h-64 w-full" />}>
         <AccountContent />
       </Suspense>

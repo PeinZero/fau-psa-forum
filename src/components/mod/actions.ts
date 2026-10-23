@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { ANNOUNCEMENT_BODY_MAX, ANNOUNCEMENT_TITLE_MAX, ANNOUNCEMENT_TITLE_MIN } from "@/components/announcements/limits";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
+import { CANNED_BODY_MAX, CANNED_LABEL_MAX, RESTRICTION_DURATIONS, type RestrictionDuration } from "@/lib/restrictions";
 import { firstIssue, friendlyError, SIGN_IN_REQUIRED } from "@/lib/supabase/errors";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,6 +18,15 @@ const MOD_ERRORS = {
     ["already reviewed", "This application was already reviewed."],
     ["best answer must be", "The best answer must be a visible comment of this thread."],
     ["comments are only possible", "The thread must be published for this to work."],
+    ["you cannot restrict yourself", "You can't restrict your own account."],
+    ["the superadmin cannot be restricted", "The superadmin can't be restricted."],
+    ["only the superadmin can restrict moderators", "Only the superadmin can restrict moderators."],
+    ["only the superadmin can ban", "Only the superadmin can ban accounts."],
+    ["only the superadmin can lift a ban", "Only the superadmin can lift a ban."],
+    ["this user is already muted", "This member is already muted. Lift the mute first to change it."],
+    ["this user is already banned", "This member is already banned. Lift the ban first to change it."],
+    ["already lifted", "This restriction was already lifted."],
+    ["already ended", "This restriction has already ended."],
     ["categories_slug_key", "Another category already uses this slug."],
     ["categories_name_key", "Another category already uses this name."],
   ],
@@ -354,4 +364,87 @@ export async function setUpdateRequestStatus(_prev: ActionState, formData: FormD
   if (error) return fail(friendlyError(error, MOD_ERRORS));
   if (!data?.length) return fail("Request not found, or you don't have permission.");
   return done(parsed.data.status === "resolved" ? "Request resolved." : "Request dismissed.");
+}
+
+const restrictSchema = z.object({
+  target: z.string().uuid(),
+  kind: z.enum(["mute", "ban"]),
+  duration: z.enum(RESTRICTION_DURATIONS.map((d) => d.value) as [RestrictionDuration, ...RestrictionDuration[]]),
+  reason: z.string().trim().min(1, "Please give a reason.").max(500, "The reason can be at most 500 characters."),
+});
+
+/** Mutes (moderators) or bans (superadmin) an account; the member sees the reason. */
+export async function restrictUser(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = restrictSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(firstIssue(parsed));
+  const { target, kind, duration, reason } = parsed.data;
+
+  const denied = await requireRole(kind === "ban" ? "superadmin" : "moderator");
+  if (denied) return fail(denied);
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("restrict_user", {
+    target,
+    kind,
+    reason,
+    ...(duration === "permanent" ? {} : { duration }),
+  });
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+  return done(kind === "ban" ? "Account banned." : "Account muted.");
+}
+
+export async function liftRestriction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = z.object({ restrictionId: id }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail("Invalid request.");
+
+  const denied = await requireRole("moderator");
+  if (denied) return fail(denied);
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("lift_restriction", { restriction_id: parsed.data.restrictionId });
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+  return done("Restriction lifted.");
+}
+
+const cannedReplySchema = z.object({
+  replyId: id.optional(),
+  label: z.string().trim().min(1, "Please name the reply.").max(CANNED_LABEL_MAX, `The label can be at most ${CANNED_LABEL_MAX} characters.`),
+  body: z.string().trim().min(1, "Please write the reply.").max(CANNED_BODY_MAX, `The text can be at most ${CANNED_BODY_MAX} characters.`),
+  sortOrder: z.coerce.number().int("The order must be a whole number.").min(-100000).max(100000),
+});
+
+export async function saveCannedReply(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const raw = Object.fromEntries(formData);
+  const parsed = cannedReplySchema.safeParse({ ...raw, replyId: raw.replyId || undefined, sortOrder: raw.sortOrder || 0 });
+  if (!parsed.success) return fail(firstIssue(parsed));
+  const { replyId, label, body, sortOrder } = parsed.data;
+
+  const denied = await requireRole("moderator");
+  if (denied) return fail(denied);
+
+  const values = { label, body, sort_order: sortOrder };
+  const supabase = await createClient();
+  if (replyId === undefined) {
+    const { error } = await supabase.from("canned_replies").insert(values);
+    if (error) return fail(friendlyError(error, MOD_ERRORS));
+    return done("Reply added.");
+  }
+  const { data, error } = await supabase.from("canned_replies").update(values).eq("id", replyId).select("id");
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+  if (!data?.length) return fail("Reply not found, or you don't have permission.");
+  return done("Reply saved.");
+}
+
+export async function deleteCannedReply(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = z.object({ replyId: id }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail("Invalid request.");
+
+  const denied = await requireRole("moderator");
+  if (denied) return fail(denied);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("canned_replies").delete().eq("id", parsed.data.replyId).select("id");
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+  if (!data?.length) return fail("Reply not found, or you don't have permission.");
+  return done("Reply deleted.");
 }

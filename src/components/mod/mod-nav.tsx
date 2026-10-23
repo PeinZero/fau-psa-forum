@@ -8,8 +8,11 @@ import {
   Hourglass,
   LayoutDashboard,
   ListChecks,
+  MessageSquareQuote,
   Megaphone,
+  ScrollText,
   UserCheck,
+  UserPlus,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -25,11 +28,14 @@ const icons = {
   reports: Flag,
   edits: FilePenLine,
   updates: FileClock,
+  signups: UserPlus,
   applications: UserCheck,
   announcements: Megaphone,
   guides: ListChecks,
   categories: FolderTree,
   users: Users,
+  replies: MessageSquareQuote,
+  log: ScrollText,
 } satisfies Record<string, LucideIcon>;
 
 export type ModNavItem = { href: string; label: string; icon: keyof typeof icons; count?: number };

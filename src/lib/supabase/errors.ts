@@ -20,9 +20,23 @@ type Options = {
   codes?: Partial<Record<string, string>>;
 };
 
+const RESTRICTION_PREFIX = /^your account is (muted|banned)\b/;
+
+/**
+ * The mute and ban triggers word their messages for the member ("your account is muted until
+ * 31 Oct 2026, 14:00: Spam links"), so they are shown with the reason, whatever was attempted.
+ */
+export function restrictionError(raw: string): string | null {
+  if (!RESTRICTION_PREFIX.test(raw)) return null;
+  const sentence = `Y${raw.slice(1)}`.replace(/: /, ". Reason: ");
+  return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
+}
+
 // Raw database errors never reach the UI.
 export function friendlyError(error: PgError, { messages = [], codes = {} }: Options = {}): string {
   const raw = error.message ?? "";
+  const restricted = restrictionError(raw);
+  if (restricted) return restricted;
   const hit = messages.find(([needle]) => raw.includes(needle));
   if (hit) return hit[1];
   const code = error.code ?? "";
