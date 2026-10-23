@@ -22,7 +22,11 @@ export function useMenuAction() {
   const run: RunAction = (action, fields) => {
     const formData = new FormData();
     for (const [name, value] of Object.entries(fields)) if (value !== undefined) formData.set(name, String(value));
-    startTransition(async () => setFeedback(await action(null, formData)));
+    startTransition(async () => {
+      const result = await action(null, formData);
+      // Shown together with the re-rendered page, not ahead of it.
+      startTransition(() => setFeedback(result));
+    });
   };
 
   function copyLink(path: string) {

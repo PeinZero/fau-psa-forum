@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useId, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/field";
+import { submitWithoutReset, useSyncedState } from "@/lib/form-sync";
 
-import { saveCategory } from "./actions";
+import { type ActionState, saveCategory } from "./actions";
 
 type Category = { id: number; name: string; slug: string; description: string | null; sort_order: number };
 
@@ -17,17 +18,35 @@ export function slugify(name: string): string {
     .slice(0, 60);
 }
 
+function fieldsOf(category?: Category) {
+  return {
+    name: category?.name ?? "",
+    slug: category?.slug ?? "",
+    description: category?.description ?? "",
+    sortOrder: String(category?.sort_order ?? 0),
+  };
+}
+
+/** Creates a category, or edits `category` when given; the fields follow the saved values. */
 export function CategoryForm({ category }: { category?: Category }) {
-  const [state, formAction, pending] = useActionState(saveCategory, null);
   const uid = useId();
-  const [name, setName] = useState(category?.name ?? "");
-  const [slug, setSlug] = useState(category?.slug ?? "");
+  const [fields, setFields] = useSyncedState(fieldsOf(category));
   // New categories derive the slug from the name until the moderator edits it by hand.
-  const [slugTouched, setSlugTouched] = useState(Boolean(category));
+  const slugTouched = useRef(Boolean(category));
+  const set = (patch: Partial<typeof fields>) => setFields((current) => ({ ...current, ...patch }));
+
+  const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
+    const result = await saveCategory(prev, formData);
+    if (result?.ok && !category) {
+      setFields(fieldsOf());
+      slugTouched.current = false;
+    }
+    return result;
+  }, null);
   const msgId = `${uid}-msg`;
 
   return (
-    <form action={formAction} className="grid gap-3" aria-describedby={state ? msgId : undefined}>
+    <form onSubmit={submitWithoutReset(formAction)} className="grid gap-3" aria-describedby={state ? msgId : undefined}>
       {category && <input type="hidden" name="categoryId" value={category.id} />}
       <div className="grid gap-1.5">
         <Label htmlFor={`${uid}-name`}>Name</Label>
@@ -37,12 +56,10 @@ export function CategoryForm({ category }: { category?: Category }) {
           required
           minLength={2}
           maxLength={60}
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            if (!slugTouched) setSlug(slugify(e.target.value));
-          }}
-          
+          value={fields.name}
+          onChange={(e) =>
+            set(slugTouched.current ? { name: e.target.value } : { name: e.target.value, slug: slugify(e.target.value) })
+          }
         />
       </div>
       <div className="grid gap-1.5">
@@ -52,12 +69,11 @@ export function CategoryForm({ category }: { category?: Category }) {
           name="slug"
           required
           pattern="[a-z0-9]+(-[a-z0-9]+)*"
-          value={slug}
+          value={fields.slug}
           onChange={(e) => {
-            setSlugTouched(true);
-            setSlug(e.target.value);
+            slugTouched.current = true;
+            set({ slug: e.target.value });
           }}
-          
         />
       </div>
       <div className="grid gap-1.5">
@@ -67,7 +83,8 @@ export function CategoryForm({ category }: { category?: Category }) {
           name="description"
           maxLength={300}
           rows={2}
-          defaultValue={category?.description ?? ""}
+          value={fields.description}
+          onChange={(e) => set({ description: e.target.value })}
           className="min-h-16"
         />
       </div>
@@ -78,7 +95,8 @@ export function CategoryForm({ category }: { category?: Category }) {
           name="sortOrder"
           type="number"
           step={1}
-          defaultValue={category?.sort_order ?? 0}
+          value={fields.sortOrder}
+          onChange={(e) => set({ sortOrder: e.target.value })}
           className="sm:max-w-32"
         />
       </div>

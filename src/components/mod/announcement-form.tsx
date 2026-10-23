@@ -3,11 +3,13 @@
 import { useActionState, useId, useState } from "react";
 
 import { ANNOUNCEMENT_BODY_MAX, ANNOUNCEMENT_TITLE_MAX, ANNOUNCEMENT_TITLE_MIN } from "@/components/announcements/limits";
+import { refreshUnseenAnnouncements } from "@/components/announcements/unseen-store";
 import { Markdown } from "@/components/markdown";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Input, Label, Textarea } from "@/components/ui/field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { submitWithoutReset, useSyncedState } from "@/lib/form-sync";
 
 import { saveAnnouncement, type ActionState } from "./actions";
 
@@ -29,18 +31,23 @@ function Counter({ value, max }: { value: number; max: number }) {
 /** Creates an announcement, or edits `announcement` when given. */
 export function AnnouncementForm({ announcement }: { announcement?: Announcement }) {
   const uid = useId();
-  const [title, setTitle] = useState(announcement?.title ?? "");
-  const [body, setBody] = useState(announcement?.body ?? "");
-  const [pinned, setPinned] = useState(announcement?.is_pinned ?? false);
+  const [fields, setFields] = useSyncedState({
+    title: announcement?.title ?? "",
+    body: announcement?.body ?? "",
+    pinned: announcement?.is_pinned ?? false,
+  });
+  const { title, body, pinned } = fields;
+  const set = (patch: Partial<typeof fields>) => setFields((current) => ({ ...current, ...patch }));
   const [preview, setPreview] = useState(false);
 
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await saveAnnouncement(prev, formData);
-    if (result?.ok && !announcement) {
-      setTitle("");
-      setBody("");
-      setPinned(false);
-      setPreview(false);
+    if (result?.ok) {
+      void refreshUnseenAnnouncements();
+      if (!announcement) {
+        setFields({ title: "", body: "", pinned: false });
+        setPreview(false);
+      }
     }
     return result;
   }, null);
@@ -48,7 +55,7 @@ export function AnnouncementForm({ announcement }: { announcement?: Announcement
   const msgId = `${uid}-msg`;
 
   return (
-    <form action={formAction} noValidate className="grid gap-4" aria-describedby={state ? msgId : undefined}>
+    <form onSubmit={submitWithoutReset(formAction)} noValidate className="grid gap-4" aria-describedby={state ? msgId : undefined}>
       {announcement && <input type="hidden" name="announcementId" value={announcement.id} />}
 
       <div className="grid gap-1.5">
@@ -63,7 +70,7 @@ export function AnnouncementForm({ announcement }: { announcement?: Announcement
           minLength={ANNOUNCEMENT_TITLE_MIN}
           maxLength={ANNOUNCEMENT_TITLE_MAX}
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => set({ title: e.target.value })}
         />
       </div>
 
@@ -86,7 +93,7 @@ export function AnnouncementForm({ announcement }: { announcement?: Announcement
           rows={8}
           hidden={preview}
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => set({ body: e.target.value })}
           aria-describedby={`${uid}-body-hint`}
           className="min-h-40"
         />
@@ -109,7 +116,7 @@ export function AnnouncementForm({ announcement }: { announcement?: Announcement
           type="checkbox"
           name="isPinned"
           checked={pinned}
-          onChange={(e) => setPinned(e.target.checked)}
+          onChange={(e) => set({ pinned: e.target.checked })}
           className="mt-0.5 size-4 shrink-0 accent-(--accent)"
         />
         <span className="grid gap-0.5">

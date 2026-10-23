@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { ViewTransition } from "react";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const inter = Inter({
@@ -14,12 +15,6 @@ const inter = Inter({
 
 const description =
   "Moderator-curated Q&A threads for the Pakistani Students Association at FAU Erlangen-Nürnberg.";
-
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "http://localhost:3000");
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

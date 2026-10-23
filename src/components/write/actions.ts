@@ -87,6 +87,8 @@ export async function createThreadAction(formData: FormData): Promise<FormState>
     .single();
   if (error || !data) return { error: friendlyError(error ?? {}, THREAD_ERRORS) };
 
+  // The thread joins lists, the author's profile and the moderators' pending count in the header.
+  revalidatePath("/", "layout");
   redirect(`/t/${data.slug}`);
 }
 
@@ -111,7 +113,8 @@ export async function updateThreadAction(threadId: number, formData: FormData): 
   // RLS filters rows the viewer may not edit instead of raising.
   if (!data) return { error: "You are not allowed to edit this thread." };
 
-  revalidatePath(`/t/${data.slug}`);
+  // Titles show in every list, and the edit joins the moderators' recent-edits count in the header.
+  revalidatePath("/", "layout");
   redirect(`/t/${data.slug}`);
 }
 

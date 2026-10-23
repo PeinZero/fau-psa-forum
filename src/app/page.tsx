@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { LatestAnnouncementBanner } from "@/components/announcements/latest-banner";
 import { FeaturedGuides } from "@/components/guides/featured-guides";
 import { CategoryIcon } from "@/components/thread/category-icon";
+import { DeletedNotice } from "@/components/notice/deleted-notice";
 import { OpenSearchButton } from "@/components/thread/open-search-button";
 import { SearchShortcut } from "@/components/thread/search-shortcut";
 import {
@@ -18,12 +19,12 @@ import { cardClasses } from "@/components/ui/card";
 import { stagger } from "@/components/ui/motion";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function Home({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) {
+export default function Home() {
   return (
     <div className="flex flex-col gap-14 sm:gap-20">
       <LatestAnnouncementBanner />
       <Suspense fallback={null}>
-        <DeletedNotice searchParams={searchParams} />
+        <DeletedNotice />
       </Suspense>
       <section className="hero-glow flex flex-col items-center pt-4 text-center sm:pt-10">
         <p
@@ -149,14 +150,4 @@ function CategoriesSkeleton() {
 async function LatestThreads() {
   const threads = await fetchThreadList({});
   return <ThreadList threads={threads} emptyText="No threads yet" />;
-}
-
-async function DeletedNotice({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) {
-  const { deleted } = await searchParams;
-  if (deleted !== "1") return null;
-  return (
-    <p role="status" className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground">
-      Your account was deleted.
-    </p>
-  );
 }

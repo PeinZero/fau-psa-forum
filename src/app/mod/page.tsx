@@ -16,7 +16,7 @@ export default async function ModOverviewPage() {
     { href: "/mod/threads", title: "Pending threads", text: "Waiting for approval", count: counts.threads, Icon: Hourglass },
     { href: "/mod/reports", title: "Open reports", text: "Flagged by members", count: counts.reports, Icon: Flag },
     { href: "/mod/updates", title: "Update requests", text: "Threads members think are out of date", count: counts.updates, Icon: FileClock },
-    { href: "/mod/edits", title: "Recent edits", text: "Changed in the last 7 days", count: counts.edits, Icon: FilePenLine },
+    { href: "/mod/edits", title: "Recent edits", text: "Edits waiting for review", count: counts.edits, Icon: FilePenLine },
     { href: "/mod/applications", title: "Applications", text: "People who want to moderate", count: counts.applications, Icon: UserCheck },
     { href: "/mod/announcements", title: "Announcements", text: "Post news to every member", count: announcements.count ?? 0, Icon: Megaphone },
   ];

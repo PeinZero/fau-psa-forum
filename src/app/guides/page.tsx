@@ -37,8 +37,20 @@ async function GuideList() {
   }
 
   if (guides.length === 0) {
+    const viewer = await getEffectiveViewer();
     return (
-      <EmptyState icon={<ListChecks />} title="No guides yet">
+      <EmptyState
+        icon={<ListChecks />}
+        title="No guides yet"
+        action={
+          viewer && isModerator(viewer.role) ? (
+            <Link href="/mod/guides/new" className={buttonClasses({ variant: "primary" })}>
+              <Plus aria-hidden strokeWidth={1.75} />
+              Create the first guide
+            </Link>
+          ) : undefined
+        }
+      >
         Step-by-step guides from the moderators show up here.
       </EmptyState>
     );
@@ -77,10 +89,15 @@ async function ManageLink() {
   const viewer = await getEffectiveViewer();
   if (!viewer || !isModerator(viewer.role)) return null;
   return (
-    <Link href="/mod/guides" className={buttonClasses({ variant: "secondary" })}>
-      <Plus aria-hidden strokeWidth={1.75} />
-      Manage guides
-    </Link>
+    <div className="flex gap-2">
+      <Link href="/mod/guides" className={buttonClasses({ variant: "ghost" })}>
+        Manage
+      </Link>
+      <Link href="/mod/guides/new" className={buttonClasses({ variant: "primary" })}>
+        <Plus aria-hidden strokeWidth={1.75} />
+        New guide
+      </Link>
+    </div>
   );
 }
 

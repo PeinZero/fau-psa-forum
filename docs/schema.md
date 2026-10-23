@@ -114,9 +114,13 @@ in any status when the editor is not its author (moderator curation).
 | title, body | text | previous version |
 | edited_by | uuid null → profiles | |
 | created_at | timestamptz | |
+| reviewed_at / reviewed_by | timestamptz null / uuid null → profiles | set null on account deletion |
 
-Moderator dashboard "Recently edited" = revisions created since the moderator last looked
-(or the last 7 days).
+Moderators review edits after the fact: `/mod/edits` and the "Recent edits" badge list every
+revision with `reviewed_at` null, at any age. Moderators and superadmins may only update
+`reviewed_at` (column grant plus a moderators-only update policy); a trigger stamps `now()` and
+`reviewed_by = auth.uid()` when it is set and clears both when it is cleared. Members and anon
+cannot review.
 
 ### comments
 Chronological with one level of replies.

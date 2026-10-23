@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AccountMenu } from "@/components/notification-settings/account-menu";
 import { getModCounts } from "@/components/mod/counts";
 import { buttonClasses } from "@/components/ui/button";
-import { getViewer, getViewMode } from "@/lib/auth/viewer";
+import { getViewer, getViewMode, isModerator } from "@/lib/auth/viewer";
 
 function initials(name: string): string {
   const words = name.replace(/@.*$/, "").split(/[\s._-]+/).filter(Boolean);
@@ -22,7 +22,8 @@ export default async function UserMenu() {
     );
   }
 
-  const isMod = viewer.role !== "member";
+  // Members never see the moderation badge, so they skip the five count queries entirely.
+  const isMod = isModerator(viewer.role);
   const [counts, viewMode] = isMod ? await Promise.all([getModCounts(), getViewMode()]) : [null, "default"];
   const pending = counts ? counts.threads + counts.applications + counts.reports + counts.updates : 0;
 

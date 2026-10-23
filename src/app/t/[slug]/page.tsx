@@ -8,6 +8,7 @@ import { Author } from "@/components/author";
 import { getSavedState } from "@/components/bookmarks/data";
 import { Markdown } from "@/components/markdown";
 import { MemberViewBanner } from "@/components/member-view/member-view-banner";
+import { ShareButton } from "@/components/share/share-button";
 import { CommentsSkeleton, PublicComments, ViewerComments } from "@/components/thread/thread-comments";
 import { getThread, parseCommentSort, plainTextExcerpt, type ThreadDetail } from "@/components/thread/thread-data";
 import { ThreadMenu } from "@/components/thread/thread-menu";
@@ -17,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { needsVerificationHint, UnverifiedHint, VerifiedBadge } from "@/components/update-requests/verified";
 import { getEffectiveViewer, isModerator } from "@/lib/auth/viewer";
 import { cityLabels, formatDate, statusLabels } from "@/lib/labels";
+import { siteUrl } from "@/lib/site-url";
 
 type Params = Promise<{ slug: string }>;
 type SearchParams = Promise<{ sort?: string | string[] }>;
@@ -83,9 +85,14 @@ async function ThreadContent({ params, searchParams }: { params: Params; searchP
               </span>
             )}
           </p>
-          <Suspense fallback={<ThreadMenu thread={modFields(thread)} slug={thread.slug} />}>
-            <ViewerThreadMenu thread={thread} />
-          </Suspense>
+          <div className="flex items-center gap-1">
+            {(thread.status === "published" || thread.status === "archived") && (
+              <ShareButton url={`${siteUrl}/t/${thread.slug}`} title={thread.title} />
+            )}
+            <Suspense fallback={<ThreadMenu thread={modFields(thread)} slug={thread.slug} />}>
+              <ViewerThreadMenu thread={thread} />
+            </Suspense>
+          </div>
         </div>
       </header>
 
@@ -219,8 +226,9 @@ function Banners({ thread }: { thread: ThreadDetail }) {
         </Callout>
       )}
       {thread.is_outdated && (
-        <Callout tone="warning" icon={<TriangleAlert strokeWidth={1.75} />} title="May be outdated">
-          Rules and offices change. Double-check details with the official source before relying on them.
+        <Callout tone="warning" icon={<TriangleAlert strokeWidth={1.75} />} title="Marked as outdated">
+          A moderator flagged that parts of this thread may no longer be correct. Check the newest comments for
+          updates, and confirm with the official office before you rely on it.
         </Callout>
       )}
       {thread.status === "archived" && (

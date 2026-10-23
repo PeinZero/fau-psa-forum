@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { SegmentedLinks } from "@/components/ui/segmented-control";
-import { getViewer } from "@/lib/auth/viewer";
+import { getUserId } from "@/lib/auth/viewer";
 
 export const metadata: Metadata = { title: "Saved", robots: { index: false } };
 
@@ -23,20 +23,44 @@ const tabs: { tab: Tab; label: string; href: string }[] = [
   { tab: "following", label: "Following", href: "/saved?tab=following" },
 ];
 
+function currentTab(tab: string | string[] | undefined): Tab {
+  return tab === "following" ? "following" : "bookmarks";
+}
+
+function SavedTabs({ current }: { current: Tab | null }) {
+  return (
+    <SegmentedLinks
+      label="Saved lists"
+      items={tabs.map((item) => ({ href: item.href, label: item.label, current: item.tab === current }))}
+    />
+  );
+}
+
+async function CurrentSavedTabs({ searchParams }: { searchParams: SearchParams }) {
+  const { tab } = await searchParams;
+  return <SavedTabs current={currentTab(tab)} />;
+}
+
+/** Header and tabs stay in the static shell, so switching lists only swaps the list. */
 export default function SavedPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col">
       <PageHeader title="Saved" description="Threads you bookmarked and conversations you follow." />
-      <Suspense fallback={<ThreadListSkeleton />}>
-        <SavedContent searchParams={searchParams} />
-      </Suspense>
+      <div className="flex flex-col gap-5">
+        <Suspense fallback={<SavedTabs current={null} />}>
+          <CurrentSavedTabs searchParams={searchParams} />
+        </Suspense>
+        <Suspense fallback={<ThreadListSkeleton />}>
+          <SavedList searchParams={searchParams} />
+        </Suspense>
+      </div>
     </div>
   );
 }
 
-async function SavedContent({ searchParams }: { searchParams: SearchParams }) {
-  const [{ tab: tabParam }, viewer] = await Promise.all([searchParams, getViewer()]);
-  if (!viewer) {
+async function SavedList({ searchParams }: { searchParams: SearchParams }) {
+  const [{ tab: tabParam }, userId] = await Promise.all([searchParams, getUserId()]);
+  if (!userId) {
     return (
       <Card className="text-sm">
         <SignInPrompt next="/saved" purpose="to see your bookmarks and followed threads." />
@@ -44,27 +68,17 @@ async function SavedContent({ searchParams }: { searchParams: SearchParams }) {
     );
   }
 
-  const tab: Tab = tabParam === "following" ? "following" : "bookmarks";
-  const { ids, error } = await getSavedThreadIds(viewer.userId, tab === "following" ? "thread_follows" : "bookmarks");
-  const threads = error ? [] : await fetchThreadsByIds(ids);
-
-  return (
-    <div className="flex flex-col gap-5">
-      <SegmentedLinks
-        label="Saved lists"
-        items={tabs.map((item) => ({ href: item.href, label: item.label, current: item.tab === tab }))}
-      />
-      {error ? (
-        <p role="alert" className="text-sm text-danger">
-          Could not load your saved threads. Please try again later.
-        </p>
-      ) : threads.length === 0 ? (
-        <SavedEmpty tab={tab} />
-      ) : (
-        <ThreadList threads={threads} emptyText="" />
-      )}
-    </div>
-  );
+  const tab = currentTab(tabParam);
+  const { ids, error } = await getSavedThreadIds(userId, tab === "following" ? "thread_follows" : "bookmarks");
+  if (error) {
+    return (
+      <p role="alert" className="text-sm text-danger">
+        Could not load your saved threads. Please try again later.
+      </p>
+    );
+  }
+  const threads = await fetchThreadsByIds(ids);
+  return threads.length === 0 ? <SavedEmpty tab={tab} /> : <ThreadList threads={threads} emptyText="" />;
 }
 
 function SavedEmpty({ tab }: { tab: Tab }) {

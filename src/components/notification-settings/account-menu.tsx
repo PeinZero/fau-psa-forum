@@ -1,11 +1,14 @@
 "use client";
 
 import { Bell, Bookmark, Eye, Megaphone, UserRound } from "lucide-react";
-import { useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useTransition } from "react";
 
 import { unseenLabel, useUnseenAnnouncements } from "@/components/announcements/unseen-store";
 import { setMemberView } from "@/components/member-view/actions";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
+
+const destinations = ["/account", "/saved", "/announcements", "/account/notifications"] as const;
 
 /** Avatar menu for every signed-in user; moderators additionally get the "View as member" switch. */
 export function AccountMenu({
@@ -21,6 +24,12 @@ export function AccountMenu({
 }) {
   const [pending, startTransition] = useTransition();
   const unseen = useUnseenAnnouncements();
+  const router = useRouter();
+
+  // Menu links stay out of the viewport until it opens, so warm their shells up front.
+  useEffect(() => {
+    destinations.forEach((href) => router.prefetch(href));
+  }, [router]);
 
   return (
     <DropdownMenu

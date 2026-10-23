@@ -40,6 +40,7 @@ export async function setGuideStepDone(stepId: number, done: boolean): Promise<A
     : await supabase.from("guide_progress").delete().eq("user_id", viewer.userId).eq("step_id", parsed.data.stepId);
   // Ticking a step twice (two tabs) is not an error.
   if (error && error.code !== "23505") return fail(friendlyError(error));
+  revalidateProgress();
   return { ok: true, message: done ? "Step marked done." : "Step marked not done." };
 }
 
@@ -59,7 +60,14 @@ export async function importGuideProgress(stepIds: number[]): Promise<ActionStat
       { onConflict: "user_id,step_id", ignoreDuplicates: true },
     );
   if (error) return fail(friendlyError(error));
+  revalidateProgress();
   return { ok: true, message: "Progress synced to your account." };
+}
+
+/** Progress shows on the guide itself (re-rendered as the current page), the guide list and the home page. */
+function revalidateProgress() {
+  revalidatePath("/guides");
+  revalidatePath("/");
 }
 
 async function requireModerator(): Promise<string | null> {

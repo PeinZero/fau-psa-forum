@@ -17,6 +17,7 @@ import {
   Select,
   Textarea,
 } from "@/components/ui/field";
+import { submitWithoutReset, useSyncedState } from "@/lib/form-sync";
 import { affiliationLabels } from "@/lib/labels";
 import type { Enums } from "@/lib/supabase/database.types";
 
@@ -47,9 +48,16 @@ export function ProfileForm({
   affiliation: Enums<"affiliation"> | null;
 }) {
   const [state, action, pending] = useActionState(updateProfile, null);
+  // Follows the saved profile, so the fields show the normalised username after saving.
+  const [fields, setFields] = useSyncedState({
+    displayName,
+    username: username ?? "",
+    affiliation: affiliation ?? "",
+  });
+  const set = (patch: Partial<typeof fields>) => setFields((current) => ({ ...current, ...patch }));
   const usernameError = state?.field === "username" ? state.message : undefined;
   return (
-    <form action={action} className="space-y-4">
+    <form onSubmit={submitWithoutReset(action)} className="space-y-4">
       <div className="space-y-1.5">
         <Label htmlFor="display_name">Display name</Label>
         <Input
@@ -58,7 +66,8 @@ export function ProfileForm({
           required
           minLength={2}
           maxLength={40}
-          defaultValue={displayName}
+          value={fields.displayName}
+          onChange={(e) => set({ displayName: e.target.value })}
           autoComplete="nickname"
         />
       </div>
@@ -79,7 +88,8 @@ export function ProfileForm({
               minLength={3}
               maxLength={20}
               pattern="[A-Za-z0-9_]{3,20}"
-              defaultValue={username}
+              value={fields.username}
+              onChange={(e) => set({ username: e.target.value })}
               autoComplete="username"
               autoCapitalize="none"
               autoCorrect="off"
@@ -106,7 +116,8 @@ export function ProfileForm({
         <Select
           id="affiliation"
           name="affiliation"
-          defaultValue={affiliation ?? ""}
+          value={fields.affiliation}
+          onChange={(e) => set({ affiliation: e.target.value })}
           aria-describedby="affiliation-note"
         >
           <option value="">None</option>
@@ -131,7 +142,7 @@ export function ProfileForm({
 export function ModeratorApplicationForm() {
   const [state, action, pending] = useActionState(applyForModerator, null);
   return (
-    <form action={action} className="space-y-4">
+    <form onSubmit={submitWithoutReset(action)} className="space-y-4">
       <div className="space-y-1.5">
         <Label htmlFor="motivation">Why do you want to moderate?</Label>
         <Textarea
@@ -158,7 +169,12 @@ export function ModeratorApplicationForm() {
 export function DeleteAccountForm() {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
-  const [state, action, pending] = useActionState(deleteAccount, null);
+  const [state, action, pending] = useActionState(async (prev: FormState, formData: FormData) => {
+    const result = await deleteAccount(prev, formData);
+    // A full page load drops every page Activity kept alive with the signed-in state.
+    if (result?.ok) window.location.replace("/?deleted=1");
+    return result;
+  }, null);
 
   if (!open) {
     return (

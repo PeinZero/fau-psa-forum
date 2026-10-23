@@ -14,15 +14,25 @@ export function isModerator(role: UserRole): boolean {
 }
 
 /**
+ * The signed-in user's id from the session JWT, cached per request; null for anonymous visitors.
+ * The project signs sessions with an asymmetric key, so this verifies locally against the cached
+ * JWKS: queries that only need the id can start alongside the profile lookup.
+ */
+export const getUserId = cache(async (): Promise<string | null> => {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  return data?.claims.sub ?? null;
+});
+
+/**
  * The signed-in visitor with their profile role, cached per request; null for anonymous visitors.
  * Reads cookies, so callers must render inside <Suspense> (cacheComponents is on).
  */
 export const getViewer = cache(async (): Promise<Viewer | null> => {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims.sub;
+  const userId = await getUserId();
   if (!userId) return null;
 
+  const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
     .select("display_name, role")

@@ -6,6 +6,7 @@ import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Input, Label, Textarea } from "@/components/ui/field";
+import { submitWithoutReset, useResetAfterRedirect, useSyncedState } from "@/lib/form-sync";
 
 import { saveGuide, type SaveGuideState } from "./actions";
 import {
@@ -37,6 +38,17 @@ function emptyStep(): DraftStep {
   return { key: crypto.randomUUID(), id: null, title: "", body: "", thread: null };
 }
 
+function stepsOf(guide?: EditorGuide): DraftStep[] {
+  if (!guide || guide.steps.length === 0) return [emptyStep()];
+  return guide.steps.map((step) => ({
+    key: `step-${step.id}`,
+    id: step.id,
+    title: step.title,
+    body: step.body ?? "",
+    thread: step.thread,
+  }));
+}
+
 function Counter({ value, max }: { value: number; max: number }) {
   return (
     <span className={cn("shrink-0 text-meta tabular-nums", value > max * 0.95 ? "text-warning" : "text-subtle")}>
@@ -48,28 +60,34 @@ function Counter({ value, max }: { value: number; max: number }) {
 /** Creates a guide, or edits `guide` when given. Steps are saved together with the guide. */
 export function GuideEditor({ guide }: { guide?: EditorGuide }) {
   const uid = useId();
-  const [title, setTitle] = useState(guide?.title ?? "");
-  const [slug, setSlug] = useState(guide?.slug ?? "");
+  // Every field follows the saved guide, so a save or another moderator's edit shows up here.
+  const [title, setTitle] = useSyncedState(guide?.title ?? "");
+  const [slug, setSlug] = useSyncedState(guide?.slug ?? "");
   // New guides follow the title until the moderator edits the address; published links never change by accident.
   const [slugTouched, setSlugTouched] = useState(Boolean(guide));
-  const [summary, setSummary] = useState(guide?.summary ?? "");
-  const [steps, setSteps] = useState<DraftStep[]>(() =>
-    guide && guide.steps.length > 0
-      ? guide.steps.map((step) => ({
-          key: `step-${step.id}`,
-          id: step.id,
-          title: step.title,
-          body: step.body ?? "",
-          thread: step.thread,
-        }))
-      : [emptyStep()],
-  );
+  const [summary, setSummary] = useSyncedState(guide?.summary ?? "");
+  const [sortOrder, setSortOrder] = useSyncedState(String(guide?.sort_order ?? 0));
+  const [featured, setFeatured] = useSyncedState(guide?.is_featured ?? false);
+  const [steps, setSteps] = useSyncedState<DraftStep[]>(stepsOf(guide), JSON.stringify(guide?.steps ?? null));
   const [announcement, setAnnouncement] = useState("");
   const focusTarget = useRef<string | null>(null);
   const listRef = useRef<HTMLOListElement>(null);
 
+  const leftAfterCreateRef = useResetAfterRedirect(() => {
+    setTitle("");
+    setSlug("");
+    setSlugTouched(false);
+    setSummary("");
+    setSortOrder("0");
+    setFeatured(false);
+    setSteps([emptyStep()]);
+  });
+
   const [state, formAction, pending] = useActionState(async (prev: SaveGuideState, formData: FormData) => {
+    // Creating redirects to the new guide's editor on success, so only failures return here.
+    if (!guide) leftAfterCreateRef.current = true;
     const result = await saveGuide(prev, formData);
+    leftAfterCreateRef.current = false;
     // New steps learn their ids, so the next save updates them instead of adding them again.
     const saved = new Map(result?.savedSteps?.map((step) => [step.key, step.id]));
     if (saved.size > 0) setSteps((current) => current.map((step) => ({ ...step, id: saved.get(step.key) ?? step.id })));
@@ -127,7 +145,7 @@ export function GuideEditor({ guide }: { guide?: EditorGuide }) {
   const msgId = `${uid}-msg`;
 
   return (
-    <form action={formAction} noValidate className="grid gap-6" aria-describedby={state ? msgId : undefined}>
+    <form onSubmit={submitWithoutReset(formAction)} noValidate className="grid gap-6" aria-describedby={state ? msgId : undefined}>
       {guide && <input type="hidden" name="guideId" value={guide.id} />}
       <input type="hidden" name="steps" value={payload} />
 
@@ -205,7 +223,8 @@ export function GuideEditor({ guide }: { guide?: EditorGuide }) {
               min={-1000}
               max={1000}
               step={1}
-              defaultValue={guide?.sort_order ?? 0}
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
               aria-describedby={`${uid}-order-hint`}
             />
             <p id={`${uid}-order-hint`} className="text-meta text-muted">
@@ -216,7 +235,8 @@ export function GuideEditor({ guide }: { guide?: EditorGuide }) {
             <input
               type="checkbox"
               name="isFeatured"
-              defaultChecked={guide?.is_featured ?? false}
+              checked={featured}
+              onChange={(e) => setFeatured(e.target.checked)}
               className="mt-0.5 size-4 shrink-0 accent-(--accent)"
             />
             <span className="grid gap-0.5">

@@ -46,12 +46,15 @@ export function CommentForm({ threadId, parentId, initialValue = "", onDone, aut
     setPosted(false);
     startTransition(async () => {
       const result = await createCommentAction(threadId, body, parentId);
-      if (!result.ok) setError(result.error);
-      else if (onDone) onDone();
-      else {
-        setBody("");
-        setPosted(true);
-      }
+      // Committed with the re-rendered thread, so the form never closes before the comment shows.
+      startTransition(() => {
+        if (!result.ok) setError(result.error);
+        else if (onDone) onDone();
+        else {
+          setBody("");
+          setPosted(true);
+        }
+      });
     });
   }
 

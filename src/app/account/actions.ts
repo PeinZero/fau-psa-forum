@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
 import { friendlyError, SIGN_IN_REQUIRED } from "@/lib/supabase/errors";
 import { createClient } from "@/lib/supabase/server";
@@ -146,5 +145,5 @@ export async function deleteAccount(
   }
 
   await supabase.auth.signOut();
-  redirect("/?deleted=1");
+  return { ok: true, message: "Your account was deleted." };
 }

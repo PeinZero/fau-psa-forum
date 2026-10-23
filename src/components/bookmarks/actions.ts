@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getViewer } from "@/lib/auth/viewer";
@@ -18,8 +19,10 @@ const SAVE_ERRORS = {
 
 // Already saved (unique violation) is the state the viewer asked for.
 function result(error: PgError | null): SaveResult {
-  if (!error || error.code === "23505") return { ok: true };
-  return { ok: false, message: friendlyError(error, SAVE_ERRORS) };
+  if (error && error.code !== "23505") return { ok: false, message: friendlyError(error, SAVE_ERRORS) };
+  // Both lists live on /saved; the thread menu itself settles through its optimistic state.
+  revalidatePath("/saved");
+  return { ok: true };
 }
 
 const saveSchema = z.strictObject({ threadId: z.number().int().positive(), on: z.boolean() });

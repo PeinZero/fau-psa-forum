@@ -1,7 +1,7 @@
 # Deployment
 
 - Vercel Hobby hosts the Next.js app. Pushes to `main` deploy; PRs get preview URLs.
-- Supabase (Postgres + Auth), project ref `zjhrjhwqybzlahwbcxwh`, region eu-west (EU, GDPR-compliant).
+- Supabase (Postgres + Auth), project ref `zjhrjhwqybzlahwbcxwh`, region eu-west-2 (London); Vercel functions pinned to lhr1 next to it.
 - Env vars: see `.env.example`. Never commit `.env*.local` or service-role keys.
 - Set `NEXT_PUBLIC_SITE_URL` for the Production environment only, so preview deployments
   fall back to their own origin for the auth callback.

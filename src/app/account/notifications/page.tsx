@@ -44,6 +44,8 @@ async function Content() {
   const frequency = EMAIL_FREQUENCIES.find((f) => f === data?.email_frequency) ?? "off";
   return (
     <NotificationSettings
+      // Toggles save without re-rendering the page; a later visit with other stored choices starts over from them.
+      key={`${viewer.userId}:${(data?.muted_types ?? []).join()}:${frequency}`}
       initialMuted={(data?.muted_types ?? []) as string[]}
       initialFrequency={frequency as EmailFrequency}
       isModerator={isModerator(viewer.role)}

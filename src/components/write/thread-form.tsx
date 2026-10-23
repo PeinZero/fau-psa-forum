@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select } from "@/components/ui/field";
 import { cn } from "@/components/ui/cn";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useResetAfterRedirect, useSyncedState } from "@/lib/form-sync";
 import { cityLabels } from "@/lib/labels";
 import type { FormState } from "./actions";
 
@@ -47,22 +48,33 @@ function Counter({ value, max }: { value: number; max: number }) {
 
 export function ThreadForm({ categories, initial, submitLabel, suggestSimilar = false, action }: Props) {
   const id = useId();
-  const [title, setTitle] = useState(initial.title);
-  const [body, setBody] = useState(initial.body);
-  const [categoryId, setCategoryId] = useState(initial.categoryId?.toString() ?? "");
-  const [city, setCity] = useState(initial.city ?? "");
+  // Editing follows the stored thread, so a later visit shows its current text.
+  const [title, setTitle] = useSyncedState(initial.title);
+  const [body, setBody] = useSyncedState(initial.body);
+  const [categoryId, setCategoryId] = useSyncedState(initial.categoryId?.toString() ?? "");
+  const [city, setCity] = useSyncedState<string>(initial.city ?? "");
   const [preview, setPreview] = useState(false);
   const [state, setState] = useState<FormState>({});
   const [pending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+  const leftAfterSubmitRef = useResetAfterRedirect(() => {
+    setTitle(initial.title);
+    setBody(initial.body);
+    setCategoryId(initial.categoryId?.toString() ?? "");
+    setCity(initial.city ?? "");
+    setPreview(false);
+    setState({});
+  });
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     setState({});
+    leftAfterSubmitRef.current = true;
     startTransition(async () => {
       // A successful action redirects, so only failures return here.
       const result = await action(formData);
+      leftAfterSubmitRef.current = false;
       setState(result);
       if (result.fieldErrors) {
         setPreview(false);
