@@ -13,6 +13,12 @@ export const affiliationLabels: Record<Enums<"affiliation">, string> = {
   resident: "Resident",
 };
 
+export const roleLabels: Record<Enums<"user_role">, string> = {
+  member: "Member",
+  moderator: "Moderator",
+  superadmin: "Superadmin",
+};
+
 export const statusLabels: Record<Enums<"thread_status">, string> = {
   pending: "Waiting for review",
   published: "Published",

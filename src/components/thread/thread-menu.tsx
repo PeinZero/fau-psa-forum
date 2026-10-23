@@ -6,9 +6,11 @@ import { useState } from "react";
 import { BookmarkButton, FollowingIndicator } from "@/components/bookmarks/bookmark-button";
 import type { SavedState } from "@/components/bookmarks/data";
 import { useSavedState } from "@/components/bookmarks/use-saved-state";
+import type { MutableAuthor } from "@/components/mod/mute-author";
 import { type ModThread, threadModItems } from "@/components/mod/thread-mod-panel";
 import { ReportDialog } from "@/components/report/report-dialog";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import type { ReasonPreset } from "@/components/ui/reason-field";
 import { RequestUpdateDialog } from "@/components/update-requests/request-update-dialog";
 
 import { MenuFeedback, useMenuAction } from "./menu-action";
@@ -23,6 +25,8 @@ export function ThreadMenu({
   canReport = false,
   canRequestUpdate = false,
   isMod = false,
+  presets,
+  author,
 }: {
   thread: ModThread;
   slug: string;
@@ -32,6 +36,10 @@ export function ThreadMenu({
   canReport?: boolean;
   canRequestUpdate?: boolean;
   isMod?: boolean;
+  /** Canned rejection reasons, for moderators reviewing a pending thread. */
+  presets?: readonly ReasonPreset[];
+  /** The author, when the moderating viewer may mute them. */
+  author?: MutableAuthor | null;
 }) {
   const { pending, feedback, setFeedback, run, copyLink } = useMenuAction();
   const savedState = useSavedState(thread.id, saved ?? SIGNED_OUT, setFeedback);
@@ -56,7 +64,7 @@ export function ThreadMenu({
           canRequestUpdate && { label: "Request an update", icon: FileClock, onSelect: () => setRequesting(true) },
           canReport && { label: "Report", icon: Flag, onSelect: () => setReporting(true) },
           "separator",
-          ...(isMod ? threadModItems(thread, run) : []),
+          ...(isMod ? threadModItems(thread, run, { presets, author }) : []),
         ]}
       />
       {canReport && (

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { firstIssue, friendlyError } from "./errors";
+import { firstIssue, friendlyError, restrictionError } from "./errors";
 
 describe("friendlyError", () => {
   it("maps known Postgres codes", () => {
@@ -13,8 +13,14 @@ describe("friendlyError", () => {
     expect(text).toBe("Something went wrong. Please try again.");
   });
 
-  it("explains a restricted account whatever the action", () => {
-    expect(friendlyError({ code: "42501", message: "your account is restricted" })).toMatch(/restricted/);
+  it("explains a mute or ban with its end date and reason, whatever the action", () => {
+    const options = { messages: [["your account", "Module text."]] as const };
+    expect(friendlyError({ code: "P0001", message: "your account is muted until 31 Oct 2026, 14:00: Spam links" }, options)).toBe(
+      "Your account is muted until 31 Oct 2026, 14:00. Reason: Spam links.",
+    );
+    expect(friendlyError({ code: "P0001", message: "your account is banned: Harassment." })).toBe(
+      "Your account is banned. Reason: Harassment.",
+    );
   });
 
   it("prefers a module message over the code, and a module code over the default", () => {
@@ -24,6 +30,13 @@ describe("friendlyError", () => {
     };
     expect(friendlyError({ code: "42501", message: "you cannot vote on your own comment" }, options)).toBe("Not your own.");
     expect(friendlyError({ code: "42501", message: "other" }, options)).toBe("Custom denied.");
+  });
+});
+
+describe("restrictionError", () => {
+  it("ignores other messages and keeps colons inside the reason", () => {
+    expect(restrictionError("you already have 10 open reports")).toBeNull();
+    expect(restrictionError("your account is muted: Spam: links")).toBe("Your account is muted. Reason: Spam: links.");
   });
 });
 

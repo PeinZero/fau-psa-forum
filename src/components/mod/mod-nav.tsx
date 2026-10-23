@@ -8,7 +8,9 @@ import {
   Hourglass,
   LayoutDashboard,
   ListChecks,
+  MessageSquareQuote,
   Megaphone,
+  ScrollText,
   UserCheck,
   UserPlus,
   Users,
@@ -32,6 +34,8 @@ const icons = {
   guides: ListChecks,
   categories: FolderTree,
   users: Users,
+  replies: MessageSquareQuote,
+  log: ScrollText,
 } satisfies Record<string, LucideIcon>;
 
 export type ModNavItem = { href: string; label: string; icon: keyof typeof icons; count?: number };
