@@ -1,6 +1,7 @@
 import {
   AtSign,
   Award,
+  Ban,
   Bell,
   BellRing,
   CircleCheck,
@@ -14,6 +15,8 @@ import {
   ShieldCheck,
   ShieldX,
   UserPlus,
+  Volume2,
+  VolumeX,
   type LucideIcon,
 } from "lucide-react";
 import type { Metadata } from "next";
@@ -28,6 +31,7 @@ import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getViewer } from "@/lib/auth/viewer";
+import { formatUntil } from "@/lib/restrictions";
 import type { Enums } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 import { berlinDay, relativeTime } from "@/lib/time";
@@ -44,7 +48,8 @@ const notificationSelect = `
   actor:profiles!notifications_actor_id_fkey(display_name),
   comment:comments!notifications_comment_id_fkey(author_id),
   thread:threads!notifications_thread_id_fkey(slug, title),
-  announcement:announcements!notifications_announcement_id_fkey(id, title)
+  announcement:announcements!notifications_announcement_id_fkey(id, title),
+  restriction:user_restrictions!notifications_restriction_id_fkey(kind, reason, expires_at)
 `;
 
 /** `fetchedAt` anchors "Today" and relative times to the moment the list was read. */
@@ -76,6 +81,9 @@ const icons: Record<NotificationType, LucideIcon> = {
   announcement: Megaphone,
   followed_thread_activity: BellRing,
   mod_new_update_request: FileClock,
+  account_muted: VolumeX,
+  account_banned: Ban,
+  account_unrestricted: Volume2,
 };
 
 // Decisions and announcements come from the moderation team as a whole, so they show no moderator's name.
@@ -86,6 +94,9 @@ const systemTypes: ReadonlySet<NotificationType> = new Set([
   "application_approved",
   "application_rejected",
   "announcement",
+  "account_muted",
+  "account_banned",
+  "account_unrestricted",
 ]);
 
 /** Followers hear about a best answer too; then the actor is the moderator, not the comment's author. */
@@ -133,6 +144,24 @@ function sentence(n: NotificationRow): ReactNode {
       );
     case "mod_new_update_request":
       return <>{actor} asked for an update of {title}</>;
+    case "account_muted":
+    case "account_banned": {
+      const r = n.restriction;
+      const state = n.type === "account_banned" ? "banned" : "muted";
+      return (
+        <>
+          Your account was {state}
+          {r?.expires_at ? ` until ${formatUntil(r.expires_at)}` : ""}
+          {r ? <>. Reason: <Quoted>{r.reason}</Quoted></> : null}
+        </>
+      );
+    }
+    case "account_unrestricted":
+      return n.restriction?.kind === "ban" ? (
+        <>The ban on your account was lifted. Welcome back</>
+      ) : (
+        <>The mute on your account was lifted. You can post again</>
+      );
   }
 }
 
@@ -149,6 +178,9 @@ function target(n: NotificationRow): string {
     case "application_approved":
       return "/mod";
     case "application_rejected":
+    case "account_muted":
+    case "account_banned":
+    case "account_unrestricted":
       return "/account";
     case "announcement":
       return n.announcement ? announcementHref(n.announcement.id) : "/announcements";

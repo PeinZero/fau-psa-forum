@@ -2,8 +2,6 @@ export type PgError = { code?: string; message?: string };
 
 export const SIGN_IN_REQUIRED = "Please sign in again to continue.";
 
-export const RESTRICTED = "Your account is restricted, so you can read but not post, report or vote. Please contact a moderator.";
-
 const GENERIC = "Something went wrong. Please try again.";
 
 const CODE_MESSAGES: Record<string, string> = {
@@ -22,10 +20,23 @@ type Options = {
   codes?: Partial<Record<string, string>>;
 };
 
+const RESTRICTION_PREFIX = /^your account is (muted|banned)\b/;
+
+/**
+ * The mute and ban triggers word their messages for the member ("your account is muted until
+ * 31 Oct 2026, 14:00: Spam links"), so they are shown with the reason, whatever was attempted.
+ */
+export function restrictionError(raw: string): string | null {
+  if (!RESTRICTION_PREFIX.test(raw)) return null;
+  const sentence = `Y${raw.slice(1)}`.replace(/: /, ". Reason: ");
+  return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
+}
+
 // Raw database errors never reach the UI.
 export function friendlyError(error: PgError, { messages = [], codes = {} }: Options = {}): string {
   const raw = error.message ?? "";
-  if (raw.includes("your account is restricted")) return RESTRICTED;
+  const restricted = restrictionError(raw);
+  if (restricted) return restricted;
   const hit = messages.find(([needle]) => raw.includes(needle));
   if (hit) return hit[1];
   const code = error.code ?? "";

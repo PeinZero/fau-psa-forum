@@ -4,10 +4,17 @@ import type { RunAction } from "@/components/thread/menu-action";
 import type { MenuEntry } from "@/components/ui/dropdown-menu";
 
 import { moderateComment } from "./actions";
+import { muteAuthorItem, type MutableAuthor } from "./mute-author";
 
 /** Moderator entries of a comment's menu. */
 export function commentModItems(
-  { threadId, commentId, isBest, isHidden }: { threadId: number; commentId: number; isBest: boolean; isHidden: boolean },
+  {
+    threadId,
+    commentId,
+    isBest,
+    isHidden,
+    author = null,
+  }: { threadId: number; commentId: number; isBest: boolean; isHidden: boolean; author?: MutableAuthor | null },
   run: RunAction,
 ): MenuEntry[] {
   const op = (name: string) => run(moderateComment, { threadId, commentId, op: name });
@@ -27,5 +34,7 @@ export function commentModItems(
           confirm: { message: "Hide this comment from the public?", action: "Hide comment" },
           onSelect: () => op("hide"),
         },
+    author && "separator",
+    author && muteAuthorItem(author, run),
   ];
 }

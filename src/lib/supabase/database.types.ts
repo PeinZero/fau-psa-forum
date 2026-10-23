@@ -85,6 +85,28 @@ export type Database = {
           },
         ]
       }
+      canned_replies: {
+        Row: {
+          body: string
+          id: number
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          body: string
+          id?: never
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          body?: string
+          id?: never
+          label?: string
+          sort_order?: number
+        }
+        Relationships: [
+        ]
+      }
       categories: {
         Row: {
           created_by: string | null
@@ -346,6 +368,71 @@ export type Database = {
           },
         ]
       }
+      moderation_log: {
+        Row: {
+          action: Database["public"]["Enums"]["moderation_action"]
+          actor_id: string | null
+          comment_id: number | null
+          created_at: string
+          details: Json | null
+          id: number
+          reason: string | null
+          target_user_id: string | null
+          thread_id: number | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["moderation_action"]
+          actor_id?: string | null
+          comment_id?: number | null
+          created_at?: string
+          details?: Json | null
+          id?: never
+          reason?: string | null
+          target_user_id?: string | null
+          thread_id?: number | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["moderation_action"]
+          actor_id?: string | null
+          comment_id?: number | null
+          created_at?: string
+          details?: Json | null
+          id?: never
+          reason?: string | null
+          target_user_id?: string | null
+          thread_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_log_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_log_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_log_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moderator_applications: {
         Row: {
           created_at: string
@@ -429,6 +516,7 @@ export type Database = {
           id: number
           read_at: string | null
           recipient_id: string
+          restriction_id: number | null
           thread_id: number | null
           type: Database["public"]["Enums"]["notification_type"]
         }
@@ -440,6 +528,7 @@ export type Database = {
           id?: never
           read_at?: string | null
           recipient_id: string
+          restriction_id?: number | null
           thread_id?: number | null
           type: Database["public"]["Enums"]["notification_type"]
         }
@@ -451,6 +540,7 @@ export type Database = {
           id?: never
           read_at?: string | null
           recipient_id?: string
+          restriction_id?: number | null
           thread_id?: number | null
           type?: Database["public"]["Enums"]["notification_type"]
         }
@@ -481,6 +571,13 @@ export type Database = {
             columns: ["recipient_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_restriction_id_fkey"
+            columns: ["restriction_id"]
+            isOneToOne: false
+            referencedRelation: "user_restrictions"
             referencedColumns: ["id"]
           },
           {
@@ -674,26 +771,48 @@ export type Database = {
       user_restrictions: {
         Row: {
           created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: number
+          kind: Database["public"]["Enums"]["restriction_kind"]
+          lifted_at: string | null
+          lifted_by: string | null
           reason: string
-          restricted_by: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: never
+          kind: Database["public"]["Enums"]["restriction_kind"]
+          lifted_at?: string | null
+          lifted_by?: string | null
           reason: string
-          restricted_by?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: never
+          kind?: Database["public"]["Enums"]["restriction_kind"]
+          lifted_at?: string | null
+          lifted_by?: string | null
           reason?: string
-          restricted_by?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "user_restrictions_restricted_by_fkey"
-            columns: ["restricted_by"]
+            foreignKeyName: "user_restrictions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_restrictions_lifted_by_fkey"
+            columns: ["lifted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -701,7 +820,7 @@ export type Database = {
           {
             foreignKeyName: "user_restrictions_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -929,7 +1048,15 @@ export type Database = {
     Functions: {
       delete_own_account: { Args: never; Returns: undefined }
       is_moderator: { Args: never; Returns: boolean }
+      is_restricted: {
+        Args: {
+          kind: Database["public"]["Enums"]["restriction_kind"]
+          uid: string
+        }
+        Returns: boolean
+      }
       is_superadmin: { Args: never; Returns: boolean }
+      lift_restriction: { Args: { restriction_id: number }; Returns: undefined }
       mark_all_notifications_read: { Args: never; Returns: undefined }
       mark_thread_verified: { Args: { thread_id: number }; Returns: undefined }
       review_moderator_application: {
@@ -1008,9 +1135,18 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      set_user_restricted: {
-        Args: { reason?: string; restricted: boolean; target: string }
-        Returns: undefined
+      restrict_user: {
+        Args: {
+          duration?: string
+          kind: Database["public"]["Enums"]["restriction_kind"]
+          reason: string
+          target: string
+        }
+        Returns: number
+      }
+      restriction_block_message: {
+        Args: { include_mutes: boolean }
+        Returns: string
       }
       set_user_role: {
         Args: { new_role: Database["public"]["Enums"]["user_role"]; target: string }
@@ -1030,6 +1166,37 @@ export type Database = {
       affiliation: "student" | "graduate" | "postgrad" | "resident"
       application_status: "pending" | "approved" | "rejected"
       city: "erlangen" | "nuremberg" | "both"
+      moderation_action:
+        | "thread_approved"
+        | "thread_rejected"
+        | "thread_archived"
+        | "thread_unarchived"
+        | "thread_pinned"
+        | "thread_unpinned"
+        | "thread_outdated"
+        | "thread_verified"
+        | "comment_hidden"
+        | "comment_unhidden"
+        | "best_answer_set"
+        | "best_answer_unset"
+        | "report_resolved"
+        | "report_dismissed"
+        | "update_request_resolved"
+        | "update_request_dismissed"
+        | "application_approved"
+        | "application_rejected"
+        | "role_changed"
+        | "category_created"
+        | "category_updated"
+        | "category_deleted"
+        | "announcement_created"
+        | "announcement_deleted"
+        | "guide_created"
+        | "guide_deleted"
+        | "revision_reviewed"
+        | "user_muted"
+        | "user_banned"
+        | "user_unrestricted"
       notification_type:
         | "reply"
         | "mention"
@@ -1045,6 +1212,9 @@ export type Database = {
         | "announcement"
         | "mod_new_update_request"
         | "followed_thread_activity"
+        | "account_muted"
+        | "account_banned"
+        | "account_unrestricted"
       report_reason:
         | "spam"
         | "offensive"
@@ -1052,6 +1222,7 @@ export type Database = {
         | "personal_data"
         | "other"
       report_status: "open" | "resolved" | "dismissed"
+      restriction_kind: "mute" | "ban"
       thread_status: "pending" | "published" | "rejected" | "archived"
       update_request_status: "open" | "resolved" | "dismissed"
       user_role: "member" | "moderator" | "superadmin"
@@ -1185,6 +1356,38 @@ export const Constants = {
       affiliation: ["student", "graduate", "postgrad", "resident"],
       application_status: ["pending", "approved", "rejected"],
       city: ["erlangen", "nuremberg", "both"],
+      moderation_action: [
+        "thread_approved",
+        "thread_rejected",
+        "thread_archived",
+        "thread_unarchived",
+        "thread_pinned",
+        "thread_unpinned",
+        "thread_outdated",
+        "thread_verified",
+        "comment_hidden",
+        "comment_unhidden",
+        "best_answer_set",
+        "best_answer_unset",
+        "report_resolved",
+        "report_dismissed",
+        "update_request_resolved",
+        "update_request_dismissed",
+        "application_approved",
+        "application_rejected",
+        "role_changed",
+        "category_created",
+        "category_updated",
+        "category_deleted",
+        "announcement_created",
+        "announcement_deleted",
+        "guide_created",
+        "guide_deleted",
+        "revision_reviewed",
+        "user_muted",
+        "user_banned",
+        "user_unrestricted",
+      ],
       notification_type: [
         "reply",
         "mention",
@@ -1200,9 +1403,13 @@ export const Constants = {
         "announcement",
         "mod_new_update_request",
         "followed_thread_activity",
+        "account_muted",
+        "account_banned",
+        "account_unrestricted",
       ],
       report_reason: ["spam", "offensive", "wrong_info", "personal_data", "other"],
       report_status: ["open", "resolved", "dismissed"],
+      restriction_kind: ["mute", "ban"],
       thread_status: ["pending", "published", "rejected", "archived"],
       update_request_status: ["open", "resolved", "dismissed"],
       user_role: ["member", "moderator", "superadmin"],

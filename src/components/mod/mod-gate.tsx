@@ -42,7 +42,9 @@ export async function ModGate({ children }: { children: ReactNode }) {
     { href: "/mod/announcements", label: "Announcements", icon: "announcements" },
     { ...GUIDES_MOD_NAV_ITEM, icon: "guides" },
     { href: "/mod/categories", label: "Categories", icon: "categories" },
-    ...(viewer.role === "superadmin" ? [{ href: "/mod/users", label: "Users", icon: "users" as const }] : []),
+    { href: "/mod/replies", label: "Canned replies", icon: "replies" },
+    { href: "/mod/users", label: "Users", icon: "users" },
+    { href: "/mod/log", label: "Log", icon: "log" },
   ];
 
   return (

@@ -2,8 +2,10 @@ import { Archive, ArchiveRestore, CircleCheck, CircleX, Pin, PinOff, ShieldCheck
 
 import type { RunAction } from "@/components/thread/menu-action";
 import type { MenuEntry } from "@/components/ui/dropdown-menu";
+import type { ReasonPreset } from "@/components/ui/reason-field";
 
 import { markThreadVerified, moderateThread } from "./actions";
+import { muteAuthorItem, type MutableAuthor } from "./mute-author";
 
 export type ModThread = {
   id: number;
@@ -13,7 +15,11 @@ export type ModThread = {
 };
 
 /** Moderator entries of the thread menu. */
-export function threadModItems({ id, status, is_outdated, is_pinned }: ModThread, run: RunAction): MenuEntry[] {
+export function threadModItems(
+  { id, status, is_outdated, is_pinned }: ModThread,
+  run: RunAction,
+  { presets = [], author = null }: { presets?: readonly ReasonPreset[]; author?: MutableAuthor | null } = {},
+): MenuEntry[] {
   const isLive = status === "published" || status === "archived";
   const op = (name: string, reason?: string) => run(moderateThread, { threadId: id, op: name, reason });
 
@@ -30,7 +36,7 @@ export function threadModItems({ id, status, is_outdated, is_pinned }: ModThread
       confirm: {
         message: "The author sees this reason.",
         action: "Reject thread",
-        reason: { label: "Reason for rejection", max: 1000 },
+        reason: { label: "Reason for rejection", max: 1000, presets },
       },
       onSelect: ({ reason }) => op("reject", reason),
     },
@@ -60,5 +66,7 @@ export function threadModItems({ id, status, is_outdated, is_pinned }: ModThread
       icon: ArchiveRestore,
       onSelect: () => op("unarchive"),
     },
+    author && "separator",
+    author && muteAuthorItem(author, run),
   ];
 }
