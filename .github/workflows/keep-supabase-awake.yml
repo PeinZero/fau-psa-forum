@@ -5,6 +5,9 @@ on:
     # Every 3 days (the day-of-month step restarts each month, so gaps never exceed 4 days).
     - cron: "17 6 */3 * *"
   workflow_dispatch:
+  # Checks the setup whenever this file changes, so a broken edit shows up in its own PR.
+  pull_request:
+    paths: [".github/workflows/keep-supabase-awake.yml"]
 
 permissions: {}
 
