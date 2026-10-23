@@ -115,12 +115,36 @@ Chronological with one level of replies.
 | edited_at | timestamptz null | |
 | hidden_at / hidden_by | timestamptz null / uuid null | moderator soft-delete; hidden from the public, visible to moderators |
 | parent_id | bigint null → comments | cascade; set on insert only. Must be a comment of the same thread the replier can see ("a reply must belong to a visible comment of the same thread"); a reply to a reply is re-pointed to the top-level comment |
+| score | int | default 0; sum of `comment_votes.value`, kept by triggers; not client-writable |
 | created_at | timestamptz | |
 | search | tsvector generated | |
 
 Replies render under their parent; the UI pre-fills the `@handle` of the person replied to.
 A hidden parent keeps its replies, which stay visible under the normal rules. Best answer can
 be any comment, reply or not.
+
+### comment_votes
+Up/down votes on comments ("▲ score ▼"). Comments only; threads have no votes. Scores are
+public through `comments.score`; who voted is readable only by the voter. Votes notify nobody.
+
+| column | type | notes |
+|---|---|---|
+| comment_id | bigint → comments | cascade; PK with `user_id` (one vote per user per comment) |
+| user_id | uuid → profiles | default `auth.uid()`; cascade, so account deletion takes the votes out of the scores |
+| value | smallint | `-1` or `1` |
+| created_at | timestamptz | |
+
+Index `(user_id)`. Clients upsert on `(comment_id, user_id)` to vote or change a vote and delete
+the row to withdraw it. Only visible comments on published threads take votes; archived
+threads are read-only, so their votes can neither be cast, changed nor withdrawn. Insert/update
+policies enforce the rules; a guard trigger reports them first with:
+- `you cannot vote on your own comment` (42501)
+- `voting is only possible on visible comments of published threads` (42501)
+- `a vote cannot be moved to another comment` (42501; `update (comment_id)` is granted only
+  because an upsert repeats the conflict key)
+
+`comments.score` changes only through the vote triggers (`the score of a comment changes only
+through votes`, 42501, even if a column grant were widened).
 
 ### moderator_applications
 
@@ -170,8 +194,8 @@ News from the moderators on `/announcements`; the newest pinned one is the home 
 Posting one notifies every profile except the author (`announcement`).
 
 ### Account deletion
-`delete_own_account()` (authenticated only) deletes the caller's `auth.users` row. The profile
-and moderator applications cascade; threads, comments, revisions and reports stay with the
+`delete_own_account()` (authenticated only) deletes the caller's `auth.users` row. The profile,
+moderator applications and comment votes cascade (scores drop accordingly); threads, comments, revisions and reports stay with the
 user column set to null ("Deleted user"). The last superadmin cannot delete their account
 ("the last superadmin cannot delete their account").
 The function is owned by `postgres`, which on hosted Supabase may delete from `auth.users`;
@@ -259,6 +283,9 @@ which rows each one receives.
 | delete own account (`delete_own_account()`) | | ✓ | ✓ | ✓ (not the last superadmin) |
 | reply to a visible comment (one level) | | ✓ | ✓ | ✓ |
 | change own username | | ✓ | ✓ | ✓ |
+| vote on visible comments of published threads, not their own; change/withdraw own vote | | ✓ | ✓ | ✓ |
+| read comment scores | ✓ | ✓ | ✓ | ✓ |
+| read who voted | | own votes | own votes | own votes |
 | read own notifications, set `read_at`, `mark_all_notifications_read()` | | ✓ | ✓ | ✓ |
 | read announcements | ✓ | ✓ | ✓ | ✓ |
 | post, edit, pin and delete announcements | | | ✓ | ✓ |

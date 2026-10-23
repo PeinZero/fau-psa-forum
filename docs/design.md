@@ -8,8 +8,8 @@ smooth and subtle motion.
 
 - Restraint: neutral surfaces, hairline borders, one accent. Color carries meaning (accent =
   primary action/active state), never decoration.
-- Typography does the hierarchy: Inter, tight tracking on headings (`tracking-tight`), body 15px,
-  meta text 13px in `text-muted`. Weights 400/500/600, no bold 700 walls.
+- Typography does the hierarchy: Inter, tight tracking on headings (`tracking-tight`), body 14px,
+  meta text 12.5px in `text-muted`. Weights 400/500/600, no bold 700 walls.
 - Density with air: compact rows, generous section spacing, max content width ~`max-w-5xl`
   (reading column `max-w-3xl` on thread pages).
 - Every interactive element has hover, focus-visible and active states.

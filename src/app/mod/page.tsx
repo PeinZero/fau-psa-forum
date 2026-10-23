@@ -1,17 +1,23 @@
-import { ArrowUpRight, FilePenLine, Flag, Hourglass, UserCheck } from "lucide-react";
+import { ArrowUpRight, FilePenLine, Flag, Hourglass, Megaphone, UserCheck } from "lucide-react";
 import Link from "next/link";
 
 import { getModCounts } from "@/components/mod/counts";
 import { cardClasses } from "@/components/ui/card";
 import { stagger } from "@/components/ui/motion";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function ModOverviewPage() {
-  const counts = await getModCounts();
+  const supabase = await createClient();
+  const [counts, announcements] = await Promise.all([
+    getModCounts(),
+    supabase.from("announcements").select("id", { count: "exact", head: true }),
+  ]);
   const sections = [
     { href: "/mod/threads", title: "Pending threads", text: "Waiting for approval", count: counts.threads, Icon: Hourglass },
     { href: "/mod/reports", title: "Open reports", text: "Flagged by members", count: counts.reports, Icon: Flag },
     { href: "/mod/edits", title: "Recent edits", text: "Changed in the last 7 days", count: counts.edits, Icon: FilePenLine },
     { href: "/mod/applications", title: "Applications", text: "People who want to moderate", count: counts.applications, Icon: UserCheck },
+    { href: "/mod/announcements", title: "Announcements", text: "Post news to every member", count: announcements.count ?? 0, Icon: Megaphone },
   ];
 
   return (

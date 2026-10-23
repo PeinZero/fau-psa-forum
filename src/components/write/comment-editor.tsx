@@ -1,7 +1,7 @@
 "use client";
 
-import { Loader2, Pencil } from "lucide-react";
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { Loader2 } from "lucide-react";
+import { createContext, type ReactNode, use, useEffect, useId, useRef, useState, useTransition } from "react";
 
 import { Markdown } from "@/components/markdown";
 import { MentionTextarea } from "@/components/mentions/mention-textarea";
@@ -10,63 +10,68 @@ import { FieldError, Label } from "@/components/ui/field";
 import { Kbd } from "@/components/ui/kbd";
 import { updateCommentAction } from "./actions";
 
+type EditState = { editing: boolean; start: () => void; stop: () => void };
+
+const EditContext = createContext<EditState | null>(null);
+
+/** Shares one comment's edit state between its body and its "Edit" menu item. */
+export function CommentEditScope({ children }: { children: ReactNode }) {
+  const [editing, setEditing] = useState(false);
+  const returnTo = useRef<HTMLElement | null>(null);
+
+  const value: EditState = {
+    editing,
+    start() {
+      // The menu has just returned focus to its trigger; that is where focus goes back after editing.
+      returnTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      setEditing(true);
+    },
+    stop() {
+      setEditing(false);
+      requestAnimationFrame(() => returnTo.current?.focus());
+    },
+  };
+  return <EditContext value={value}>{children}</EditContext>;
+}
+
+export function useCommentEdit(): EditState | null {
+  return use(EditContext);
+}
+
 export function CommentEditor({ commentId, body }: { commentId: number; body: string }) {
+  const edit = useCommentEdit();
+  if (!edit?.editing) return <Markdown>{body}</Markdown>;
+  return <EditForm commentId={commentId} body={body} onDone={edit.stop} />;
+}
+
+function EditForm({ commentId, body, onDone }: { commentId: number; body: string; onDone: () => void }) {
   const id = useId();
   const errorId = `${id}-error`;
-  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(body);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const editRef = useRef<HTMLButtonElement>(null);
-  const restoreFocus = useRef(false);
   const empty = draft.trim().length === 0;
 
   useEffect(() => {
-    if (editing) textareaRef.current?.focus();
-    else if (restoreFocus.current) {
-      restoreFocus.current = false;
-      editRef.current?.focus();
-    }
-  }, [editing]);
-
-  if (!editing) {
-    return (
-      <div className="flex flex-col gap-1">
-        <Markdown>{body}</Markdown>
-        <Button
-          ref={editRef}
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setDraft(body);
-            setError(null);
-            setEditing(true);
-          }}
-          className="-ml-3 self-start text-subtle"
-        >
-          <Pencil aria-hidden strokeWidth={1.75} />
-          Edit
-        </Button>
-      </div>
-    );
-  }
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  }, []);
 
   function save() {
     if (pending || empty) return;
     setError(null);
     startTransition(async () => {
       const result = await updateCommentAction(commentId, draft);
-      if (result.ok) {
-        restoreFocus.current = true;
-        setEditing(false);
-      } else setError(result.error);
+      if (result.ok) onDone();
+      else setError(result.error);
     });
   }
 
   function cancel() {
-    restoreFocus.current = true;
-    setEditing(false);
+    onDone();
   }
 
   return (

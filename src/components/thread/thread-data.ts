@@ -12,7 +12,7 @@ export const getThread = cache(async (slug: string) => {
        category:categories!threads_category_id_fkey(slug, name),
        author:profiles!threads_author_id_fkey(display_name, username, affiliation, role),
        comments:comments!comments_thread_id_fkey(
-         id, parent_id, body, created_at, edited_at, hidden_at, author_id,
+         id, parent_id, body, created_at, edited_at, hidden_at, author_id, score,
          author:profiles!comments_author_id_fkey(display_name, username, affiliation, role)
        )`,
     )
@@ -21,6 +21,26 @@ export const getThread = cache(async (slug: string) => {
     .maybeSingle();
   return data;
 });
+
+export type MyVote = -1 | 0 | 1;
+
+/** The viewer's own votes on these comments; RLS never returns anyone else's. */
+export async function getMyVotes(userId: string, commentIds: number[]): Promise<Map<number, MyVote>> {
+  if (commentIds.length === 0) return new Map();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("comment_votes")
+    .select("comment_id, value")
+    .eq("user_id", userId)
+    .in("comment_id", commentIds);
+  return new Map((data ?? []).map((vote) => [vote.comment_id, vote.value > 0 ? 1 : -1]));
+}
+
+export type CommentSort = "top" | "new";
+
+export function parseCommentSort(value: string | string[] | undefined): CommentSort {
+  return value === "new" ? "new" : "top";
+}
 
 export type ThreadDetail = NonNullable<Awaited<ReturnType<typeof getThread>>>;
 export type CommentDetail = ThreadDetail["comments"][number];

@@ -1,14 +1,17 @@
-import { Megaphone } from "lucide-react";
+import { Megaphone, Plus } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { AnnouncementCard } from "@/components/announcements/announcement-card";
 import { fetchAnnouncements } from "@/components/announcements/data";
+import { buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getViewer, isModerator } from "@/lib/auth/viewer";
 
 const description = "News from the PSA moderators: events, deadlines and changes to the forum.";
 
@@ -66,10 +69,29 @@ function ListSkeleton() {
   );
 }
 
+async function NewAnnouncementLink() {
+  const viewer = await getViewer();
+  if (!viewer || !isModerator(viewer.role)) return null;
+  return (
+    <Link href="/mod/announcements" className={buttonClasses({ variant: "primary" })}>
+      <Plus aria-hidden strokeWidth={1.75} />
+      New announcement
+    </Link>
+  );
+}
+
 export default function AnnouncementsPage() {
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <PageHeader title="Announcements" description={description} />
+      <PageHeader
+        title="Announcements"
+        description={description}
+        actions={
+          <Suspense fallback={null}>
+            <NewAnnouncementLink />
+          </Suspense>
+        }
+      />
       <Suspense fallback={<ListSkeleton />}>
         <AnnouncementList />
       </Suspense>

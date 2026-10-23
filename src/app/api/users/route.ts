@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims.sub) return Response.json({ error: "Sign in required." }, { status: 401, headers });
 
+  // The query check above rules out PostgREST's reserved `,` `.` `:` `(` `)`, so the pattern can
+  // sit unquoted in the or-filter; only LIKE wildcards need escaping.
   const pattern = escapeLike(q);
   // Spaces only occur in display names; they cannot appear in a handle.
   const filter = q.includes(" ")
@@ -27,7 +29,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase
     .from("profiles")
     .select("username, display_name, affiliation, role")
-    .or(filter.replace(/[,()]/g, ""))
+    .or(filter)
     .order("username")
     .limit(MENTION_LIMIT);
   if (error) {

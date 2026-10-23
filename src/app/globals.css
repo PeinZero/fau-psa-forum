@@ -101,10 +101,18 @@
 }
 
 @theme static {
-  --text-meta: 0.8125rem;
-  --text-meta--line-height: 1.25rem;
-  --text-body: 0.9375rem;
-  --text-body--line-height: 1.6rem;
+  --text-meta: 0.78125rem;
+  --text-meta--line-height: 1.125rem;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.4rem;
+
+  /* One step down from Tailwind's defaults for page titles and large figures. */
+  --text-xl: 1.0625rem;
+  --text-xl--line-height: 1.5rem;
+  --text-2xl: 1.375rem;
+  --text-2xl--line-height: 1.75rem;
+  --text-3xl: 1.75rem;
+  --text-3xl--line-height: 2.125rem;
 
   --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -208,6 +216,15 @@
   }
   ::-webkit-scrollbar-track {
     background: transparent;
+  }
+}
+
+/* Unlayered so it beats the field components' text-sm utilities. Below 16px iOS Safari zooms on focus. */
+@media (max-width: 640px), (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+  textarea,
+  select {
+    font-size: 16px;
   }
 }
 

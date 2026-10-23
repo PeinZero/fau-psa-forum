@@ -2,11 +2,14 @@
 
 import { Bell } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { buttonClasses } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { NOTIFICATIONS_CHANGED } from "./events";
+
+// A fresh topic per subscription: a remount must not reuse a channel that is still leaving.
+let subscriptionSeq = 0;
 
 function badgeText(count: number): string {
   return count > 99 ? "99+" : String(count);
@@ -19,7 +22,6 @@ export function NotificationBell({ userId, initialUnread }: { userId: string; in
   const [pops, setPops] = useState(0);
   const badgeRef = useRef<HTMLSpanElement>(null);
   const countRef = useRef(count);
-  const channelSuffix = useId().replace(/[^a-zA-Z0-9]/g, "");
 
   // A server refresh (e.g. after a server action) brings a fresh count from the header.
   if (initialUnread !== serverCount) {
@@ -42,25 +44,36 @@ export function NotificationBell({ userId, initialUnread }: { userId: string; in
 
   useEffect(() => {
     const supabase = createClient();
-    const channel = supabase
-      .channel(`notifications:${userId}:${channelSuffix}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_id=eq.${userId}` },
-        () => {
-          countRef.current += 1;
-          setCount(countRef.current);
-          setAnnouncement(`New notification. ${countRef.current} unread.`);
-          setPops((p) => p + 1);
-        },
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") void resync();
-      });
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+
+    // The join message carries whatever token the socket holds at subscribe time. Right after
+    // page load the session is still being read, so without this the channel joins as anon and
+    // RLS drops every notification.
+    void supabase.realtime.setAuth().then(() => {
+      if (cancelled) return;
+      channel = supabase
+        .channel(`notifications:${userId}:${++subscriptionSeq}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_id=eq.${userId}` },
+          () => {
+            countRef.current += 1;
+            setCount(countRef.current);
+            setAnnouncement(`New notification. ${countRef.current} unread.`);
+            setPops((p) => p + 1);
+          },
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") void resync();
+        });
+    });
+
     return () => {
-      void supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) void supabase.removeChannel(channel);
     };
-  }, [userId, channelSuffix, resync]);
+  }, [userId, resync]);
 
   useEffect(() => {
     const onVisible = () => {

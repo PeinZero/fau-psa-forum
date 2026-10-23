@@ -54,7 +54,9 @@ export function Author({ profile, avatar = true }: { profile: AuthorProfile | nu
     <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
       {avatar && <Avatar name={profile.display_name} />}
       <span className="break-words font-medium text-foreground">{profile.display_name}</span>
-      {profile.role !== "member" && <Badge variant="accent">Moderator</Badge>}
+      {profile.role !== "member" && (
+        <Badge variant="accent">{profile.role === "superadmin" ? "Superadmin" : "Moderator"}</Badge>
+      )}
       {profile.affiliation && <Badge>{affiliationLabels[profile.affiliation]}</Badge>}
     </span>
   );

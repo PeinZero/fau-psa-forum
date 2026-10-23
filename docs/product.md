@@ -21,6 +21,10 @@ Agreed with the owner. Read before building any user-facing feature.
   notified and the newest pinned one shows as a dismissible banner on the home page.
 - Signed-in users can report a public thread or comment (reason + optional note); moderators
   resolve or dismiss reports.
+- Signed-in users upvote or downvote comments (not threads), one vote each, never their own.
+  Scores are public, who voted is private, votes send no notifications. Archived threads and
+  hidden comments take no votes. Comments sort by Top (score, default) or Newest; the best
+  answer stays pinned above both.
 - Users can delete their account; their threads and comments stay, shown as "Deleted user".
 - Shared thread links must render rich previews in WhatsApp, so thread pages are server-rendered
   with per-thread `generateMetadata` (OpenGraph).

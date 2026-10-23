@@ -1,69 +1,59 @@
-import { ShieldCheck } from "lucide-react";
+import { Archive, ArchiveRestore, CircleCheck, CircleX, Pin, PinOff, TriangleAlert } from "lucide-react";
 
-import { ActionButton } from "./action-button";
+import type { RunAction } from "@/components/thread/menu-action";
+import type { MenuEntry } from "@/components/ui/dropdown-menu";
+
 import { moderateThread } from "./actions";
 
-type ThreadModPanelProps = {
-  thread: {
-    id: number;
-    slug: string;
-    status: "pending" | "published" | "rejected" | "archived";
-    is_outdated: boolean;
-    is_pinned: boolean;
-  };
+export type ModThread = {
+  id: number;
+  status: "pending" | "published" | "rejected" | "archived";
+  is_outdated: boolean;
+  is_pinned: boolean;
 };
 
-export function ThreadModPanel({ thread }: ThreadModPanelProps) {
-  const { id, status, is_outdated, is_pinned } = thread;
+/** Moderator entries of the thread menu. */
+export function threadModItems({ id, status, is_outdated, is_pinned }: ModThread, run: RunAction): MenuEntry[] {
   const isLive = status === "published" || status === "archived";
-  const field = { threadId: id };
+  const op = (name: string, reason?: string) => run(moderateThread, { threadId: id, op: name, reason });
 
-  return (
-    <section aria-label="Moderation" className="flex flex-wrap items-start gap-x-2 gap-y-1">
-      <ShieldCheck aria-hidden strokeWidth={1.75} className="mt-2.5 size-4 shrink-0 text-subtle pointer-coarse:mt-3.5" />
-      <div className="flex min-w-0 flex-1 flex-wrap items-start gap-1">
-        {(status === "pending" || status === "rejected") && (
-          <ActionButton action={moderateThread} fields={{ ...field, op: "approve" }} label="Approve" pendingLabel="Approving..." variant="primary" />
-        )}
-        {status === "pending" && (
-          <ActionButton
-            action={moderateThread}
-            fields={{ ...field, op: "reject" }}
-            label="Reject"
-            variant="danger"
-            confirm="The author sees this reason."
-            reason={{ label: "Reason for rejection", max: 1000 }}
-          />
-        )}
-        {status === "published" && (
-          <ActionButton
-            action={moderateThread}
-            fields={{ ...field, op: "archive" }}
-            label="Archive"
-            variant="ghost"
-            confirm="Archived threads become read-only and disappear from lists."
-          />
-        )}
-        {status === "archived" && (
-          <ActionButton action={moderateThread} fields={{ ...field, op: "unarchive" }} label="Unarchive" variant="ghost" />
-        )}
-        {isLive && (
-          <>
-            <ActionButton
-              action={moderateThread}
-              fields={{ ...field, op: is_outdated ? "current" : "outdated" }}
-              label={is_outdated ? "Not outdated" : "Mark outdated"}
-              variant="ghost"
-            />
-            <ActionButton
-              action={moderateThread}
-              fields={{ ...field, op: is_pinned ? "unpin" : "pin" }}
-              label={is_pinned ? "Unpin" : "Pin"}
-              variant="ghost"
-            />
-          </>
-        )}
-      </div>
-    </section>
-  );
+  return [
+    (status === "pending" || status === "rejected") && {
+      label: "Approve",
+      icon: CircleCheck,
+      onSelect: () => op("approve"),
+    },
+    status === "pending" && {
+      label: "Reject",
+      icon: CircleX,
+      danger: true,
+      confirm: {
+        message: "The author sees this reason.",
+        action: "Reject thread",
+        reason: { label: "Reason for rejection", max: 1000 },
+      },
+      onSelect: ({ reason }) => op("reject", reason),
+    },
+    isLive && {
+      label: is_pinned ? "Unpin" : "Pin",
+      icon: is_pinned ? PinOff : Pin,
+      onSelect: () => op(is_pinned ? "unpin" : "pin"),
+    },
+    isLive && {
+      label: is_outdated ? "Not outdated" : "Mark outdated",
+      icon: TriangleAlert,
+      onSelect: () => op(is_outdated ? "current" : "outdated"),
+    },
+    status === "published" && {
+      label: "Archive",
+      icon: Archive,
+      confirm: { message: "Archived threads become read-only and disappear from lists.", action: "Archive" },
+      onSelect: () => op("archive"),
+    },
+    status === "archived" && {
+      label: "Unarchive",
+      icon: ArchiveRestore,
+      onSelect: () => op("unarchive"),
+    },
+  ];
 }
