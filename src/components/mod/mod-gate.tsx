@@ -37,6 +37,7 @@ export async function ModGate({ children }: { children: ReactNode }) {
     { href: "/mod/reports", label: "Reports", icon: "reports", count: counts.reports },
     { href: "/mod/updates", label: "Update requests", icon: "updates", count: counts.updates },
     { href: "/mod/edits", label: "Recent edits", icon: "edits", count: counts.edits },
+    { href: "/mod/signups", label: "Recent sign-ups", icon: "signups" },
     { href: "/mod/applications", label: "Applications", icon: "applications", count: counts.applications },
     { href: "/mod/announcements", label: "Announcements", icon: "announcements" },
     { ...GUIDES_MOD_NAV_ITEM, icon: "guides" },

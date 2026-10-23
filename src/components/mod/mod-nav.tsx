@@ -10,6 +10,7 @@ import {
   ListChecks,
   Megaphone,
   UserCheck,
+  UserPlus,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const icons = {
   reports: Flag,
   edits: FilePenLine,
   updates: FileClock,
+  signups: UserPlus,
   applications: UserCheck,
   announcements: Megaphone,
   guides: ListChecks,
