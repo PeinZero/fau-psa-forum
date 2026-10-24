@@ -52,7 +52,7 @@ export function renderOgImage({ title, footer }: OgContent) {
             P
           </div>
           <div style={{ marginLeft: 16, fontSize: 28, color: "#8a8f98", display: "flex" }}>
-            PSA Forum · FAU Erlangen-Nürnberg
+            PSA FAU Community Forum
           </div>
         </div>
         <div

@@ -1,6 +1,6 @@
 import { getCategoryOg, ogContentType, ogSize, renderOgImage, SITE_TAGLINE } from "@/lib/og";
 
-export const alt = "FAU PSA Forum category";
+export const alt = "PSA FAU Community Forum category";
 export const size = ogSize;
 export const contentType = ogContentType;
 

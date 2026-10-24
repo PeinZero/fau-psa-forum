@@ -12,7 +12,7 @@ It depends on where you are registered, not where you study:
 
 - **City of Erlangen:** Abteilung für Ausländerangelegenheiten und Einbürgerungen, Rathausplatz 1, 91052 Erlangen
 - **District Erlangen-Höchstadt** (e.g. Herzogenaurach, Baiersdorf): the Landratsamt's immigration office, linked from FAU's page
-- **City of Nuremberg:** Amt für Migration und Integration, Aufenthaltsbegleitung. Visitor address Regensburger Straße 231, 90478 Nürnberg. The city announces a move to **Stadthaus Q from Monday 30 November 2026**, so check the address before you go.
+- **City of Nuremberg:** Amt für Migration und Integration, Aufenthaltsbegleitung. Visitor address Regensburger Straße 231, 90478 Nuremberg. The city announces a move to **Stadthaus Q from Monday 30 November 2026**, so check the address before you go.
 
 ## Steps
 

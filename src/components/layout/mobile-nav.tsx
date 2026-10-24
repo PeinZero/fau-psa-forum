@@ -45,7 +45,7 @@ export function MobileNavDrawer({ pathname }: { pathname: string | null }) {
       >
         <div className="flex h-full flex-col">
           <div className="flex h-14 items-center justify-between border-b border-border pl-4 pr-2">
-            <p className="text-sm font-semibold tracking-tight">PSA Forum</p>
+            <p className="text-sm font-semibold tracking-tight">PSA FAU Community Forum</p>
             <button
               type="button"
               aria-label="Close menu"

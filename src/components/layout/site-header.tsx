@@ -53,7 +53,7 @@ export function SiteHeader() {
           className="-ml-1 mr-2 inline-flex min-h-11 items-center justify-center gap-2.5 pointer-coarse:min-w-11 rounded-md px-1 text-sm font-semibold tracking-tight text-foreground"
         >
           <LogoMark />
-          <span className="max-[399px]:sr-only">PSA Forum</span>
+          <span className="max-[399px]:sr-only">PSA FAU Community Forum</span>
         </Link>
         <Suspense fallback={<NavLinkList pathname={null} />}>
           <NavLinks />

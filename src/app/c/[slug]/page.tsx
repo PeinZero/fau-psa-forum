@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: category.name,
     description,
     openGraph: {
-      siteName: "FAU PSA Forum",
+      siteName: "PSA FAU Community Forum",
       title: category.name,
       description,
       url: `/c/${category.slug}`,

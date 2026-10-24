@@ -20,13 +20,13 @@ import {
  */
 
 const title = "Impressum / Legal notice";
-const description = "Who runs the FAU PSA Forum and how to reach them.";
+const description = "Who runs the PSA FAU Community Forum and how to reach them.";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
-    openGraph: { siteName: "FAU PSA Forum", title, description, url: "/impressum" },
+    openGraph: { siteName: "PSA FAU Community Forum", title, description, url: "/impressum" },
   };
 }
 
@@ -50,10 +50,10 @@ export default function ImpressumPage() {
 
       <LegalSection title="About this project">
         <p>
-          The FAU PSA Forum is a free, non-commercial community project by and for Pakistani students
+          The PSA FAU Community Forum is a free, non-commercial community project by and for Pakistani students
           in and around FAU Erlangen-Nürnberg. It has no advertising, sells nothing and is run by
           volunteers in their free time. It is not an official service of Friedrich-Alexander-Universität
-          Erlangen-Nürnberg.
+          Erlangen-Nürnberg (FAU).
         </p>
       </LegalSection>
 

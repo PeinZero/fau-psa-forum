@@ -1,4 +1,4 @@
-# FAU PSA Forum: features, launch plan, costs and funding
+# PSA FAU Community Forum: features, launch plan, costs and funding
 
 Last updated: 24 October 2026 (late)
 
@@ -119,7 +119,7 @@ thread from members (their own threads publish immediately), so the content stay
 - Smooth, subtle animations that switch off for people who turn on "reduce motion".
 - Link previews with an image when a thread is shared on WhatsApp.
 - The website runs in London, next to the database, so pages respond fast.
-- The name is spelled "Nuremberg" everywhere; the umlaut stays only in "FAU Erlangen-Nürnberg".
+- The name is spelled "Nuremberg" everywhere; the city is never "Nürnberg" or "Nuernberg"; the umlaut stays only in the official university name "FAU Erlangen-Nürnberg".
 
 ### Safety and privacy
 - All permissions are enforced inside the database, not only in the website. 324 automated
