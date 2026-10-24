@@ -1,4 +1,4 @@
-# FAU PSA Forum
+# PSA FAU Community Forum
 
 A question-and-answer forum for Pakistani students, graduates and residents around FAU Erlangen-Nürnberg. People ask the questions that keep coming up in WhatsApp groups (residence permit, Anmeldung, courses, housing, jobs) and the answers stay easy to find. Anyone can read; you sign in to post; moderators approve every new thread.
 

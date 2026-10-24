@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     description,
     openGraph: {
       type: "article",
-      siteName: "FAU PSA Forum",
+      siteName: "PSA FAU Community Forum",
       title: announcement.title,
       description,
       publishedTime: announcement.created_at,

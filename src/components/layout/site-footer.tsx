@@ -17,7 +17,10 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-border">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-1 px-4 py-4 text-meta text-muted sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-        <p>By and for Pakistani students at FAU Erlangen-Nürnberg.</p>
+        <div className="space-y-1">
+          <p>By and for Pakistani students at FAU Erlangen-Nürnberg.</p>
+          <p>Independent student project. Not affiliated with or endorsed by FAU.</p>
+        </div>
         <nav
           aria-label="Footer"
           className="-mx-2 flex flex-wrap items-center gap-x-1 lg:mx-0"

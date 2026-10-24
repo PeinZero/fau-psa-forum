@@ -56,8 +56,8 @@ const sections: { icon: LucideIcon; title: string; body: React.ReactNode }[] = [
     title: "Who runs it",
     body: (
       <p>
-        The forum is run by the Pakistani Students Association community at FAU.
-        Moderators are volunteers from that community.
+        The forum is run by the Pakistan Student Association community, for
+        students at FAU. Moderators are volunteers from that community.
       </p>
     ),
   },
@@ -168,6 +168,15 @@ export default function AboutPage() {
           </Card>
         ))}
       </div>
+
+      <p className="mx-auto mt-8 max-w-2xl text-meta leading-relaxed text-muted">
+        PSA FAU Community Forum is run independently by students of the
+        Pakistan Student Association community. It is not affiliated with,
+        endorsed by or operated by Friedrich-Alexander-Universität
+        Erlangen-Nürnberg (FAU). Answers here come from students and are not
+        official university advice. For binding information, check with FAU or
+        the relevant authority.
+      </p>
     </div>
   );
 }

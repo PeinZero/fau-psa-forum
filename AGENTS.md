@@ -1,6 +1,6 @@
-# FAU PSA Forum
+# PSA FAU Community Forum
 
-Moderator-curated Q&A threads (text, later voice notes) for the Pakistani Students Association
+Moderator-curated Q&A threads (text, later voice notes) for the Pakistan Student Association
 at FAU Erlangen-Nürnberg. Next.js 16 App Router + TypeScript + Tailwind v4, Supabase via
 `@supabase/ssr`, hosted on Vercel.
 

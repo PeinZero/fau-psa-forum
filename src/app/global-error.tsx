@@ -26,7 +26,7 @@ export default function GlobalError({ error, retry }: { error: unknown; retry: (
   return (
     <html lang="en" className="h-full">
       <body className="flex min-h-full items-center justify-center bg-background px-4 font-sans text-foreground antialiased">
-        <title>Something went wrong · FAU PSA Forum</title>
+        <title>Something went wrong · PSA FAU Community Forum</title>
         <main className="flex w-full max-w-md flex-col items-center gap-4 rounded-xl border border-border bg-surface px-6 py-12 text-center">
           <span className="flex size-10 items-center justify-center rounded-lg border border-border bg-background text-muted">
             <TriangleAlert aria-hidden strokeWidth={1.75} className="size-5" />

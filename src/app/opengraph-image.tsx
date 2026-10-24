@@ -1,6 +1,6 @@
 import { ogContentType, ogSize, renderOgImage, SITE_TAGLINE } from "@/lib/og";
 
-export const alt = "FAU PSA Forum";
+export const alt = "PSA FAU Community Forum";
 export const size = ogSize;
 export const contentType = ogContentType;
 

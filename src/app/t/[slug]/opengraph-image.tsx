@@ -1,6 +1,6 @@
 import { getPublishedThreadOg, ogContentType, ogSize, renderOgImage, SITE_TAGLINE } from "@/lib/og";
 
-export const alt = "FAU PSA Forum thread";
+export const alt = "PSA FAU Community Forum thread";
 export const size = ogSize;
 export const contentType = ogContentType;
 

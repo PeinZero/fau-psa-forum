@@ -24,7 +24,7 @@ export default function Home() {
           style={stagger(0)}
         >
           <span aria-hidden className="size-1.5 rounded-full bg-accent" />
-          Pakistani Students Association · FAU
+          Pakistan Student Association · FAU Erlangen-Nürnberg
         </p>
         <h1
           className="animate-fade-up mt-4 max-w-3xl text-[1.875rem] font-semibold leading-[1.12] tracking-[-0.03em] text-balance sm:text-5xl sm:leading-[1.08]"

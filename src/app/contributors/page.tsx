@@ -15,7 +15,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Contributors",
-  description: "The people who build and moderate the FAU PSA Forum.",
+  description: "The people who build and moderate the PSA FAU Community Forum.",
 };
 
 const REPO = "https://github.com/PeinZero/fau-psa-forum";

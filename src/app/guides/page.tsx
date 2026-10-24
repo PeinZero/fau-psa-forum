@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Guides",
     description,
-    openGraph: { siteName: "FAU PSA Forum", title: "Guides", description, url: "/guides" },
+    openGraph: { siteName: "PSA FAU Community Forum", title: "Guides", description, url: "/guides" },
   };
 }
 

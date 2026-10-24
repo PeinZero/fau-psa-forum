@@ -24,7 +24,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
     alternates: { canonical: browseHref("/browse", { sort: state.sort, period: state.period, q: "" }) },
     // Searches and deep pages are endless variations of the same list.
     robots: state.q || state.page > 1 ? { index: false } : undefined,
-    openGraph: { siteName: "FAU PSA Forum", title, description, url: "/browse" },
+    openGraph: { siteName: "PSA FAU Community Forum", title, description, url: "/browse" },
   };
 }
 

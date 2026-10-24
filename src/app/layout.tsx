@@ -14,19 +14,19 @@ const inter = Inter({
 });
 
 const description =
-  "Moderator-curated Q&A threads for the Pakistani Students Association at FAU Erlangen-Nürnberg.";
+  "Questions and answers for the Pakistan Student Association at FAU Erlangen-Nürnberg.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "FAU PSA Forum",
-    template: "%s · FAU PSA Forum",
+    default: "PSA FAU Community Forum",
+    template: "%s · PSA FAU Community Forum",
   },
   description,
   openGraph: {
     type: "website",
-    siteName: "FAU PSA Forum",
-    title: "FAU PSA Forum",
+    siteName: "PSA FAU Community Forum",
+    title: "PSA FAU Community Forum",
     description,
   },
 };

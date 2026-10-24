@@ -165,8 +165,10 @@ export default function LoginForm({ next, initialError }: Props) {
               We sent a sign-in link to <strong className="break-all font-medium text-foreground">{email}</strong>. Open
               it on this device to continue.
             </p>
-            <p className="text-meta text-muted">
-              Nothing after a few minutes? Check your spam or junk folder, or the Promotions tab in Gmail.
+            <p className="rounded-md border border-border bg-surface px-3 py-2 text-meta text-muted">
+              <span className="font-medium text-foreground">Not in your inbox?</span> Check your spam or junk folder
+              and the Promotions tab in Gmail; our emails often land there at first. Marking it as &ldquo;Not spam&rdquo; helps
+              the next one arrive.
             </p>
           </div>
 
@@ -205,7 +207,7 @@ export default function LoginForm({ next, initialError }: Props) {
           <div className="flex flex-col items-center gap-3 text-center">
             <LogoMark />
             <div className="flex flex-col gap-1">
-              <h1 className="text-xl font-semibold tracking-tight">Sign in to PSA Forum</h1>
+              <h1 className="text-xl font-semibold tracking-tight">Sign in to PSA FAU Community Forum</h1>
               <p className="text-meta text-muted">
                 You only need an account to post or comment. Reading is open to everyone.
               </p>
@@ -252,6 +254,9 @@ export default function LoginForm({ next, initialError }: Props) {
                 {pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
                 {pending ? "Sending…" : "Email me a sign-in link"}
               </Button>
+              <p className="text-meta text-muted">
+                The email can take a minute and may land in your spam folder.
+              </p>
             </form>
 
             <p className="text-center text-meta text-muted">

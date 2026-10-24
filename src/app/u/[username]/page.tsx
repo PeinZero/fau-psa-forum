@@ -35,11 +35,11 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const profile = await getProfile(username);
   if (!profile) return { title: "User not found" };
   const title = `${profile.display_name} (@${profile.username})`;
-  const description = `Threads by ${profile.display_name} on the FAU PSA Forum.`;
+  const description = `Threads by ${profile.display_name} on the PSA FAU Community Forum.`;
   return {
     title,
     description,
-    openGraph: { siteName: "FAU PSA Forum", title, description, url: `/u/${profile.username}` },
+    openGraph: { siteName: "PSA FAU Community Forum", title, description, url: `/u/${profile.username}` },
   };
 }
 

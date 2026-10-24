@@ -1,7 +1,7 @@
 import { getGuideOg } from "@/components/guides/og";
 import { ogContentType, ogSize, renderOgImage, SITE_TAGLINE } from "@/lib/og";
 
-export const alt = "FAU PSA Forum guide";
+export const alt = "PSA FAU Community Forum guide";
 export const size = ogSize;
 export const contentType = ogContentType;
 

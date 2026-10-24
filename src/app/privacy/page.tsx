@@ -30,13 +30,13 @@ import {
  */
 
 const title = "Privacy policy / Datenschutzerklärung";
-const description = "What data the FAU PSA Forum processes, why, and what your rights are.";
+const description = "What data the PSA FAU Community Forum processes, why, and what your rights are.";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
-    openGraph: { siteName: "FAU PSA Forum", title, description, url: "/privacy" },
+    openGraph: { siteName: "PSA FAU Community Forum", title, description, url: "/privacy" },
   };
 }
 
@@ -135,7 +135,7 @@ export default function PrivacyPage() {
 
       <LegalSection id="summary" title="2. In short">
         <LegalList>
-          <li>The FAU PSA Forum is a free, non-commercial community project run by volunteers.</li>
+          <li>The PSA FAU Community Forum is a free, non-commercial community project run by volunteers.</li>
           <li>You can read everything without an account. You only need one to post, vote or save threads.</li>
           <li>We use your data only to run the forum. We do not sell it, show ads, or use analytics or tracking.</li>
           <li>

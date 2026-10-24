@@ -3,6 +3,7 @@
 Agreed with the owner. Read before building any user-facing feature.
 
 - English only.
+- The forum is an independent student project, not affiliated with FAU; the site footer and the About page carry this disclaimer. The city is always spelled "Nuremberg"; the university keeps its official name "FAU Erlangen-Nürnberg".
 - Anyone can read without an account. Commenting (and later voice notes) requires sign-in.
 - Sign-in: email magic link + Google. Any email address; no `@fau.de` restriction, no identity verification.
 - Any signed-in user can submit a thread; it only becomes public after a moderator approves it.

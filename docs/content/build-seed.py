@@ -60,7 +60,7 @@ for p in sorted((content / "guides").glob("*.md")):
     guides.append((meta, steps))
 
 sql = []
-sql.append("""-- Initial content for the FAU PSA Forum: verified starter threads and guides.
+sql.append("""-- Initial content for the PSA FAU Community Forum: verified starter threads and guides.
 -- Generated from docs/content/** (see docs/content/README.md). Paste into the Supabase SQL
 -- editor and run once; running it again skips threads whose title and guides whose slug exist.
 

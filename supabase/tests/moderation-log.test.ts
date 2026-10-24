@@ -255,7 +255,7 @@ describe("canned replies", () => {
     const rows = await as<{ label: string; body: string }>(MOD, "select label, body from public.canned_replies order by sort_order");
     assert.deepEqual(rows.map((r) => r.label), [
       "Already answered — link",
-      "Not about student life in Erlangen/Nürnberg",
+      "Not about student life in Erlangen/Nuremberg",
       "Missing details",
       "Personal data included",
       "Duplicate",
