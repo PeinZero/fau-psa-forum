@@ -18,7 +18,11 @@
 
 Not needed while only the maintainers are testing; do these before sharing the link widely.
 
-- Impressum and privacy policy pages (German law for public sites; operator = PSA or a named maintainer), linked from the footer.
+- Impressum and privacy policy: `/impressum` and `/privacy`, linked from the footer. Operator
+  (decided 2026-10-24): a named maintainer as private person, contact psa.community.forum@gmail.com.
+  Fill in their name and postal address in `src/lib/legal.ts`; until then both pages show a
+  "details are being finalised" notice. Update `/privacy` when a processor changes (custom SMTP,
+  R2, domain registrar).
 - Custom SMTP for auth emails.
 - Users can delete their account and their content.
 - Custom domain.

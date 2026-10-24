@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, ArrowLeft, Loader2, MailCheck, RotateCw } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -252,6 +253,14 @@ export default function LoginForm({ next, initialError }: Props) {
                 {pending ? "Sending…" : "Email me a sign-in link"}
               </Button>
             </form>
+
+            <p className="text-center text-meta text-muted">
+              By signing in you agree that we process your data as described in our{" "}
+              <Link href="/privacy" className="font-medium text-foreground underline underline-offset-2 hover:text-accent">
+                privacy policy
+              </Link>
+              .
+            </p>
           </div>
         </>
       )}

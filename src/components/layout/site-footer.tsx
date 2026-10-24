@@ -28,6 +28,8 @@ export function SiteFooter() {
             { href: "/announcements", label: "Announcements" },
             { href: "/about", label: "About" },
             { href: "/contributors", label: "Contributors" },
+            { href: "/impressum", label: "Impressum" },
+            { href: "/privacy", label: "Privacy" },
           ].map(({ href, label }) => (
             <Link key={href} href={href} className={linkClass}>
               {label}

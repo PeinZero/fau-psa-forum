@@ -1,5 +1,6 @@
 import { BookOpen, MessageCircleQuestion, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { SignInPrompt } from "@/components/sign-in-prompt";
@@ -68,6 +69,13 @@ export default function WelcomePage(props: Props) {
             </li>
           ))}
         </ul>
+        <p className="text-meta text-muted">
+          How we handle your data:{" "}
+          <Link href="/privacy" className="font-medium text-foreground underline underline-offset-2 hover:text-accent">
+            privacy policy
+          </Link>
+          .
+        </p>
       </section>
     </div>
   );
