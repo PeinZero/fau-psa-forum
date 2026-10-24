@@ -6,26 +6,11 @@ import { HeaderSearch } from "@/components/layout/header-search";
 import { MobileNav, MobileNavDrawer } from "@/components/layout/mobile-nav";
 import { NavLinkList, NavLinks } from "@/components/layout/nav-links";
 import { ShortcutsDialog } from "@/components/shortcuts/shortcuts-dialog";
+import { LogoMark } from "@/components/layout/logo-mark";
 import { NotificationBellSlot } from "@/components/notifications/bell-slot";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonClasses } from "@/components/ui/button";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
-
-function LogoMark() {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24" className="size-6 shrink-0">
-      <rect width="24" height="24" rx="6" className="fill-accent" />
-      <rect x="0.5" y="0.5" width="23" height="23" rx="5.5" className="fill-none stroke-white/20" />
-      <path
-        d="M9 17.5V6.5h4a3.25 3.25 0 0 1 0 6.5H9"
-        className="fill-none stroke-accent-foreground"
-        strokeWidth="2.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 async function ViewerHeaderSearch() {
   const viewer = await getViewer();
