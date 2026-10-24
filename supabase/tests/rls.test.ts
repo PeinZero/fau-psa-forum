@@ -852,9 +852,11 @@ describe("notifications", () => {
     assert.equal((await notes("type = 'mention'")).length, 3);
   });
 
-  test("a moderator's own submission notifies the other moderators", async () => {
-    const id = await submit(MOD, "Which documents does the Ausländerbehörde want?");
-    assert.deepEqual(await notes(), [note(ids.admin, ids.mod, "mod_new_thread", id)]);
+  test("a moderator's own submission goes live at once: no queue notice, mentions fire", async () => {
+    const id = await submit(MOD, "Which documents does the Ausländerbehörde want, @bilal?");
+    const [thread] = await sql<{ status: string; reviewed_by: string }>("select status, reviewed_by from public.threads where id = $1", [id]);
+    assert.deepEqual({ ...thread }, { status: "published", reviewed_by: ids.mod });
+    assert.deepEqual(await notes(), [note(ids.b, ids.mod, "mention", id)]);
   });
 
   test("rejection notifies the author", async () => {

@@ -7,40 +7,12 @@ import { cn } from "@/components/ui/cn";
 import { Label, Select } from "@/components/ui/field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 
-export type SearchSort = "relevance" | "newest" | "top";
-export type SearchCity = "all" | "erlangen" | "nuremberg";
-
-export type SearchFilterState = {
-  q: string;
-  category: string;
-  city: SearchCity;
-  bestAnswer: boolean;
-  verified: boolean;
-  sort: SearchSort;
-};
-
-export function searchHref(state: SearchFilterState): string {
-  const params = new URLSearchParams();
-  if (state.q) params.set("q", state.q);
-  if (state.category) params.set("category", state.category);
-  if (state.city !== "all") params.set("city", state.city);
-  if (state.bestAnswer) params.set("best", "1");
-  if (state.verified) params.set("verified", "1");
-  if (state.sort !== "relevance") params.set("sort", state.sort);
-  const qs = params.toString();
-  return qs ? `/search?${qs}` : "/search";
-}
+import { searchHref, type SearchFilterState } from "./search-state";
 
 const cityOptions = [
   { value: "all", label: "Any city" },
   { value: "erlangen", label: "Erlangen" },
   { value: "nuremberg", label: "Nuremberg" },
-] as const;
-
-const sortOptions = [
-  { value: "relevance", label: "Relevance" },
-  { value: "newest", label: "Newest" },
-  { value: "top", label: "Top" },
 ] as const;
 
 function Toggle({
@@ -133,14 +105,6 @@ export function SearchFilters({
             Clear filters
           </button>
         )}
-        <div className="sm:ml-auto">
-          <SegmentedControl
-            label="Sort by"
-            value={state.sort}
-            options={sortOptions}
-            onChange={(sort) => update({ sort })}
-          />
-        </div>
       </div>
     </div>
   );

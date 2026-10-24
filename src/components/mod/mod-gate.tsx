@@ -1,6 +1,7 @@
 import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { FEEDBACK_MOD_NAV_ITEM } from "@/components/feedback/limits";
 import { GUIDES_MOD_NAV_ITEM } from "@/components/guides/limits";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SignInPrompt } from "@/components/sign-in-prompt";
@@ -44,6 +45,7 @@ export async function ModGate({ children }: { children: ReactNode }) {
     { href: "/mod/categories", label: "Categories", icon: "categories" },
     { href: "/mod/replies", label: "Canned replies", icon: "replies" },
     { href: "/mod/users", label: "Users", icon: "users" },
+    { ...FEEDBACK_MOD_NAV_ITEM, icon: "feedback" },
     { href: "/mod/log", label: "Log", icon: "log" },
   ];
 

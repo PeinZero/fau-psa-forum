@@ -11,7 +11,7 @@ import { FieldError, Input, Label, Select } from "@/components/ui/field";
 import { cn } from "@/components/ui/cn";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useResetAfterRedirect, useSyncedState } from "@/lib/form-sync";
-import { cityLabels } from "@/lib/labels";
+import { cityOptionLabels, NO_CITY_LABEL } from "@/lib/labels";
 import type { FormState } from "./actions";
 
 export type ThreadFormValues = {
@@ -22,7 +22,7 @@ export type ThreadFormValues = {
 };
 
 type Props = {
-  categories: { id: number; name: string }[];
+  categories: { id: number; name: string; description?: string | null }[];
   initial: ThreadFormValues;
   submitLabel: string;
   /** Suggests existing threads while the title is typed; meant for new threads only. */
@@ -87,6 +87,7 @@ export function ThreadForm({ categories, initial, submitLabel, suggestSimilar = 
   }
 
   const fe = state.fieldErrors ?? {};
+  const categoryDescription = categories.find((c) => c.id.toString() === categoryId)?.description?.trim();
   const describe = (field: string, message?: string, hint?: string) =>
     [message ? `${id}-${field}-error` : null, hint].filter(Boolean).join(" ") || undefined;
 
@@ -115,6 +116,7 @@ export function ThreadForm({ categories, initial, submitLabel, suggestSimilar = 
           required
           minLength={8}
           maxLength={TITLE_MAX}
+          placeholder="e.g. Which documents do I need for the Anmeldung in Erlangen?"
           aria-invalid={fe.title ? true : undefined}
           aria-describedby={describe("title", fe.title, `${id}-title-hint`)}
         />
@@ -135,7 +137,7 @@ export function ThreadForm({ categories, initial, submitLabel, suggestSimilar = 
             onChange={(e) => setCategoryId(e.target.value)}
             required
             aria-invalid={fe.categoryId ? true : undefined}
-            aria-describedby={describe("category", fe.categoryId)}
+            aria-describedby={describe("category", fe.categoryId, categoryDescription ? `${id}-category-hint` : undefined)}
           >
             <option value="" disabled>
               Choose a category
@@ -146,6 +148,11 @@ export function ThreadForm({ categories, initial, submitLabel, suggestSimilar = 
               </option>
             ))}
           </Select>
+          {categoryDescription ? (
+            <p id={`${id}-category-hint`} className="text-meta text-muted">
+              {categoryDescription}
+            </p>
+          ) : null}
           <FieldError id={`${id}-category-error`} message={fe.categoryId} />
         </div>
 
@@ -159,10 +166,10 @@ export function ThreadForm({ categories, initial, submitLabel, suggestSimilar = 
             aria-invalid={fe.city ? true : undefined}
             aria-describedby={describe("city", fe.city)}
           >
-            <option value="">Not city-specific</option>
-            {(Object.keys(cityLabels) as (keyof typeof cityLabels)[]).map((key) => (
+            <option value="">{NO_CITY_LABEL}</option>
+            {(Object.keys(cityOptionLabels) as (keyof typeof cityOptionLabels)[]).map((key) => (
               <option key={key} value={key}>
-                {cityLabels[key]}
+                {cityOptionLabels[key]}
               </option>
             ))}
           </Select>

@@ -29,6 +29,7 @@ import { Card, cardClasses } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
+import { PAGE_SIZE, Pagination, parsePage } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getViewer } from "@/lib/auth/viewer";
 import { formatUntil } from "@/lib/restrictions";
@@ -39,7 +40,7 @@ import { MarkAllReadButton, NotificationLink } from "./controls";
 
 export const metadata: Metadata = { title: "Notifications" };
 
-const LIMIT = 50;
+type SearchParams = Promise<{ page?: string | string[] }>;
 
 type NotificationType = Enums<"notification_type">;
 
@@ -53,15 +54,16 @@ const notificationSelect = `
 `;
 
 /** `fetchedAt` anchors "Today" and relative times to the moment the list was read. */
-async function fetchNotifications(userId: string) {
+async function fetchNotifications(userId: string, page: number) {
+  const from = (page - 1) * PAGE_SIZE;
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data, count, error } = await supabase
     .from("notifications")
-    .select(notificationSelect)
+    .select(notificationSelect, { count: "exact" })
     .eq("recipient_id", userId)
     .order("created_at", { ascending: false })
-    .limit(LIMIT);
-  return { notifications: data ?? [], error, fetchedAt: Date.now() };
+    .range(from, from + PAGE_SIZE - 1);
+  return { notifications: data ?? [], total: count ?? 0, error, fetchedAt: Date.now() };
 }
 
 type NotificationRow = Awaited<ReturnType<typeof fetchNotifications>>["notifications"][number];
@@ -266,8 +268,8 @@ function Group({
   );
 }
 
-async function NotificationsContent() {
-  const viewer = await getViewer();
+async function NotificationsContent({ searchParams }: { searchParams: SearchParams }) {
+  const [viewer, { page: pageParam }] = await Promise.all([getViewer(), searchParams]);
   if (!viewer) {
     return (
       <>
@@ -279,7 +281,8 @@ async function NotificationsContent() {
     );
   }
 
-  const { notifications, error, fetchedAt: now } = await fetchNotifications(viewer.userId);
+  const page = parsePage(pageParam);
+  const { notifications, total, error, fetchedAt: now } = await fetchNotifications(viewer.userId, page);
   const hasUnread = notifications.some((n) => n.read_at === null);
 
   const today = berlinDay.format(now);
@@ -298,7 +301,7 @@ async function NotificationsContent() {
         <p role="alert" className="text-sm text-danger">
           Could not load your notifications. Please try again later.
         </p>
-      ) : notifications.length === 0 ? (
+      ) : total === 0 ? (
         <EmptyState icon={<Bell />} title="You're all caught up">
           Replies to your comments, mentions and moderation decisions show up here.
         </EmptyState>
@@ -306,9 +309,7 @@ async function NotificationsContent() {
         <div className="space-y-6">
           <Group title="Today" items={todays} offset={0} now={now} />
           <Group title="Earlier" items={earlier} offset={todays.length} now={now} />
-          {notifications.length === LIMIT && (
-            <p className="text-center text-meta text-subtle">Showing the latest {LIMIT} notifications.</p>
-          )}
+          <Pagination path="/notifications" page={page} total={total} />
         </div>
       )}
     </>
@@ -335,11 +336,11 @@ function NotificationsSkeleton() {
   );
 }
 
-export default function NotificationsPage() {
+export default function NotificationsPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <div className="mx-auto w-full max-w-3xl">
       <Suspense fallback={<NotificationsSkeleton />}>
-        <NotificationsContent />
+        <NotificationsContent searchParams={searchParams} />
       </Suspense>
     </div>
   );

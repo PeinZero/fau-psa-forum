@@ -1,8 +1,8 @@
-import { Bell, ChevronRight, Download, LogOut, Plus } from "lucide-react";
+import { Bell, ChevronRight, Download, FileText, LogOut, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { Avatar } from "@/components/author";
-import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { stagger } from "@/components/ui/motion";
@@ -10,9 +10,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ViewerRestrictionBanner } from "@/components/restrictions/restriction-banner";
 import { getViewer } from "@/lib/auth/viewer";
-import { formatDate, statusLabels } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
-import type { Enums } from "@/lib/supabase/database.types";
 import {
   DeleteAccountForm,
   ModeratorApplicationForm,
@@ -20,13 +18,6 @@ import {
 } from "./forms";
 
 export const metadata = { title: "Your account" };
-
-const statusVariant: Record<Enums<"thread_status">, BadgeVariant> = {
-  pending: "warning",
-  published: "accent",
-  rejected: "danger",
-  archived: "neutral",
-};
 
 function Section({
   title,
@@ -118,54 +109,31 @@ async function ModeratorSection({
   );
 }
 
-async function MyThreads({ userId }: { userId: string }) {
-  const supabase = await createClient();
-  const { data: threads, error } = await supabase
-    .from("threads")
-    .select("id, slug, title, status, rejection_reason, created_at")
-    .eq("author_id", userId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return (
-      <p role="alert" className="text-sm text-danger">
-        Could not load your threads.
-      </p>
-    );
-  }
-  if (!threads.length)
-    return (
-      <p className="text-sm text-muted">You have not posted any threads yet.</p>
-    );
-
+function LinkCard({
+  href,
+  icon: Icon,
+  title,
+  description,
+}: {
+  href: string;
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}) {
   return (
-    <ul className="-mx-2 divide-y divide-border">
-      {threads.map((t) => (
-        <li key={t.id}>
-          <Link
-            href={`/t/${t.slug}`}
-            className="block rounded-md px-2 py-2.5 transition-colors duration-150 hover:bg-surface-hover"
-          >
-            <span className="flex items-start justify-between gap-3">
-              <span className="min-w-0 break-words text-sm font-medium text-foreground">
-                {t.title}
-              </span>
-              <Badge variant={statusVariant[t.status]} className="mt-0.5">
-                {statusLabels[t.status]}
-              </Badge>
-            </span>
-            <span className="mt-0.5 block text-meta text-muted">
-              {formatDate(t.created_at)}
-            </span>
-            {t.status === "rejected" && t.rejection_reason && (
-              <span className="mt-1 block text-meta text-danger">
-                Reason: {t.rejection_reason}
-              </span>
-            )}
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <Link
+      href={href}
+      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4 transition-colors duration-150 hover:bg-surface-hover sm:p-5"
+    >
+      <span className="flex min-w-0 items-center gap-3">
+        <Icon strokeWidth={1.75} className="size-4 shrink-0 text-muted" aria-hidden />
+        <span className="min-w-0">
+          <span className="block text-base font-semibold tracking-tight">{title}</span>
+          <span className="block text-meta text-muted">{description}</span>
+        </span>
+      </span>
+      <ChevronRight strokeWidth={1.75} className="size-4 shrink-0 text-muted" aria-hidden />
+    </Link>
   );
 }
 
@@ -202,7 +170,7 @@ async function AccountContent() {
             <span className="min-w-0 break-words">{viewer.displayName}</span>
           </span>
         }
-        description="Manage your profile, your threads and your account."
+        description="Manage your profile, notifications and data."
         actions={
           <form action="/auth/signout" method="post">
             <Button type="submit" variant="secondary" size="sm">
@@ -221,37 +189,19 @@ async function AccountContent() {
           />
         </Section>
 
-        <Section
+        <LinkCard
+          href="/me/threads"
+          icon={FileText}
           title="My threads"
-          index={1}
-          action={
-            <Link
-              href="/new"
-              className={buttonClasses({ variant: "secondary", size: "sm" })}
-            >
-              <Plus strokeWidth={1.75} />
-              New thread
-            </Link>
-          }
-        >
-          <Suspense fallback={<Skeleton className="h-16 w-full" />}>
-            <MyThreads userId={viewer.userId} />
-          </Suspense>
-        </Section>
+          description="Everything you posted, with its review status."
+        />
 
-        <Link
+        <LinkCard
           href="/account/notifications"
-          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4 transition-colors duration-150 hover:bg-surface-hover sm:p-5"
-        >
-          <span className="flex min-w-0 items-center gap-3">
-            <Bell strokeWidth={1.75} className="size-4 shrink-0 text-muted" aria-hidden />
-            <span className="min-w-0">
-              <span className="block text-base font-semibold tracking-tight">Notification settings</span>
-              <span className="block text-meta text-muted">Choose what you get notified about.</span>
-            </span>
-          </span>
-          <ChevronRight strokeWidth={1.75} className="size-4 shrink-0 text-muted" aria-hidden />
-        </Link>
+          icon={Bell}
+          title="Notification settings"
+          description="Choose what you get notified about."
+        />
 
         <Section title="Become a moderator" index={2}>
           <Suspense fallback={<Skeleton className="h-16 w-full" />}>

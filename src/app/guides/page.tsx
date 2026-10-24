@@ -13,7 +13,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getEffectiveViewer, isModerator } from "@/lib/auth/viewer";
 
-const description = "Step-by-step checklists for arriving in Erlangen and Nürnberg, curated by the PSA moderators.";
+const description = "Step-by-step checklists for arriving in Erlangen and Nuremberg, curated by the PSA moderators.";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {

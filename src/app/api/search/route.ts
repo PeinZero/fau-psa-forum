@@ -7,22 +7,22 @@ const LIMIT = 8;
 const TITLE_CANDIDATES = 24;
 
 const threadSelect =
-  "slug, title, city, category:categories!threads_category_id_fkey(slug, name), comments:comments!comments_thread_id_fkey(count)";
+  "slug, title, city, comment_count, category:categories!threads_category_id_fkey(slug, name)";
 
 type ThreadRow = {
   slug: string;
   title: string;
   city: SearchThread["city"];
   category: SearchThread["category"];
-  comments: { count: number }[];
+  comment_count: number;
 };
 
 // The cookie client keeps RLS as the single authority on visibility; the explicit status filter
 // makes moderators get the same public answer as everyone else.
 const headers = { "Cache-Control": "private, no-store" };
 
-function toThread({ slug, title, city, category, comments }: ThreadRow): SearchThread {
-  return { slug, title, city, category, commentCount: comments[0]?.count ?? 0 };
+function toThread({ slug, title, city, category, comment_count }: ThreadRow): SearchThread {
+  return { slug, title, city, category, commentCount: comment_count };
 }
 
 function escapeLike(value: string): string {

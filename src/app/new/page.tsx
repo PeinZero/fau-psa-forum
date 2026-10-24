@@ -1,4 +1,5 @@
-import { Info } from "lucide-react";
+import { Info, Search } from "lucide-react";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { getOwnRestriction } from "@/components/restrictions/data";
@@ -12,17 +13,17 @@ import { PageHeader } from "@/components/ui/page-header";
 import { createThreadAction } from "@/components/write/actions";
 import { ThreadForm } from "@/components/write/thread-form";
 
-export const metadata = { title: "Submit a thread" };
+export const metadata = { title: "Ask a question" };
 
 async function NewThread() {
   const viewer = await getViewer();
   if (!viewer) {
-    return <SignInPrompt next="/new" purpose="to submit a thread. Reading is open to everyone." />;
+    return <SignInPrompt next="/new" purpose="to ask a question. Reading is open to everyone." />;
   }
 
   const supabase = await createClient();
   const [{ data: categories }, restriction] = await Promise.all([
-    supabase.from("categories").select("id, name").order("sort_order"),
+    supabase.from("categories").select("id, name, description").order("sort_order"),
     getOwnRestriction(viewer.userId),
   ]);
 
@@ -43,13 +44,12 @@ async function NewThread() {
         <ThreadForm
           categories={categories ?? []}
           initial={{ title: "", body: "", categoryId: null, city: null }}
-          submitLabel="Submit for review"
+          submitLabel="Ask a question"
           suggestSimilar
           action={createThreadAction}
         />
       </Card>
     </>
-
   );
 }
 
@@ -58,9 +58,18 @@ export default function NewThreadPage() {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
       <PageHeader
         className="mb-2"
-        title="Submit a thread"
-        description="Ask a question or start a discussion for the PSA community."
+        title="Ask a question"
+        description="Start a thread for the PSA community. Answers stay here for everyone who comes after you."
       />
+      <p className="flex items-center gap-2 text-meta text-muted">
+        <Search aria-hidden strokeWidth={1.75} className="size-4 shrink-0" />
+        <span>
+          <Link href="/search" className="font-medium text-accent underline-offset-2 hover:underline">
+            Search first
+          </Link>{" "}
+          — your question may already be answered.
+        </span>
+      </p>
       <Suspense fallback={<p className="text-muted">Loading…</p>}>
         <NewThread />
       </Suspense>

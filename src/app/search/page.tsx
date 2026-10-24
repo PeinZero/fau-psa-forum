@@ -1,22 +1,30 @@
-import { MapPin, MessageSquare, PenLine, Search, SearchX } from "lucide-react";
+import { ArrowUp, CircleCheck, MapPin, MessageSquare, PenLine, Search, SearchX } from "lucide-react";
 import type { Metadata } from "next";
 import Form from "next/form";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { Highlight } from "@/components/command/highlight";
 import { SEARCH_QUERY_MAX } from "@/components/command/types";
-import { fetchThreadsByIds, ThreadListSkeleton } from "@/components/thread/thread-list";
+import { ThreadListSkeleton } from "@/components/thread/thread-list";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
-import { stagger } from "@/components/ui/motion";
-import { cityLabels, formatDate } from "@/lib/labels";
+import { cn } from "@/components/ui/cn";
 import { EmptyState } from "@/components/ui/empty-state";
 import { fieldClasses } from "@/components/ui/field";
+import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
-import { cn } from "@/components/ui/cn";
+import { PAGE_SIZE, Pagination, parsePage } from "@/components/ui/pagination";
+import { SegmentedLinks } from "@/components/ui/segmented-control";
+import type { Enums } from "@/lib/supabase/database.types";
+import { cityLabels, formatDate } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
+
+import { SearchFilters } from "./search-filters";
+import { parseSearchState, searchHref, searchParamsOf, sortTabs, type SearchFilterState } from "./search-state";
+import { bodySnippet } from "./snippet";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -26,30 +34,11 @@ export default function SearchPage({ searchParams }: { searchParams: SearchParam
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col">
       <PageHeader title="Search" description="Search thread titles, questions and answers." />
-      <Suspense
-        fallback={
-          <>
-            <ThreadListSkeleton />
-          </>
-        }
-      >
+      <Suspense fallback={<ThreadListSkeleton />}>
         <Results searchParams={searchParams} />
       </Suspense>
     </div>
   );
-}
-
-import { bodySnippet } from "./snippet";
-import {
-  SearchFilters,
-  searchHref,
-  type SearchCity,
-  type SearchFilterState,
-  type SearchSort,
-} from "./search-filters";
-
-function param(value: string | string[] | undefined): string {
-  return (Array.isArray(value) ? value[0] : value)?.trim() ?? "";
 }
 
 function SearchForm({ state }: { state: SearchFilterState }) {
@@ -95,24 +84,39 @@ const tips = (
   </ul>
 );
 
+// The database keeps the older name for date order.
+const dbSort = { relevance: "relevance", hot: "hot", top: "top", new: "newest" } as const;
+
+const resultSelect = `id, slug, title, body, city, created_at, score, comment_count, best_comment_id,
+  category:categories!threads_category_id_fkey(slug, name),
+  author:profiles!threads_author_id_fkey(display_name)`;
+
+type ResultThread = {
+  id: number;
+  slug: string;
+  title: string;
+  body: string;
+  city: Enums<"city"> | null;
+  created_at: string;
+  score: number;
+  comment_count: number;
+  best_comment_id: number | null;
+  category: { slug: string; name: string } | null;
+  author: { display_name: string } | null;
+};
+
 async function Results({ searchParams }: { searchParams: SearchParams }) {
   const raw = await searchParams;
   const supabase = await createClient();
   const { data: categoryRows } = await supabase.from("categories").select("id, slug, name").order("sort_order");
   const categories = categoryRows ?? [];
 
-  const categorySlug = param(raw.category);
-  const category = categories.find((row) => row.slug === categorySlug);
-  const cityParam = param(raw.city);
-  const sortParam = param(raw.sort);
-  const state: SearchFilterState = {
-    q: param(raw.q).slice(0, SEARCH_QUERY_MAX).trim(),
-    category: category?.slug ?? "",
-    city: cityParam === "erlangen" || cityParam === "nuremberg" ? (cityParam as SearchCity) : "all",
-    bestAnswer: param(raw.best) === "1",
-    verified: param(raw.verified) === "1",
-    sort: sortParam === "newest" || sortParam === "top" ? (sortParam as SearchSort) : "relevance",
-  };
+  const state = parseSearchState(
+    raw,
+    categories.map((row) => row.slug),
+  );
+  const category = categories.find((row) => row.slug === state.category);
+  const page = parsePage(raw.page);
   const filtered = Boolean(state.category) || state.city !== "all" || state.bestAnswer || state.verified;
 
   const form = (
@@ -133,26 +137,50 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
     );
   }
 
-  const { data } = await supabase.rpc("search_threads_v2", {
-    q: state.q,
-    p_category_id: category?.id,
-    p_city: state.city === "all" ? undefined : state.city,
-    p_has_best_answer: state.bestAnswer || undefined,
-    p_verified: state.verified || undefined,
-    p_sort: state.sort,
-  });
-  const rows = data ?? [];
-  const bodies = new Map(rows.map((row) => [row.id, row.body]));
-  const threads = await fetchThreadsByIds(rows.map((row) => row.id));
+  // PostgREST pages over the function's ordered rows and counts the full match set in the same
+  // statement, so only one page of bodies leaves the database.
+  const from = (page - 1) * PAGE_SIZE;
+  const { data, count, error } = await supabase
+    .rpc(
+      "search_threads_v2",
+      {
+        q: state.q,
+        p_category_id: category?.id,
+        p_city: state.city === "all" ? undefined : state.city,
+        p_has_best_answer: state.bestAnswer || undefined,
+        p_verified: state.verified || undefined,
+        p_sort: dbSort[state.sort],
+      },
+      { count: "exact" },
+    )
+    .select(resultSelect)
+    .range(from, from + PAGE_SIZE - 1)
+    .overrideTypes<ResultThread[], { merge: false }>();
+  // A page past the end (an old link after threads were archived) starts over at page 1.
+  if (error?.code === "PGRST103") redirect(searchHref(state));
+  if (error) throw error;
+  const threads = data ?? [];
+  const total = count ?? threads.length;
 
   return (
     <>
       {form}
       <section aria-labelledby="results-heading" className="flex flex-col gap-3">
-        <h2 id="results-heading" aria-live="polite" className="break-words text-meta text-muted">
-          {threads.length} {threads.length === 1 ? "result" : "results"} for{" "}
-          <span className="font-medium text-foreground">“{state.q}”</span>
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <h2 id="results-heading" aria-live="polite" className="min-w-0 break-words text-meta text-muted">
+            {total} {total === 1 ? "result" : "results"} for{" "}
+            <span className="font-medium text-foreground">“{state.q}”</span>
+          </h2>
+          <SegmentedLinks
+            label="Sort results"
+            className="max-w-full overflow-x-auto"
+            items={sortTabs.map((tab) => ({
+              href: searchHref({ ...state, sort: tab.value }),
+              label: tab.label,
+              current: tab.value === state.sort,
+            }))}
+          />
+        </div>
         {threads.length === 0 ? (
           <EmptyState
             icon={<SearchX />}
@@ -178,33 +206,25 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
               <li>Try fewer words, e.g. “Anmeldung” or “WG”.</li>
               {filtered && <li>Remove filters to widen the search.</li>}
               <li>Try the German term as well as the English one.</li>
+              <li>Check the spelling; close matches in titles count too.</li>
             </ul>
           </EmptyState>
         ) : (
           <ul className={cardClasses({ padding: "none", className: "overflow-hidden divide-y divide-border" })}>
             {threads.map((thread, i) => (
-              <ResultRow key={thread.id} thread={thread} body={bodies.get(thread.id) ?? ""} query={state.q} index={i} />
+              <ResultRow key={thread.id} thread={thread} query={state.q} index={i} />
             ))}
           </ul>
         )}
+        <Pagination path="/search" params={searchParamsOf(state)} page={page} total={total} className="mt-3" />
       </section>
     </>
   );
 }
 
-function ResultRow({
-  thread,
-  body,
-  query,
-  index,
-}: {
-  thread: Awaited<ReturnType<typeof fetchThreadsByIds>>[number];
-  body: string;
-  query: string;
-  index: number;
-}) {
-  const commentCount = thread.comments[0]?.count ?? 0;
-  const snippet = bodySnippet(body, query);
+function ResultRow({ thread, query, index }: { thread: ResultThread; query: string; index: number }) {
+  const snippet = bodySnippet(thread.body, query);
+  const comments = thread.comment_count;
   return (
     <li className="animate-fade-up" style={stagger(index)}>
       <Link
@@ -228,6 +248,12 @@ function ResultRow({
                 {cityLabels[thread.city]}
               </Badge>
             )}
+            {thread.best_comment_id !== null && (
+              <span className="inline-flex items-center gap-1 text-accent">
+                <CircleCheck aria-hidden strokeWidth={1.75} className="size-3.5" />
+                Answered
+              </span>
+            )}
             <span className="truncate">{thread.author?.display_name ?? "Deleted user"}</span>
             <span aria-hidden className="text-subtle">·</span>
             <time dateTime={thread.created_at} className="whitespace-nowrap">
@@ -235,13 +261,20 @@ function ResultRow({
             </time>
           </div>
         </div>
-        <span
-          className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-meta tabular-nums text-subtle transition-colors group-hover:text-muted"
-          aria-label={`${commentCount} ${commentCount === 1 ? "comment" : "comments"}`}
-        >
-          <MessageSquare aria-hidden strokeWidth={1.75} className="size-3.5" />
-          {commentCount}
-        </span>
+        <div className="mt-0.5 flex shrink-0 flex-col items-end gap-1 text-meta tabular-nums text-subtle transition-colors group-hover:text-muted">
+          {thread.score !== 0 && (
+            <span className="inline-flex items-center gap-1">
+              <ArrowUp aria-hidden strokeWidth={1.75} className="size-3.5" />
+              {thread.score}
+              <span className="sr-only">{Math.abs(thread.score) === 1 ? " point" : " points"}</span>
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1">
+            <MessageSquare aria-hidden strokeWidth={1.75} className="size-3.5" />
+            {comments}
+            <span className="sr-only">{comments === 1 ? " comment" : " comments"}</span>
+          </span>
+        </div>
       </Link>
     </li>
   );

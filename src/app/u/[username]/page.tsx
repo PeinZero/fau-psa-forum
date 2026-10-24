@@ -7,11 +7,13 @@ import { Avatar } from "@/components/author";
 import { fetchThreadsByIds, ThreadList, ThreadListSkeleton } from "@/components/thread/thread-list";
 import { isTopHelper, TopHelperBadge } from "@/components/reputation/reputation";
 import { Badge } from "@/components/ui/badge";
+import { PAGE_SIZE, Pagination, parsePage } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { affiliationLabels, formatDate } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
 
 type Params = Promise<{ username: string }>;
+type SearchParams = Promise<{ page?: string | string[] }>;
 
 const HANDLE = /^[a-z0-9_]{3,20}$/;
 
@@ -41,17 +43,17 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
-export default function ProfilePage({ params }: { params: Params }) {
+export default function ProfilePage({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   return (
     <div className="mx-auto w-full max-w-3xl">
       <Suspense fallback={<ProfileSkeleton />}>
-        <ProfileContent params={params} />
+        <ProfileContent params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function ProfileContent({ params }: { params: Params }) {
+async function ProfileContent({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const { username } = await params;
   const profile = await getProfile(username);
   if (!profile) notFound();
@@ -93,7 +95,12 @@ async function ProfileContent({ params }: { params: Params }) {
           Threads
         </h2>
         <Suspense fallback={<ThreadListSkeleton rows={3} />}>
-          <ProfileThreads userId={profile.id} name={profile.display_name} />
+          <ProfileThreads
+            userId={profile.id}
+            username={profile.username}
+            name={profile.display_name}
+            searchParams={searchParams}
+          />
         </Suspense>
       </section>
     </div>
@@ -114,15 +121,27 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
-async function ProfileThreads({ userId, name }: { userId: string; name: string }) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+async function ProfileThreads({
+  userId,
+  username,
+  name,
+  searchParams,
+}: {
+  userId: string;
+  username: string;
+  name: string;
+  searchParams: SearchParams;
+}) {
+  const [supabase, { page: pageParam }] = await Promise.all([createClient(), searchParams]);
+  const page = parsePage(pageParam);
+  const from = (page - 1) * PAGE_SIZE;
+  const { data, count, error } = await supabase
     .from("threads")
-    .select("id")
+    .select("id", { count: "exact" })
     .eq("author_id", userId)
     .eq("status", "published")
     .order("last_activity_at", { ascending: false })
-    .limit(30);
+    .range(from, from + PAGE_SIZE - 1);
 
   if (error) {
     return (
@@ -134,12 +153,15 @@ async function ProfileThreads({ userId, name }: { userId: string; name: string }
 
   const threads = await fetchThreadsByIds(data.map((row) => row.id));
   return (
-    <ThreadList
-      threads={threads}
-      emptyText={`${name} has not published any threads yet.`}
-      emptyDescription="Threads appear here once a moderator has approved them."
-      emptyAction={null}
-    />
+    <>
+      <ThreadList
+        threads={threads}
+        emptyText={`${name} has not published any threads yet.`}
+        emptyDescription="Threads appear here once a moderator has approved them."
+        emptyAction={null}
+      />
+      <Pagination path={`/u/${username}`} page={page} total={count ?? 0} />
+    </>
   );
 }
 

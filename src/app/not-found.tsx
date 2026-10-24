@@ -25,7 +25,7 @@ export default function NotFound() {
           </div>
         }
       >
-        The link may be broken, or the thread was moved or is waiting for a moderator.
+        The link may be broken, or the thread was removed or is still waiting for review. Try searching for it instead.
       </EmptyState>
     </div>
   );

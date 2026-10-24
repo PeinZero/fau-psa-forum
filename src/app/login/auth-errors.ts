@@ -1,7 +1,8 @@
 const GENERIC = "We couldn't sign you in. Please try again, or continue with Google.";
 const NETWORK = "We couldn't reach the sign-in service. Check your connection and try again.";
 
-const RATE_LIMIT = "Too many sign-in emails were sent. Please wait a bit or continue with Google.";
+const RATE_LIMIT =
+  "Too many sign-in emails were sent in the last hour. Please try again later or continue with Google.";
 const SIGN_IN_UNAVAILABLE = "This sign-in method isn't available right now. Please try another one.";
 
 const BY_CODE: Record<string, string> = {

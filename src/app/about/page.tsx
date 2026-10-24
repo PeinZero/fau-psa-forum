@@ -30,7 +30,7 @@ const sections: { icon: LucideIcon; title: string; body: React.ReactNode }[] = [
         <p>
           The same questions keep coming up in the WhatsApp groups: residence
           permit and visa, courses, housing, jobs, and what to do first in
-          Erlangen and Nürnberg. This forum collects the answers once, curated
+          Erlangen and Nuremberg. This forum collects the answers once, curated
           by moderators, so they can be found instead of asked again.
         </p>
       </>

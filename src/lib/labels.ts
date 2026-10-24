@@ -6,6 +6,15 @@ export const cityLabels: Record<Enums<"city">, string> = {
   both: "Erlangen & Nuremberg",
 };
 
+/** Wording for the city picker, where "both" reads better as a choice than as a tag. */
+export const cityOptionLabels: Record<Enums<"city">, string> = {
+  erlangen: "Erlangen",
+  nuremberg: "Nuremberg",
+  both: "Both cities",
+};
+
+export const NO_CITY_LABEL = "Not city-specific";
+
 export const affiliationLabels: Record<Enums<"affiliation">, string> = {
   student: "Student",
   graduate: "Graduate",

@@ -1,16 +1,19 @@
-import { Megaphone, Plus } from "lucide-react";
+import { Megaphone, Plus, Search } from "lucide-react";
 import type { Metadata } from "next";
+import Form from "next/form";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { AnnouncementCard } from "@/components/announcements/announcement-card";
 import { MarkAnnouncementsSeen } from "@/components/announcements/unseen-mark-seen";
-import { fetchAnnouncements } from "@/components/announcements/data";
-import { buttonClasses } from "@/components/ui/button";
+import { SEARCH_MAX, searchAnnouncements } from "@/components/announcements/data";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { cardClasses } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Input, Label } from "@/components/ui/field";
 import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
+import { Pagination, parsePage } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
 
@@ -24,8 +27,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-async function AnnouncementList() {
-  const { announcements, error } = await fetchAnnouncements();
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+async function AnnouncementList({ searchParams }: Props) {
+  const params = await searchParams;
+  const q = typeof params.q === "string" ? params.q.trim().slice(0, SEARCH_MAX) : "";
+  const page = parsePage(params.page);
+  const { announcements, total, error } = await searchAnnouncements({ q, page });
 
   if (error) {
     return (
@@ -36,6 +44,13 @@ async function AnnouncementList() {
   }
 
   if (announcements.length === 0) {
+    if (q) {
+      return (
+        <EmptyState icon={<Search />} title="No announcements match">
+          Try a different word.
+        </EmptyState>
+      );
+    }
     return (
       <EmptyState icon={<Megaphone />} title="No announcements yet">
         News from the moderators shows up here.
@@ -44,13 +59,16 @@ async function AnnouncementList() {
   }
 
   return (
-    <ul className="grid gap-4">
-      {announcements.map((announcement, index) => (
-        <li key={announcement.id} className="animate-fade-up" style={stagger(index)}>
-          <AnnouncementCard announcement={announcement} />
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="grid gap-4">
+        {announcements.map((announcement, index) => (
+          <li key={announcement.id} className="animate-fade-up" style={stagger(index)}>
+            <AnnouncementCard announcement={announcement} variant="excerpt" />
+          </li>
+        ))}
+      </ul>
+      <Pagination path="/announcements" params={{ q }} page={page} total={total} />
+    </>
   );
 }
 
@@ -81,7 +99,31 @@ async function NewAnnouncementLink() {
   );
 }
 
-export default function AnnouncementsPage() {
+async function SearchForm({ searchParams }: Props) {
+  const params = await searchParams;
+  const q = typeof params.q === "string" ? params.q.trim().slice(0, SEARCH_MAX) : "";
+  return (
+    <Form action="/announcements" role="search" className="mb-6 grid gap-1.5">
+      <Label htmlFor="announcement-search">Search announcements</Label>
+      <div className="flex gap-2">
+        <Input
+          id="announcement-search"
+          name="q"
+          type="search"
+          defaultValue={q}
+          maxLength={SEARCH_MAX}
+          className="min-w-0 flex-1"
+        />
+        <Button type="submit" variant="primary">
+          <Search aria-hidden strokeWidth={1.75} />
+          Search
+        </Button>
+      </div>
+    </Form>
+  );
+}
+
+export default function AnnouncementsPage({ searchParams }: Props) {
   return (
     <div className="mx-auto w-full max-w-3xl">
       <PageHeader
@@ -94,8 +136,11 @@ export default function AnnouncementsPage() {
         }
       />
       <MarkAnnouncementsSeen />
+      <Suspense fallback={null}>
+        <SearchForm searchParams={searchParams} />
+      </Suspense>
       <Suspense fallback={<ListSkeleton />}>
-        <AnnouncementList />
+        <AnnouncementList searchParams={searchParams} />
       </Suspense>
     </div>
   );

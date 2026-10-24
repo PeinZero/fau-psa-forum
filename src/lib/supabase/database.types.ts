@@ -249,6 +249,38 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          created_at: string
+          id: number
+          message: string
+          page: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          message: string
+          page?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          message?: string
+          page?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guide_progress: {
         Row: {
           completed_at: string
@@ -700,6 +732,7 @@ export type Database = {
           id: number
           points: number
           reason: string
+          thread_id: number | null
           user_id: string
         }
         Insert: {
@@ -708,6 +741,7 @@ export type Database = {
           id?: never
           points: number
           reason: string
+          thread_id?: number | null
           user_id: string
         }
         Update: {
@@ -716,6 +750,7 @@ export type Database = {
           id?: never
           points?: number
           reason?: string
+          thread_id?: number | null
           user_id?: string
         }
         Relationships: [
@@ -724,6 +759,13 @@ export type Database = {
             columns: ["comment_id"]
             isOneToOne: false
             referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reputation_events_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
             referencedColumns: ["id"]
           },
           {
@@ -881,6 +923,42 @@ export type Database = {
           },
         ]
       }
+      thread_votes: {
+        Row: {
+          created_at: string
+          thread_id: number
+          user_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          thread_id: number
+          user_id?: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          thread_id?: number
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_votes_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       threads: {
         Row: {
           author_id: string | null
@@ -888,6 +966,7 @@ export type Database = {
           body: string
           category_id: number
           city: Database["public"]["Enums"]["city"] | null
+          comment_count: number
           created_at: string
           edited_at: string | null
           id: number
@@ -898,6 +977,7 @@ export type Database = {
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          score: number
           search: unknown
           slug: string
           status: Database["public"]["Enums"]["thread_status"]
@@ -910,6 +990,7 @@ export type Database = {
           body: string
           category_id: number
           city?: Database["public"]["Enums"]["city"] | null
+          comment_count?: number
           created_at?: string
           edited_at?: string | null
           id?: never
@@ -920,6 +1001,7 @@ export type Database = {
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          score?: number
           search?: never
           slug?: string
           status?: Database["public"]["Enums"]["thread_status"]
@@ -932,6 +1014,7 @@ export type Database = {
           body?: string
           category_id?: number
           city?: Database["public"]["Enums"]["city"] | null
+          comment_count?: number
           created_at?: string
           edited_at?: string | null
           id?: never
@@ -942,6 +1025,7 @@ export type Database = {
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          score?: number
           search?: never
           slug?: string
           status?: Database["public"]["Enums"]["thread_status"]
@@ -1046,6 +1130,56 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      browse_threads: {
+        Args: {
+          p_category_id?: number
+          p_city?: Database["public"]["Enums"]["city"]
+          p_limit?: number
+          p_offset?: number
+          p_period?: string
+          p_q?: string
+          p_sort?: string
+        }
+        Returns: {
+          author_id: string | null
+          best_comment_id: number | null
+          body: string
+          category_id: number
+          city: Database["public"]["Enums"]["city"] | null
+          comment_count: number
+          created_at: string
+          edited_at: string | null
+          id: number
+          is_outdated: boolean
+          is_pinned: boolean
+          last_activity_at: string
+          last_verified_at: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          score: number
+          search: unknown
+          slug: string
+          status: Database["public"]["Enums"]["thread_status"]
+          title: string
+          verified_by: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "threads"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      browse_threads_count: {
+        Args: {
+          p_category_id?: number
+          p_city?: Database["public"]["Enums"]["city"]
+          p_period?: string
+          p_q?: string
+        }
+        Returns: number
+      }
       delete_own_account: { Args: never; Returns: undefined }
       is_moderator: { Args: never; Returns: boolean }
       is_restricted: {
@@ -1074,6 +1208,7 @@ export type Database = {
           body: string
           category_id: number
           city: Database["public"]["Enums"]["city"] | null
+          comment_count: number
           created_at: string
           edited_at: string | null
           id: number
@@ -1084,6 +1219,7 @@ export type Database = {
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          score: number
           search: unknown
           slug: string
           status: Database["public"]["Enums"]["thread_status"]
@@ -1112,6 +1248,7 @@ export type Database = {
           body: string
           category_id: number
           city: Database["public"]["Enums"]["city"] | null
+          comment_count: number
           created_at: string
           edited_at: string | null
           id: number
@@ -1122,6 +1259,7 @@ export type Database = {
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          score: number
           search: unknown
           slug: string
           status: Database["public"]["Enums"]["thread_status"]
