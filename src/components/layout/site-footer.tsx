@@ -16,13 +16,14 @@ function GitHubMark() {
 export function SiteFooter() {
   return (
     <footer className="border-t border-border">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-1 px-4 py-4 text-meta text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-1 px-4 py-4 text-meta text-muted sm:px-6 lg:flex-row lg:items-center lg:justify-between">
         <p>By and for Pakistani students at FAU Erlangen-Nürnberg.</p>
         <nav
           aria-label="Footer"
-          className="flex flex-wrap items-center gap-x-1 self-start sm:self-auto"
+          className="-mx-2 flex flex-wrap items-center gap-x-1 lg:mx-0"
         >
           {[
+            { href: "/browse", label: "Browse" },
             { href: "/guides", label: "Guides" },
             { href: "/announcements", label: "Announcements" },
             { href: "/about", label: "About" },
@@ -32,7 +33,6 @@ export function SiteFooter() {
               {label}
             </Link>
           ))}
-          <ShortcutsLink className={cn(linkClass, "max-md:hidden")} />
           <a
             href="https://github.com/PeinZero/fau-psa-forum"
             className={cn(linkClass, "gap-2")}
@@ -40,6 +40,8 @@ export function SiteFooter() {
             <GitHubMark />
             GitHub
           </a>
+          {/* Shortcuts need a keyboard, so phones don't get the link. */}
+          <ShortcutsLink className={cn(linkClass, "max-md:hidden")} />
         </nav>
       </div>
     </footer>

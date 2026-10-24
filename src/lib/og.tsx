@@ -7,7 +7,7 @@ import { cityLabels } from "@/lib/labels";
 export const ogSize = { width: 1200, height: 630 };
 export const ogContentType = "image/png";
 
-export const SITE_TAGLINE = "Answers for Pakistani students in Erlangen & Nürnberg";
+export const SITE_TAGLINE = "Answers for Pakistani students in Erlangen & Nuremberg";
 
 type OgContent = { title: string; footer?: string };
 

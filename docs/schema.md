@@ -87,7 +87,7 @@ Seeded: RP & Visa, Courses, Accommodation, Jobs, First Steps, Other.
 | category_id | bigint → categories | restrict delete |
 | city | city null | null = not city-specific |
 | author_id | uuid null → profiles | set null on account deletion ("deleted user"); knowledge stays |
-| status | thread_status | default `pending` |
+| status | thread_status | default `pending`; a moderator's or superadmin's own thread is inserted `published` with `reviewed_by`/`reviewed_at` = them |
 | is_outdated | bool | banner "information may be outdated"; thread stays open |
 | is_pinned | bool | pinned on top of its category |
 | best_comment_id | bigint null → comments | set by moderators; shown first |
@@ -95,10 +95,16 @@ Seeded: RP & Visa, Courses, Accommodation, Jobs, First Steps, Other.
 | reviewed_by / reviewed_at | uuid null / timestamptz null | last moderation decision |
 | edited_at | timestamptz null | set when title/body change after publishing |
 | last_activity_at | timestamptz | bumped by new comments and on approval (pending/rejected → published); list sort order |
+| comment_count | int | default 0; visible comments incl. replies, kept by triggers on insert/hide/unhide/delete; not client-writable |
+| score | int | default 0; sum of `thread_votes.value`, kept by triggers; not client-writable |
 | last_verified_at | timestamptz null | set by `mark_thread_verified()`: "Verified Oct 2026" badge; cleared with `verified_by` when a non-moderator changes title or body |
 | verified_by | uuid null → profiles | moderator who verified last; set null on account deletion |
 | created_at | timestamptz | |
 | search | tsvector generated | title (weight A) + body (weight B), English config |
+
+Browse indexes: `(status, last_activity_at desc, id desc)`, `(status, created_at desc, id desc)`,
+`(status, (score * 2 + comment_count) desc, id desc)` and `(category_id, status, last_activity_at | created_at desc, id desc)`.
+A client changing `score` or `comment_count` gets `the score and comment count of a thread change only through votes and comments` (42501).
 
 Trigram index `threads_title_trgm_idx` (`pg_trgm`, schema `extensions`) on `title` for typo-tolerant search.
 `mark_thread_verified(thread_id)` (moderators/superadmin): sets `last_verified_at = now()`,
@@ -151,7 +157,7 @@ A hidden parent keeps its replies, which stay visible under the normal rules. Be
 be any comment, reply or not.
 
 ### comment_votes
-Up/down votes on comments ("▲ score ▼"). Comments only; threads have no votes. Scores are
+Up/down votes on comments ("▲ score ▼"); threads have their own `thread_votes`. Scores are
 public through `comments.score`; who voted is readable only by the voter. Votes notify nobody.
 
 | column | type | notes |
@@ -172,6 +178,15 @@ policies enforce the rules; a guard trigger reports them first with:
 
 `comments.score` changes only through the vote triggers (`the score of a comment changes only
 through votes`, 42501, even if a column grant were widened).
+
+### thread_votes
+Up/down votes on threads, same rules and shape as `comment_votes`: `thread_id` (→ threads cascade),
+`user_id` (default `auth.uid()`, → profiles cascade), `value` (`-1`/`1`), `created_at`, PK
+`(thread_id, user_id)`, index `(user_id)`. Owner-only read; upsert on `(thread_id, user_id)` to
+vote or change, delete to withdraw. Only published threads take votes; archived threads are frozen
+(no cast, change or withdrawal). Votes notify nobody; muted/banned members cannot cast new ones.
+Errors: `you cannot vote on your own thread`, `voting is only possible on published threads`,
+`a vote cannot be moved to another thread` (all 42501).
 
 ### update_requests
 "This needs an update" flags from members; moderators work through them in `/mod`.
@@ -241,10 +256,11 @@ its rows would reveal who wrote hidden comments and who received each downvote.
 | points | int | |
 | reason | text | `upvote`, `downvote`, `best_answer` |
 | comment_id | bigint null → comments | cascade: deleting a comment takes its points with it |
+| thread_id | bigint null → threads | cascade; set for thread votes |
 | created_at | timestamptz | |
 
-Received upvote +1, downvote −1, best answer +15, always to the comment's author; never from a
-vote on one's own comment. Changing or withdrawing a vote and unsetting or switching a best
+Received upvote +1, downvote −1 (on a comment or a thread), best answer +15, always to the
+comment's or thread's author; never from a vote on one's own content. Changing or withdrawing a vote and unsetting or switching a best
 answer append the opposite points with the same reason, so sums over any period stay right.
 `profiles.reputation` / `best_answer_count` follow every ledger insert and delete (cascades
 included); a guard rejects client writes (`reputation changes only through votes and best
@@ -343,7 +359,8 @@ cannot read, so pending threads and hidden comments notify nobody but moderators
 | visible comment on a published thread | parent comment's author → `reply`, mentioned users → `mention`, thread author → `thread_comment`, followers → `followed_thread_activity`; one per recipient, reply beats mention beats thread_comment beats followed_thread_activity (muted types are skipped, so the next one applies) |
 | comment edited | newly mentioned users not yet notified about that comment → `mention` (max 10 mentions per comment in total) |
 | comment hidden | its `reply` / `mention` / `thread_comment` / `followed_thread_activity` notifications are deleted |
-| new pending thread | every moderator and superadmin → `mod_new_thread` |
+| new pending thread (members only; a moderator's own thread is published at once) | every moderator and superadmin → `mod_new_thread` |
+| thread inserted as published (moderator's own) | users mentioned in the body → `mention`; no `thread_approved` |
 | thread pending/rejected → published | author → `thread_approved`; users mentioned in the body → `mention` (as from the author) |
 | published thread body edited | users mentioned for the first time on this thread → `mention` (max 10 mentions per thread in total) |
 | thread → rejected | author → `thread_rejected` |
@@ -377,7 +394,7 @@ which rows each one receives.
 | read published/archived threads, visible comments, categories, public profile fields | ✓ | ✓ | ✓ | ✓ |
 | read own pending/rejected threads | | ✓ | ✓ | ✓ |
 | read all pending/rejected threads, hidden comments, revisions | | | ✓ | ✓ |
-| submit thread (always `pending`) | | ✓ (max 3 pending) | ✓ | ✓ |
+| submit thread (`pending`; moderators' own are `published` at once) | | ✓ (max 3 pending) | ✓ | ✓ |
 | edit thread title/body/category/city | | own | any (revisions recorded) | any (revisions recorded) |
 | comment on published, non-archived threads | | ✓ | ✓ | ✓ |
 | edit own comment (not once hidden); nobody edits others' comments | | ✓ | ✓ | ✓ |
@@ -394,7 +411,8 @@ which rows each one receives.
 | reply to a visible comment (one level) | | ✓ | ✓ | ✓ |
 | change own username | | ✓ | ✓ | ✓ |
 | vote on visible comments of published threads, not their own; change/withdraw own vote | | ✓ | ✓ | ✓ |
-| read comment scores | ✓ | ✓ | ✓ | ✓ |
+| vote on published threads, not their own; change/withdraw own vote | | ✓ | ✓ | ✓ |
+| read comment and thread scores | ✓ | ✓ | ✓ | ✓ |
 | read who voted | | own votes | own votes | own votes |
 | read own notifications, set `read_at`, `mark_all_notifications_read()` | | ✓ | ✓ | ✓ |
 | read announcements | ✓ | ✓ | ✓ | ✓ |
@@ -449,7 +467,7 @@ restricted`, `only the superadmin can restrict moderators`, `only the superadmin
 ended` (P0001), `the duration must be positive` (22023).
 
 Enforcement (`restrictions_block_writes()`, before-insert/update triggers, client roles only):
-muted or banned users cannot insert threads, comments, reports, update requests, comment votes or
+muted or banned users cannot insert threads, comments, reports, update requests, comment or thread votes or
 moderator applications; banned users also cannot change their profile's display name, affiliation
 or username, their threads' title/body/category/city or their comments' body. Reading, bookmarks,
 follows, notifications and withdrawing votes stay allowed. The error (P0001) is worded for the
@@ -506,7 +524,7 @@ to members as written (see `friendlyError`).
 | Comments and replies | 5 per minute, 100 per day |
 | Threads | 10 per day (plus the existing 3 waiting for review) |
 | Reports | 10 per hour (plus the existing 10 open) |
-| New votes | 30 per minute (changing or withdrawing is free) |
+| New votes | 30 per minute on comments and 30 on threads (changing or withdrawing is free) |
 
 Deleting a comment removes it from the count, so delete-and-repost can exceed the per-minute cap
 slightly; the daily cap on threads and reports counts rows that still exist as well.
@@ -525,7 +543,23 @@ runs as the caller) adds filters and sorts, published + archived only:
 - `p_city`: that city or `both` (`both` = only `both`); `p_has_best_answer`: best_comment_id set
   or not; `p_verified`: verified within the last 6 months or not
 - `p_sort`: `relevance` (default; full text, title first, then fuzzy), `newest` (created_at),
-  `top` (visible comment count); ties by last activity
+  `top` (visible comment count), `hot` (formula below); ties by last activity
+
+## Browse
+
+`browse_threads(p_sort 'hot', p_period 'all', p_category_id, p_city, p_q, p_limit 20, p_offset 0)`
+returns published threads for the home and category pages; `browse_threads_count(p_period,
+p_category_id, p_city, p_q)` the total for pagination. Both run as the caller (anon too).
+- Pinned threads are not lifted to the top (category pages show them separately).
+- `p_period` `week` / `month` / `year` / `all` filters by `created_at` for every sort (the UI offers
+  it with top); `p_city` matches that city, `both` and not city-specific; `p_q` is a case-insensitive
+  title/body substring, ≤ 100 characters (`search is limited to 100 characters`, 22001).
+- `p_limit` is clamped to 1–100, `p_offset` to ≥ 0. Unknown sort or period: `unknown sort: x` /
+  `unknown period: x` (22023).
+- Sorts: `hot` = (score + 2·comment_count + 3·answered + 1) / (hours since last activity + 2)^1.5;
+  `new` = created_at desc; `top` = score·2 + comment_count desc; `active` = last_activity_at desc;
+  ties by id. Hot is computed per row and sorted in memory, which is fine at this forum's size;
+  the other sorts read the browse indexes in order.
 
 ## Applying migrations
 

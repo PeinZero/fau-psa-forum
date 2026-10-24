@@ -7,15 +7,21 @@ import { useEffect, useOptimistic, useRef, useState, useTransition } from "react
 
 import { cn } from "@/components/ui/cn";
 
-import { castVote, type VoteValue } from "./actions";
+import { castVote, type CastVoteResult, type VoteValue } from "./actions";
 
-type Props = {
-  commentId: number;
+type Target =
+  | { commentId: number; onVote?: never }
+  | { commentId?: never; onVote: (value: VoteValue) => Promise<CastVoteResult> };
+
+type Props = Target & {
   score: number;
   myVote: VoteValue;
   signedIn: boolean;
-  /** Own comments, archived threads and hidden comments show the score without voting. */
+  /** Own posts, archived threads and hidden comments show the score without voting. */
   disabled?: boolean;
+  disabledTitle?: string;
+  /** "responsive" stacks ▲ score ▼ from the sm breakpoint up and stays inline below it. */
+  orientation?: "inline" | "responsive";
 };
 
 type Tally = { score: number; myVote: VoteValue };
@@ -26,7 +32,15 @@ const arrow =
   "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring " +
   "disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4";
 
-export function VoteControl({ commentId, score, myVote, signedIn, disabled = false }: Props) {
+export function VoteControl(props: Props) {
+  const {
+    score,
+    myVote,
+    signedIn,
+    disabled = false,
+    disabledTitle = "Voting isn't available on this comment",
+    orientation = "inline",
+  } = props;
   const pathname = usePathname();
   const [confirmed, setConfirmed] = useState<Tally>({ score, myVote });
   const [seenProps, setSeenProps] = useState<Tally>({ score, myVote });
@@ -49,7 +63,9 @@ export function VoteControl({ commentId, score, myVote, signedIn, disabled = fal
     setError(null);
     startTransition(async () => {
       setShown(next);
-      const result = await castVote({ commentId, value });
+      const result = props.onVote
+        ? await props.onVote(value)
+        : await castVote({ commentId: props.commentId, value });
       if (result.ok) {
         startTransition(() => setConfirmed({ score: result.score, myVote: result.myVote }));
       } else {
@@ -58,6 +74,7 @@ export function VoteControl({ commentId, score, myVote, signedIn, disabled = fal
     });
   }
 
+  const stack = orientation === "responsive" ? "sm:flex-col sm:gap-0" : "";
   const scoreTone = shown.myVote === 1 ? "text-accent" : shown.myVote === -1 ? "text-danger" : "text-foreground";
   const scoreLabel = (
     <span
@@ -75,9 +92,10 @@ export function VoteControl({ commentId, score, myVote, signedIn, disabled = fal
   );
 
   if (!signedIn && !disabled) {
-    const href = `/login?next=${encodeURIComponent(`${pathname}#comment-${commentId}`)}`;
+    const fragment = props.onVote ? "" : `#comment-${props.commentId}`;
+    const href = `/login?next=${encodeURIComponent(`${pathname}${fragment}`)}`;
     return (
-      <div role="group" aria-label="Vote" className="inline-flex items-center gap-0.5">
+      <div role="group" aria-label="Vote" className={cn("inline-flex items-center gap-0.5", stack)}>
         <Link href={href} aria-label="Sign in to upvote" title="Sign in to vote" className={arrow}>
           <ChevronUp strokeWidth={1.75} aria-hidden />
         </Link>
@@ -95,8 +113,8 @@ export function VoteControl({ commentId, score, myVote, signedIn, disabled = fal
         role="group"
         aria-label="Vote"
         aria-busy={pending || undefined}
-        title={disabled ? "Voting isn't available on this comment" : undefined}
-        className="inline-flex items-center gap-0.5"
+        title={disabled ? disabledTitle : undefined}
+        className={cn("inline-flex items-center gap-0.5", stack)}
       >
         <button
           type="button"

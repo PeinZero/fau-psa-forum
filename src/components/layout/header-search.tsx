@@ -43,8 +43,8 @@ export function HeaderSearch({ canModerate }: { canModerate: boolean }) {
           "inline-flex shrink-0 items-center justify-center rounded-md text-muted",
           "transition-[background-color,border-color,color,box-shadow] duration-150 ease-out",
           "size-9 hover:bg-surface-hover hover:text-foreground pointer-coarse:size-11",
-          "md:h-8 md:w-60 md:justify-start md:gap-2 md:border md:border-border-strong md:bg-surface md:pl-2.5 md:pr-1.5 md:text-meta md:text-subtle lg:w-72",
-          "md:hover:border-muted md:hover:bg-surface md:hover:text-muted md:pointer-coarse:h-11 md:pointer-coarse:w-60 lg:pointer-coarse:w-72",
+          "md:h-8 md:w-60 md:justify-start md:gap-2 md:border md:border-border-strong md:bg-surface md:pl-2.5 md:pr-1.5 md:text-meta md:text-subtle lg:w-52",
+          "md:hover:border-muted md:hover:bg-surface md:hover:text-muted md:pointer-coarse:h-11 md:pointer-coarse:w-60 lg:pointer-coarse:w-52",
         )}
       >
         <Search aria-hidden strokeWidth={1.75} className="size-4 shrink-0" />

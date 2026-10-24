@@ -46,7 +46,7 @@ export default async function ModAnnouncementsPage() {
         ) : (
           <ul className="grid gap-3">
             {announcements.map((announcement, index) => (
-              <li key={announcement.id} style={stagger(index)} className="animate-fade-up">
+              <li key={announcement.id} id={`announcement-${announcement.id}`} style={stagger(index)} className="animate-fade-up scroll-mt-24">
                 <Card padding="none">
                   <details className="group">
                     <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-2 hover:bg-surface-hover [&::-webkit-details-marker]:hidden">

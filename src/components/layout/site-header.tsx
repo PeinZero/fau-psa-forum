@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import UserMenu from "@/components/auth/user-menu";
 import { HeaderSearch } from "@/components/layout/header-search";
+import { MobileNav, MobileNavDrawer } from "@/components/layout/mobile-nav";
 import { NavLinkList, NavLinks } from "@/components/layout/nav-links";
 import { ShortcutsDialog } from "@/components/shortcuts/shortcuts-dialog";
 import { NotificationBellSlot } from "@/components/notifications/bell-slot";
@@ -44,6 +45,9 @@ export function SiteHeader() {
         Skip to content
       </a>
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-1 px-4 sm:px-6">
+        <Suspense fallback={<MobileNavDrawer pathname={null} />}>
+          <MobileNav />
+        </Suspense>
         <Link
           href="/"
           className="-ml-1 mr-2 inline-flex min-h-11 items-center justify-center gap-2.5 pointer-coarse:min-w-11 rounded-md px-1 text-sm font-semibold tracking-tight text-foreground"
@@ -61,11 +65,12 @@ export function SiteHeader() {
           <Link
             href="/new"
             aria-label="New thread"
-            className={buttonClasses({ variant: "ghost", size: "icon", className: "md:hidden" })}
+            title="New thread"
+            className={buttonClasses({ variant: "ghost", size: "icon" })}
           >
             <Plus strokeWidth={1.75} />
           </Link>
-          <ThemeToggle />
+          <ThemeToggle className="max-lg:hidden" />
           <Suspense fallback={null}>
             <NotificationBellSlot />
           </Suspense>

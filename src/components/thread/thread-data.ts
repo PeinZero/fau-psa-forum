@@ -36,6 +36,18 @@ export async function getMyVotes(userId: string, commentIds: number[]): Promise<
   return new Map((data ?? []).map((vote) => [vote.comment_id, vote.value > 0 ? 1 : -1]));
 }
 
+/** The viewer's own vote on a thread, 0 when there is none. */
+export async function getMyThreadVote(userId: string, threadId: number): Promise<MyVote> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("thread_votes")
+    .select("value")
+    .eq("user_id", userId)
+    .eq("thread_id", threadId)
+    .maybeSingle();
+  return data ? (data.value > 0 ? 1 : -1) : 0;
+}
+
 export type CommentSort = "top" | "new";
 
 export function parseCommentSort(value: string | string[] | undefined): CommentSort {

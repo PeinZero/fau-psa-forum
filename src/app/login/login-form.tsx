@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Loader2, MailCheck } from "lucide-react";
+import { AlertCircle, ArrowLeft, Loader2, MailCheck, RotateCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ import { createClient } from "@/lib/supabase/client";
 import { friendlyAuthError } from "./auth-errors";
 
 type Props = { next: string; initialError?: string };
+
+// Supabase allows one email per address per 60 s by default; waiting avoids a rate-limit error.
+const RESEND_COOLDOWN_SECONDS = 60;
 
 // Created lazily so the page still renders before Supabase env vars are configured.
 let browserClient: ReturnType<typeof createClient> | undefined;
@@ -62,6 +65,8 @@ export default function LoginForm({ next, initialError }: Props) {
   const [error, setError] = useState(initialError ?? "");
   const [pending, setPending] = useState(false);
   const [googlePending, setGooglePending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [resent, setResent] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const switched = useRef(false);
@@ -72,13 +77,18 @@ export default function LoginForm({ next, initialError }: Props) {
     else emailRef.current?.focus();
   }, [sent]);
 
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((seconds) => seconds - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
   function callbackUrl() {
     const origin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     return `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
   }
 
-  async function sendMagicLink(event: React.FormEvent) {
-    event.preventDefault();
+  async function requestLink(): Promise<boolean> {
     setPending(true);
     setError("");
     try {
@@ -86,16 +96,39 @@ export default function LoginForm({ next, initialError }: Props) {
         email,
         options: { emailRedirectTo: callbackUrl() },
       });
-      if (error) setError(friendlyAuthError(error));
-      else {
-        switched.current = true;
-        setSent(true);
+      if (error) {
+        setError(friendlyAuthError(error));
+        return false;
       }
+      setCooldown(RESEND_COOLDOWN_SECONDS);
+      return true;
     } catch (e) {
       setError(friendlyAuthError(e instanceof Error ? { name: e.name } : {}));
+      return false;
     } finally {
       setPending(false);
     }
+  }
+
+  async function sendMagicLink(event: React.FormEvent) {
+    event.preventDefault();
+    if (await requestLink()) {
+      switched.current = true;
+      setResent(false);
+      setSent(true);
+    }
+  }
+
+  async function resendLink() {
+    setResent(false);
+    if (await requestLink()) setResent(true);
+  }
+
+  function changeEmail() {
+    switched.current = true;
+    setError("");
+    setResent(false);
+    setSent(false);
   }
 
   async function signInWithGoogle() {
@@ -131,10 +164,40 @@ export default function LoginForm({ next, initialError }: Props) {
               We sent a sign-in link to <strong className="break-all font-medium text-foreground">{email}</strong>. Open
               it on this device to continue.
             </p>
+            <p className="text-meta text-muted">
+              Nothing after a few minutes? Check your spam or junk folder, or the Promotions tab in Gmail.
+            </p>
           </div>
-          <Button variant="ghost" onClick={() => setSent(false)}>
-            Use a different email
-          </Button>
+
+          {error ? (
+            <p
+              role="alert"
+              className="flex items-start gap-2 rounded-md border border-danger/25 bg-danger/10 p-3 text-left text-meta text-danger"
+            >
+              <AlertCircle aria-hidden strokeWidth={1.75} className="mt-0.5 size-4 shrink-0" />
+              {error}
+            </p>
+          ) : resent ? (
+            <p role="status" className="text-meta text-accent">
+              We sent a new link. Use the newest email.
+            </p>
+          ) : null}
+
+          <div className="flex w-full flex-col gap-2">
+            <Button
+              variant="secondary"
+              onClick={resendLink}
+              disabled={pending || cooldown > 0}
+              className="w-full"
+            >
+              {pending ? <Loader2 aria-hidden className="animate-spin" /> : <RotateCw aria-hidden strokeWidth={1.75} />}
+              {pending ? "Sending…" : cooldown > 0 ? `Resend link in ${cooldown}s` : "Resend link"}
+            </Button>
+            <Button variant="ghost" onClick={changeEmail} className="w-full">
+              <ArrowLeft aria-hidden strokeWidth={1.75} />
+              Use a different email
+            </Button>
+          </div>
         </div>
       ) : (
         <>

@@ -1,4 +1,4 @@
-import { Archive, ChevronRight, CircleAlert, Clock, MapPin, Pin, TriangleAlert } from "lucide-react";
+import { Archive, ChevronRight, CircleAlert, Clock, MapPin, MessageSquare, Pin, TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,12 +11,20 @@ import { Markdown } from "@/components/markdown";
 import { MemberViewBanner } from "@/components/member-view/member-view-banner";
 import { ShareButton } from "@/components/share/share-button";
 import { CommentsSkeleton, PublicComments, ViewerComments } from "@/components/thread/thread-comments";
-import { getThread, parseCommentSort, plainTextExcerpt, type ThreadDetail } from "@/components/thread/thread-data";
+import {
+  getMyThreadVote,
+  getThread,
+  type MyVote,
+  parseCommentSort,
+  plainTextExcerpt,
+  type ThreadDetail,
+} from "@/components/thread/thread-data";
 import { ThreadMenu } from "@/components/thread/thread-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/cn";
 import { Skeleton } from "@/components/ui/skeleton";
 import { needsVerificationHint, UnverifiedHint, VerifiedBadge } from "@/components/update-requests/verified";
+import { ThreadVoteControl } from "@/components/votes/thread-vote-control";
 import { getEffectiveViewer, isModerator } from "@/lib/auth/viewer";
 import { cityLabels, formatDate, statusLabels } from "@/lib/labels";
 import { siteUrl } from "@/lib/site-url";
@@ -27,7 +35,8 @@ type SearchParams = Promise<{ sort?: string | string[] }>;
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const thread = await getThread(slug);
-  if (!thread) return {};
+  // notFound() fires inside the streamed boundary, so the 404 page needs its own title here.
+  if (!thread) return { title: "Thread not found", robots: { index: false, follow: false } };
 
   const description = plainTextExcerpt(thread.body);
   return {
@@ -68,32 +77,49 @@ async function ThreadContent({ params, searchParams }: { params: Params; searchP
     <article className="flex flex-col">
       <Breadcrumbs thread={thread} />
 
-      <header className="mt-4 flex flex-col gap-4">
-        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] break-words sm:text-[2.25rem] sm:leading-[1.15]">
+      {/* Phones: title, badges, meta, then a bar with the votes left and the actions right.
+          From sm up the votes stand as a column beside the title. */}
+      <header className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-y-4">
+        <h1 className="col-span-full text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] break-words sm:col-span-2 sm:col-start-2 sm:row-start-1 sm:text-[2.25rem] sm:leading-[1.15]">
           {thread.title}
         </h1>
         <ThreadBadges thread={thread} />
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-meta text-muted">
-          <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <Author profile={thread.author} />
+        <p className="col-span-full flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 self-center text-meta text-muted sm:col-span-1 sm:col-start-2 sm:row-start-3">
+          <Author profile={thread.author} />
+          <span className="inline-flex items-center gap-2 whitespace-nowrap">
+            <span aria-hidden className="text-subtle">·</span>
+            <time dateTime={thread.created_at}>{formatDate(thread.created_at)}</time>
+          </span>
+          {thread.edited_at && (
+            <span className="text-subtle">
+              edited <time dateTime={thread.edited_at}>{formatDate(thread.edited_at)}</time>
+            </span>
+          )}
+          {isPublic(thread) && (
             <span className="inline-flex items-center gap-2 whitespace-nowrap">
               <span aria-hidden className="text-subtle">·</span>
-              <time dateTime={thread.created_at}>{formatDate(thread.created_at)}</time>
+              <a
+                href="#comments-heading"
+                className="inline-flex items-center gap-1 rounded-sm tabular-nums transition-colors hover:text-foreground"
+              >
+                <MessageSquare aria-hidden strokeWidth={1.75} className="size-3.5" />
+                {thread.comment_count} {thread.comment_count === 1 ? "comment" : "comments"}
+              </a>
             </span>
-            {thread.edited_at && (
-              <span className="text-subtle">
-                edited <time dateTime={thread.edited_at}>{formatDate(thread.edited_at)}</time>
-              </span>
-            )}
-          </p>
-          <div className="flex items-center gap-1">
-            {(thread.status === "published" || thread.status === "archived") && (
-              <ShareButton url={`${siteUrl}/t/${thread.slug}`} title={thread.title} />
-            )}
-            <Suspense fallback={<ThreadMenu thread={modFields(thread)} slug={thread.slug} />}>
-              <ViewerThreadMenu thread={thread} />
+          )}
+        </p>
+        {isPublic(thread) && (
+          <div className="-ml-1.5 col-start-1 row-start-4 self-center sm:row-span-2 sm:row-start-1 sm:-mt-1 sm:ml-0 sm:-translate-x-1.5 sm:self-start">
+            <Suspense fallback={<ThreadVote thread={thread} viewerId={null} myVote={0} />}>
+              <ViewerThreadVote thread={thread} />
             </Suspense>
           </div>
+        )}
+        <div className="col-start-2 row-start-4 flex items-center gap-1 self-center justify-self-end sm:col-start-3 sm:row-start-3">
+          {isPublic(thread) && <ShareButton url={`${siteUrl}/t/${thread.slug}`} title={thread.title} />}
+          <Suspense fallback={<ThreadMenu thread={modFields(thread)} slug={thread.slug} />}>
+            <ViewerThreadMenu thread={thread} />
+          </Suspense>
         </div>
       </header>
 
@@ -152,7 +178,7 @@ function ThreadBadges({ thread }: { thread: ThreadDetail }) {
     published: null,
   }[thread.status];
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="col-span-full flex flex-wrap items-center gap-1.5 empty:hidden sm:col-span-2 sm:col-start-2 sm:row-start-2">
       {thread.is_pinned && (
         <Badge variant="accent">
           <Pin aria-hidden strokeWidth={1.75} />
@@ -212,9 +238,9 @@ function Banners({ thread }: { thread: ThreadDetail }) {
   return (
     <>
       {thread.status === "pending" && (
-        <Callout tone="warning" icon={<Clock strokeWidth={1.75} />} title={statusLabels.pending}>
-          Only you and the moderators can see this thread until it is approved.
-        </Callout>
+        <Suspense fallback={<PendingCallout isAuthor={false} />}>
+          <ViewerPendingCallout thread={thread} />
+        </Suspense>
       )}
       {thread.status === "rejected" && (
         <Callout tone="danger" icon={<CircleAlert strokeWidth={1.75} />} title={statusLabels.rejected}>
@@ -239,6 +265,53 @@ function Banners({ thread }: { thread: ThreadDetail }) {
       )}
     </>
   );
+}
+
+function PendingCallout({ isAuthor }: { isAuthor: boolean }) {
+  return (
+    <Callout tone="warning" icon={<Clock strokeWidth={1.75} />} title={statusLabels.pending}>
+      {isAuthor ? (
+        <>
+          Waiting for review — usually within a day. You&apos;ll get a bell notification when it&apos;s approved.{" "}
+          <Link href="/me/threads" className="font-medium text-accent underline-offset-2 hover:underline">
+            See your threads
+          </Link>
+        </>
+      ) : (
+        "Only the author and the moderators can see this thread until it is approved."
+      )}
+    </Callout>
+  );
+}
+
+async function ViewerPendingCallout({ thread }: { thread: ThreadDetail }) {
+  const viewer = await getEffectiveViewer();
+  return <PendingCallout isAuthor={viewer !== null && viewer.userId === thread.author_id} />;
+}
+
+function isPublic(thread: ThreadDetail): boolean {
+  return thread.status === "published" || thread.status === "archived";
+}
+
+function ThreadVote({ thread, viewerId, myVote }: { thread: ThreadDetail; viewerId: string | null; myVote: MyVote }) {
+  const isAuthor = viewerId !== null && viewerId === thread.author_id;
+  const archived = thread.status === "archived";
+  return (
+    <ThreadVoteControl
+      threadId={thread.id}
+      score={thread.score}
+      myVote={myVote}
+      signedIn={viewerId !== null}
+      disabled={isAuthor || archived}
+      disabledTitle={isAuthor ? "You can't vote on your own thread" : "Voting is closed on archived threads"}
+    />
+  );
+}
+
+async function ViewerThreadVote({ thread }: { thread: ThreadDetail }) {
+  const viewer = await getEffectiveViewer();
+  const myVote = viewer ? await getMyThreadVote(viewer.userId, thread.id) : 0;
+  return <ThreadVote thread={thread} viewerId={viewer?.userId ?? null} myVote={myVote} />;
 }
 
 function modFields({ id, status, is_outdated, is_pinned }: ThreadDetail) {

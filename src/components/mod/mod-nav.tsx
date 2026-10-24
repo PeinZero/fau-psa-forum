@@ -14,6 +14,7 @@ import {
   UserCheck,
   UserPlus,
   Users,
+  MessageSquareText,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -23,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/cn";
 
 const icons = {
+  feedback: MessageSquareText,
   overview: LayoutDashboard,
   threads: Hourglass,
   reports: Flag,

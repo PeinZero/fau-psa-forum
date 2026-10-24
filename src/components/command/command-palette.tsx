@@ -170,13 +170,15 @@ export function CommandPalette({ open, onClose, canModerate, triggerRef }: Comma
   }
   const isOpen = open || requested;
   const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
+  // -1 keeps the focus in the query: Enter then searches everything rather than opening the top
+  // hit, which a fast typist would otherwise open by accident before the results settle.
+  const [active, setActive] = useState(-1);
   const [wasOpen, setWasOpen] = useState(isOpen);
   if (isOpen !== wasOpen) {
     setWasOpen(isOpen);
     if (isOpen) {
       setQuery("");
-      setActive(0);
+      setActive(-1);
     }
   }
 
@@ -184,8 +186,8 @@ export function CommandPalette({ open, onClose, canModerate, triggerRef }: Comma
   const trimmed = query.trim();
   const groups = buildGroups(query, results, suggestions?.recent ?? [], suggestions?.categories ?? [], canModerate);
   const items = groups.flatMap((group) => group.items);
-  const activeIndex = Math.min(active, items.length - 1);
-  const activeItem = items[activeIndex];
+  const activeIndex = active < items.length ? active : -1;
+  const activeItem = activeIndex >= 0 ? items[activeIndex] : undefined;
   const optionId = (index: number) => `${id}-option-${index}`;
   const noThreads = trimmed !== "" && !loading && !failed && results?.length === 0;
 
@@ -232,8 +234,10 @@ export function CommandPalette({ open, onClose, canModerate, triggerRef }: Comma
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       if (items.length === 0) return;
+      // The query itself is the slot before the first item, so ↑ from the top deselects.
+      const slots = items.length + 1;
       const step = event.key === "ArrowDown" ? 1 : -1;
-      setActive((activeIndex + step + items.length) % items.length);
+      setActive(((activeIndex + 1 + step + slots) % slots) - 1);
     } else if (event.key === "Enter") {
       event.preventDefault();
       if ((event.metaKey || event.ctrlKey) && trimmed) go(searchHref(query));
@@ -288,7 +292,7 @@ export function CommandPalette({ open, onClose, canModerate, triggerRef }: Comma
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
-            setActive(0);
+            setActive(-1);
           }}
           onKeyDown={onKeyDown}
           className="h-14 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-subtle md:text-[15px]"
@@ -339,6 +343,7 @@ export function CommandPalette({ open, onClose, canModerate, triggerRef }: Comma
                 {group.items.map((item) => {
                   const index = items.indexOf(item);
                   const selected = index === activeIndex;
+                  const enterTarget = !activeItem && trimmed !== "" && item.key === "search:all";
                   return (
                     <div
                       key={item.key}
@@ -369,11 +374,17 @@ export function CommandPalette({ open, onClose, canModerate, triggerRef }: Comma
                           <span className="sr-only">comments</span>
                         </span>
                       ) : null}
-                      <ArrowRight
-                        aria-hidden
-                        className={cn("size-4 shrink-0 text-subtle", selected ? "opacity-100" : "opacity-0")}
-                        strokeWidth={1.75}
-                      />
+                      {enterTarget ? (
+                        <Kbd aria-hidden className="max-md:hidden">
+                          ↵
+                        </Kbd>
+                      ) : (
+                        <ArrowRight
+                          aria-hidden
+                          className={cn("size-4 shrink-0 text-subtle", selected ? "opacity-100" : "opacity-0")}
+                          strokeWidth={1.75}
+                        />
+                      )}
                     </div>
                   );
                 })}
@@ -394,9 +405,9 @@ export function CommandPalette({ open, onClose, canModerate, triggerRef }: Comma
         </span>
         <span className="flex items-center gap-1.5">
           <Kbd>↵</Kbd>
-          open
+          {activeItem || !trimmed ? "open" : "all results"}
         </span>
-        {apple !== null ? (
+        {apple !== null && activeItem ? (
           <span className="flex items-center gap-1.5">
             <Kbd>{apple ? "⌘" : "Ctrl"}</Kbd>
             <Kbd>↵</Kbd>

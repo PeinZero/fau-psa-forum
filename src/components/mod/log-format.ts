@@ -181,7 +181,7 @@ export function describeLogEntry(entry: LogEntry): LogPart[] {
       return [who, " deleted the category ", quoted(detailText(details, "name"))];
     case "announcement_created": {
       const id = detailNumber(details, "announcement_id");
-      return [who, " posted the announcement ", quoted(detailText(details, "title"), id === undefined ? "/announcements" : `/announcements#announcement-${id}`)];
+      return [who, " posted the announcement ", quoted(detailText(details, "title"), id === undefined ? "/announcements" : `/announcements/${id}`)];
     }
     case "announcement_deleted":
       return [who, " deleted the announcement ", quoted(detailText(details, "title"))];

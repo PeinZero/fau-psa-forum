@@ -4,11 +4,18 @@ import { AccountMenu } from "@/components/notification-settings/account-menu";
 import { getModCounts } from "@/components/mod/counts";
 import { buttonClasses } from "@/components/ui/button";
 import { getViewer, getViewMode, isModerator } from "@/lib/auth/viewer";
+import { createClient } from "@/lib/supabase/server";
 
 function initials(name: string): string {
   const words = name.replace(/@.*$/, "").split(/[\s._-]+/).filter(Boolean);
   const letters = words.length > 1 ? [words[0], words[1]].map((word) => Array.from(word)[0]) : Array.from(words[0] ?? "?").slice(0, 2);
   return letters.join("").toUpperCase();
+}
+
+async function getUsername(userId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("username").eq("id", userId).maybeSingle();
+  return data?.username ?? null;
 }
 
 export default async function UserMenu() {
@@ -24,7 +31,11 @@ export default async function UserMenu() {
 
   // Members never see the moderation badge, so they skip the five count queries entirely.
   const isMod = isModerator(viewer.role);
-  const [counts, viewMode] = isMod ? await Promise.all([getModCounts(), getViewMode()]) : [null, "default"];
+  const [counts, viewMode, username] = await Promise.all([
+    isMod ? getModCounts() : null,
+    isMod ? getViewMode() : "default",
+    getUsername(viewer.userId),
+  ]);
   const pending = counts ? counts.threads + counts.applications + counts.reports + counts.updates : 0;
 
   return (
@@ -33,6 +44,7 @@ export default async function UserMenu() {
         <Link
           href="/mod"
           aria-label={pending > 0 ? `Moderation, ${pending} pending` : "Moderation"}
+          title="Moderation"
           className={buttonClasses({
             variant: "ghost",
             size: "sm",
@@ -41,7 +53,6 @@ export default async function UserMenu() {
           })}
         >
           <ShieldCheck strokeWidth={1.75} aria-hidden />
-          <span aria-hidden className="max-lg:hidden">Moderation</span>
           {pending > 0 && (
             <span
               aria-hidden
@@ -55,6 +66,8 @@ export default async function UserMenu() {
       <AccountMenu
         displayName={viewer.displayName}
         initials={initials(viewer.displayName)}
+        // Without a handle yet there is no public profile, so the account page stands in.
+        profileHref={username ? `/u/${username}` : "/account"}
         moderator={isMod}
         viewingAsMember={viewMode === "member"}
       />

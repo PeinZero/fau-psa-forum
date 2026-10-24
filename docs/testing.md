@@ -2,6 +2,11 @@
 
 Read before adding tests or touching CI.
 
+**Until UAT (decided 2026-10-24):** don't write or update unit (Vitest) or end-to-end (Playwright)
+tests, and CI doesn't run them. Keep `npm run test:db` green: it guards row level security. Verify
+UI changes with `npx tsc --noEmit`, `npm run lint`, `npm run build` and screenshots. Re-enable the
+`npm test` step and the `e2e` job in `.github/workflows/ci.yml` when UAT starts.
+
 | Command | What | Needs |
 |---|---|---|
 | `npm test` | Vitest unit and component tests (`src/**/*.test.{ts,tsx}`), jsdom, no network | nothing |

@@ -3,20 +3,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { getSavedThreadIds } from "@/components/bookmarks/data";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { fetchThreadsByIds, ThreadList, ThreadListSkeleton } from "@/components/thread/thread-list";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { PAGE_SIZE, Pagination, parsePage } from "@/components/ui/pagination";
 import { SegmentedLinks } from "@/components/ui/segmented-control";
 import { getUserId } from "@/lib/auth/viewer";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Saved", robots: { index: false } };
 
 type Tab = "bookmarks" | "following";
-type SearchParams = Promise<{ tab?: string | string[] }>;
+type SearchParams = Promise<{ tab?: string | string[]; page?: string | string[] }>;
 
 const tabs: { tab: Tab; label: string; href: string }[] = [
   { tab: "bookmarks", label: "Bookmarked", href: "/saved" },
@@ -59,7 +60,7 @@ export default function SavedPage({ searchParams }: { searchParams: SearchParams
 }
 
 async function SavedList({ searchParams }: { searchParams: SearchParams }) {
-  const [{ tab: tabParam }, userId] = await Promise.all([searchParams, getUserId()]);
+  const [{ tab: tabParam, page: pageParam }, userId] = await Promise.all([searchParams, getUserId()]);
   if (!userId) {
     return (
       <Card className="text-sm">
@@ -69,7 +70,17 @@ async function SavedList({ searchParams }: { searchParams: SearchParams }) {
   }
 
   const tab = currentTab(tabParam);
-  const { ids, error } = await getSavedThreadIds(userId, tab === "following" ? "thread_follows" : "bookmarks");
+  const page = parsePage(pageParam);
+  const from = (page - 1) * PAGE_SIZE;
+  const supabase = await createClient();
+  const query =
+    tab === "following"
+      ? supabase.from("thread_follows").select("thread_id", { count: "exact" })
+      : supabase.from("bookmarks").select("thread_id", { count: "exact" });
+  const { data, count, error } = await query
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .range(from, from + PAGE_SIZE - 1);
   if (error) {
     return (
       <p role="alert" className="text-sm text-danger">
@@ -77,8 +88,20 @@ async function SavedList({ searchParams }: { searchParams: SearchParams }) {
       </p>
     );
   }
-  const threads = await fetchThreadsByIds(ids);
-  return threads.length === 0 ? <SavedEmpty tab={tab} /> : <ThreadList threads={threads} emptyText="" />;
+  const total = count ?? 0;
+  if (total === 0) return <SavedEmpty tab={tab} />;
+  const threads = await fetchThreadsByIds(data.map((row) => row.thread_id));
+  return (
+    <>
+      <ThreadList threads={threads} emptyText="" />
+      <Pagination
+        path="/saved"
+        params={{ tab: tab === "following" ? "following" : undefined }}
+        page={page}
+        total={total}
+      />
+    </>
+  );
 }
 
 function SavedEmpty({ tab }: { tab: Tab }) {
