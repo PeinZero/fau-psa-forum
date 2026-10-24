@@ -15,7 +15,8 @@ Authorization lives in Postgres Row Level Security; the UI only mirrors it.
 - `notification_type`: `reply`, `mention`, `thread_comment`, `thread_approved`, `thread_rejected`,
   `best_answer`, `application_approved`, `application_rejected`, `mod_new_thread`,
   `mod_new_application`, `mod_new_report`, `announcement`, `mod_new_update_request`,
-  `followed_thread_activity`, `account_muted`, `account_banned`, `account_unrestricted`
+  `followed_thread_activity`, `account_muted`, `account_banned`, `account_unrestricted`,
+  `mod_new_feedback`
 - `update_request_status`: `open`, `resolved`, `dismissed`
 - `restriction_kind`: `mute`, `ban`
 - `moderation_action`: `thread_approved`, `thread_rejected`, `thread_archived`, `thread_unarchived`,
@@ -315,6 +316,20 @@ News from the moderators on `/announcements`; the newest pinned one is the home 
 
 Posting one notifies every profile except the author (`announcement`).
 
+### feedback
+Notes members send with the feedback button; write-only for members (5 per hour), only moderators
+read them.
+
+| column | type | notes |
+|---|---|---|
+| id | bigint identity PK | |
+| user_id | uuid null → profiles | default `auth.uid()`; set null on account deletion |
+| message | text | 5–2000 chars |
+| page | text null | where it was sent from, ≤ 300 chars |
+| created_at | timestamptz | |
+| handled_at | timestamptz null | null = new; the only column moderators update |
+| handled_by | uuid null → profiles | set by trigger to the moderator who set `handled_at` (and the time to `now()`); cleared with it |
+
 ### Account deletion
 `delete_own_account()` (authenticated only) deletes the caller's `auth.users` row. The profile,
 moderator applications, comment votes (scores and the voted authors' reputation drop accordingly), bookmarks, follows, notification preferences, guide progress and the user's own reputation events cascade; threads, comments, revisions and reports stay with the
@@ -345,6 +360,7 @@ Inserted only by `security definer` triggers; clients read their own and set `re
 | comment_id | bigint null → comments | cascade |
 | announcement_id | bigint null → announcements | cascade |
 | restriction_id | bigint null → user_restrictions | cascade; set for `account_*` notices |
+| feedback_id | bigint null → feedback | cascade; set for `mod_new_feedback` |
 | created_at | timestamptz | |
 | read_at | timestamptz null | the only client-writable column |
 
@@ -369,6 +385,7 @@ cannot read, so pending threads and hidden comments notify nobody but moderators
 | new moderator application | every moderator and superadmin → `mod_new_application` |
 | application approved / rejected | applicant → `application_approved` / `application_rejected` |
 | new report | every moderator and superadmin → `mod_new_report` (thread_id and comment_id of the target) |
+| new feedback | every moderator and superadmin except the sender → `mod_new_feedback` (feedback_id); deleting the feedback deletes them |
 | new announcement | every other user → `announcement` (announcement_id); deleting the announcement deletes them |
 | account muted / banned / restriction lifted | the member → `account_muted` / `account_banned` / `account_unrestricted` (restriction_id) |
 
@@ -433,6 +450,8 @@ which rows each one receives.
 | read restrictions | | own | all | all |
 | read the moderation log | | | ✓ | ✓ |
 | read and edit canned replies | | | ✓ | ✓ |
+| send feedback | | ✓ (5 per hour) | ✓ | ✓ |
+| read, mark handled/new and delete feedback | | | ✓ | ✓ |
 
 Status, review, pin and role columns are never writable by authors directly; moderation goes
 through `security definer` functions or moderator-only policies, and a trigger rejects

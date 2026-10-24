@@ -33,6 +33,7 @@ export const NOTIFICATION_GROUPS: NotificationGroup[] = [
       { type: "mod_new_application", label: "New moderator application", description: "Someone applies to become a moderator." },
       { type: "mod_new_report", label: "New report", description: "A post or comment is reported." },
       { type: "mod_new_update_request", label: "Update requests", description: "A member asks for a thread to be updated." },
+      { type: "mod_new_feedback", label: "New feedback", description: "A member sends feedback about the forum." },
     ],
   },
 ];

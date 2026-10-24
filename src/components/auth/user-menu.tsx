@@ -29,14 +29,14 @@ export default async function UserMenu() {
     );
   }
 
-  // Members never see the moderation badge, so they skip the five count queries entirely.
+  // Members never see the moderation badge, so they skip the count queries entirely.
   const isMod = isModerator(viewer.role);
   const [counts, viewMode, username] = await Promise.all([
     isMod ? getModCounts() : null,
     isMod ? getViewMode() : "default",
     getUsername(viewer.userId),
   ]);
-  const pending = counts ? counts.threads + counts.applications + counts.reports + counts.updates : 0;
+  const pending = counts ? counts.threads + counts.applications + counts.reports + counts.updates + counts.feedback : 0;
 
   return (
     <div className="flex items-center gap-1">

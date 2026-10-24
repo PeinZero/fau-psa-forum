@@ -252,6 +252,8 @@ export type Database = {
       feedback: {
         Row: {
           created_at: string
+          handled_at: string | null
+          handled_by: string | null
           id: number
           message: string
           page: string | null
@@ -259,6 +261,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
           id?: never
           message: string
           page?: string | null
@@ -266,12 +270,21 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
           id?: never
           message?: string
           page?: string | null
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "feedback_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "feedback_user_id_fkey"
             columns: ["user_id"]
@@ -545,6 +558,7 @@ export type Database = {
           announcement_id: number | null
           comment_id: number | null
           created_at: string
+          feedback_id: number | null
           id: number
           read_at: string | null
           recipient_id: string
@@ -557,6 +571,7 @@ export type Database = {
           announcement_id?: number | null
           comment_id?: number | null
           created_at?: string
+          feedback_id?: number | null
           id?: never
           read_at?: string | null
           recipient_id: string
@@ -569,6 +584,7 @@ export type Database = {
           announcement_id?: number | null
           comment_id?: number | null
           created_at?: string
+          feedback_id?: number | null
           id?: never
           read_at?: string | null
           recipient_id?: string
@@ -596,6 +612,13 @@ export type Database = {
             columns: ["comment_id"]
             isOneToOne: false
             referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "feedback"
             referencedColumns: ["id"]
           },
           {
@@ -1353,6 +1376,7 @@ export type Database = {
         | "account_muted"
         | "account_banned"
         | "account_unrestricted"
+        | "mod_new_feedback"
       report_reason:
         | "spam"
         | "offensive"
@@ -1544,6 +1568,7 @@ export const Constants = {
         "account_muted",
         "account_banned",
         "account_unrestricted",
+        "mod_new_feedback",
       ],
       report_reason: ["spam", "offensive", "wrong_info", "personal_data", "other"],
       report_status: ["open", "resolved", "dismissed"],

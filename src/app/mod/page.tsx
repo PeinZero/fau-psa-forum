@@ -1,4 +1,4 @@
-import { ArrowUpRight, FileClock, FilePenLine, Flag, Hourglass, Megaphone, UserCheck } from "lucide-react";
+import { ArrowUpRight, FileClock, FilePenLine, Flag, Hourglass, Megaphone, MessageSquareText, UserCheck } from "lucide-react";
 import Link from "next/link";
 
 import { getModCounts } from "@/components/mod/counts";
@@ -18,6 +18,7 @@ export default async function ModOverviewPage() {
     { href: "/mod/updates", title: "Update requests", text: "Threads members think are out of date", count: counts.updates, Icon: FileClock },
     { href: "/mod/edits", title: "Recent edits", text: "Edits waiting for review", count: counts.edits, Icon: FilePenLine },
     { href: "/mod/applications", title: "Applications", text: "People who want to moderate", count: counts.applications, Icon: UserCheck },
+    { href: "/mod/feedback", title: "Feedback", text: "Messages from members", count: counts.feedback, Icon: MessageSquareText },
     { href: "/mod/announcements", title: "Announcements", text: "Post news to every member", count: announcements.count ?? 0, Icon: Megaphone },
   ];
 

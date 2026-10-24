@@ -1,4 +1,4 @@
-import { MessageSquareHeart } from "lucide-react";
+import { CheckCircle2, MessageSquareHeart } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -6,10 +6,11 @@ import { ActionButton } from "@/components/mod/action-button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { stagger } from "@/components/ui/motion";
+import { SegmentedLinks } from "@/components/ui/segmented-control";
 import { safeNextPath } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/server";
 
-import { deleteFeedback } from "./actions";
+import { deleteFeedback, markFeedbackHandled, markFeedbackNew } from "./actions";
 
 export const metadata: Metadata = { title: "Feedback" };
 
@@ -21,28 +22,60 @@ const dateTime = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Berlin",
 });
 
-export default async function FeedbackPage() {
+const tabs = [
+  { status: "new", label: "New" },
+  { status: "handled", label: "Handled" },
+] as const;
+
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export default async function FeedbackPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const handled = params.status === "handled";
+
   const supabase = await createClient();
-  const { data: rows, error } = await supabase
+  const base = supabase
     .from("feedback")
-    .select("id, message, page, created_at, author:profiles!feedback_user_id_fkey(display_name, username)")
-    .order("created_at", { ascending: false })
+    .select(
+      `id, message, page, created_at, handled_at,
+       author:profiles!feedback_user_id_fkey(display_name, username),
+       handler:profiles!feedback_handled_by_fkey(display_name, username)`,
+    );
+  const { data: rows, error } = await (handled
+    ? base.not("handled_at", "is", null).order("handled_at", { ascending: false })
+    : base.is("handled_at", null).order("created_at", { ascending: false })
+  )
     .order("id", { ascending: false })
     .limit(LIMIT);
 
-  if (error) return <p role="alert" className="text-danger">Could not load feedback. Please reload.</p>;
-
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5">
       <p className="max-w-prose text-sm text-muted">
-        Notes members sent with the feedback button, newest first. Only moderators see them; delete one once it is
-        handled.
+        Notes members sent with the feedback button. Only moderators see them; mark one handled once someone has
+        looked at it.
       </p>
 
-      {rows.length === 0 ? (
-        <EmptyState icon={<MessageSquareHeart />} title="No feedback yet">
-          When members send feedback from the site, it shows up here.
-        </EmptyState>
+      <SegmentedLinks
+        label="Feedback status"
+        items={tabs.map((tab) => ({
+          href: tab.status === "new" ? "/mod/feedback" : `/mod/feedback?status=${tab.status}`,
+          label: tab.label,
+          current: (tab.status === "handled") === handled,
+        }))}
+      />
+
+      {error ? (
+        <p role="alert" className="text-danger">Could not load feedback. Please reload.</p>
+      ) : rows.length === 0 ? (
+        handled ? (
+          <EmptyState icon={<MessageSquareHeart />} title="No handled feedback">
+            Feedback you mark as handled moves here.
+          </EmptyState>
+        ) : (
+          <EmptyState icon={<CheckCircle2 />} title="No new feedback">
+            When members send feedback from the site, it shows up here.
+          </EmptyState>
+        )
       ) : (
         <ul className="grid gap-3">
           {rows.map((row, index) => (
@@ -72,7 +105,23 @@ export default async function FeedbackPage() {
                     </Link>
                   ) : null}
                 </div>
-                <div className="flex justify-end border-t border-border pt-3">
+                <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 border-t border-border pt-3">
+                  {row.handled_at ? (
+                    <p className="mr-auto text-meta text-muted">
+                      Handled by{" "}
+                      {row.handler ? (
+                        <Link
+                          href={`/u/${row.handler.username}`}
+                          className="font-medium text-foreground underline-offset-2 hover:underline"
+                        >
+                          {row.handler.display_name}
+                        </Link>
+                      ) : (
+                        "a former moderator"
+                      )}{" "}
+                      on <time dateTime={row.handled_at}>{dateTime.format(new Date(row.handled_at))}</time>
+                    </p>
+                  ) : null}
                   <ActionButton
                     action={deleteFeedback}
                     fields={{ feedbackId: row.id }}
@@ -80,15 +129,23 @@ export default async function FeedbackPage() {
                     tone="danger"
                     confirm="Delete this feedback?"
                   />
+                  {row.handled_at ? (
+                    <ActionButton action={markFeedbackNew} fields={{ feedbackId: row.id }} label="Mark new" />
+                  ) : (
+                    <ActionButton
+                      action={markFeedbackHandled}
+                      fields={{ feedbackId: row.id }}
+                      label="Mark handled"
+                      variant="primary"
+                    />
+                  )}
                 </div>
               </Card>
             </li>
           ))}
         </ul>
       )}
-      {rows.length === LIMIT ? (
-        <p className="text-meta text-muted">Showing the newest {LIMIT}. Delete handled feedback to see older notes.</p>
-      ) : null}
+      {rows?.length === LIMIT ? <p className="text-meta text-muted">Showing the newest {LIMIT}.</p> : null}
     </div>
   );
 }
