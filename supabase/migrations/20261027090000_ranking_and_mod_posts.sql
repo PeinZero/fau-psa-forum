@@ -425,7 +425,6 @@ returns setof public.threads
 language plpgsql
 stable
 set search_path = ''
-set pg_trgm.word_similarity_threshold = 0.4
 as $$
 begin
   if char_length(q) > 100 then
@@ -464,7 +463,7 @@ begin
     select c.id, 1, false, extensions.word_similarity(query.words, c.title)
     from candidates c, query
     where query.words <> ''
-      and query.words operator(extensions.<%) c.title
+      and extensions.word_similarity(query.words, c.title) >= 0.4
       and c.id not in (select id from text_ranked)
       and (select count(*) from text_ranked) < 5
     union all
