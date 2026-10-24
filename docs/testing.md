@@ -2,10 +2,11 @@
 
 Read before adding tests or touching CI.
 
-**Until UAT (decided 2026-10-24):** don't write or update unit (Vitest) or end-to-end (Playwright)
-tests, and CI doesn't run them. Keep `npm run test:db` green: it guards row level security. Verify
-UI changes with `npx tsc --noEmit`, `npm run lint`, `npm run build` and screenshots. Re-enable the
-`npm test` step and the `e2e` job in `.github/workflows/ci.yml` when UAT starts.
+**Current policy (2026-10-25):** write thorough Vitest unit tests for new and changed logic and
+components (pure helpers, formatting, ranking/sorting, validation, error mapping, client component
+behaviour) and keep `npm test` green; CI runs it. End-to-end (Playwright) stays paused until UAT:
+don't add or update e2e specs; the `e2e` CI job runs only when started manually. Keep
+`npm run test:db` green.
 
 | Command | What | Needs |
 |---|---|---|

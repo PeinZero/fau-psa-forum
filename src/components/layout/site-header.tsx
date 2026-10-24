@@ -29,7 +29,7 @@ export function SiteHeader() {
       >
         Skip to content
       </a>
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-1 px-4 sm:px-6">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-1 px-4 sm:px-6">
         <Suspense fallback={<MobileNavDrawer pathname={null} />}>
           <MobileNav />
         </Suspense>

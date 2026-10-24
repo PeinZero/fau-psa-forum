@@ -7,8 +7,7 @@ import remarkGfm from "remark-gfm";
 import { cn } from "@/components/ui/cn";
 
 const prose = cn(
-  "min-w-0 break-words text-body text-foreground/90",
-  "[&>*+*]:mt-4 [&>h3:not(:first-child)]:mt-7",
+  "min-w-0 break-words text-foreground/90",
   "[&_li>p]:my-1 [&_li+li]:mt-1.5 [&_li_ul]:mt-1.5 [&_li_ol]:mt-1.5",
   "[&_strong]:font-semibold [&_strong]:text-foreground",
   "[&_:not(pre)>code]:rounded [&_:not(pre)>code]:border [&_:not(pre)>code]:border-border [&_:not(pre)>code]:bg-surface [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-px [&_:not(pre)>code]:font-mono [&_:not(pre)>code]:text-[0.85em]",
@@ -57,9 +56,15 @@ function remarkMentions() {
 
 // User-written content: react-markdown never renders raw HTML, and links open outside the forum.
 // Mentions are the only internal links.
-export function Markdown({ children }: { children: string }) {
+/** `reading` is the long-form size for a thread's own post; comments stay at body size. */
+const sizes = {
+  body: "text-body [&>*+*]:mt-4 [&>h3:not(:first-child)]:mt-7",
+  reading: "text-reading [&>*+*]:mt-5 [&>h3:not(:first-child)]:mt-9 [&_h3]:text-heading",
+};
+
+export function Markdown({ children, size = "body" }: { children: string; size?: keyof typeof sizes }) {
   return (
-    <div className={prose}>
+    <div className={cn(prose, sizes[size])}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMentions]}
         components={{

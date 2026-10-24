@@ -1,4 +1,4 @@
-import { Archive, ChevronRight, CircleAlert, Clock, MapPin, MessageSquare, Pin, TriangleAlert } from "lucide-react";
+import { Archive, ChevronRight, CircleAlert, CircleCheck, Clock, MapPin, MessageSquare, Pin, TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -10,6 +10,9 @@ import { getCannedReplies } from "@/components/mod/canned-replies";
 import { Markdown } from "@/components/markdown";
 import { MemberViewBanner } from "@/components/member-view/member-view-banner";
 import { ShareButton } from "@/components/share/share-button";
+import { CommunitySidebarSkeleton } from "@/components/sidebar/community-sidebar";
+import { FeedLayout } from "@/components/sidebar/feed-layout";
+import { ThreadSidebar } from "@/components/sidebar/thread-sidebar";
 import { CommentsSkeleton, PublicComments, ViewerComments } from "@/components/thread/thread-comments";
 import {
   getMyThreadVote,
@@ -56,7 +59,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default function ThreadPage({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div>
       <Suspense fallback={null}>
         <MemberViewBanner className="mb-6" />
       </Suspense>
@@ -74,69 +77,78 @@ async function ThreadContent({ params, searchParams }: { params: Params; searchP
   const sort = parseCommentSort(sortParam);
 
   return (
-    <article className="flex flex-col">
-      <Breadcrumbs thread={thread} />
+    <FeedLayout
+      sidebarLabel="More from the forum"
+      sidebar={
+        <Suspense fallback={<CommunitySidebarSkeleton />}>
+          <ThreadSidebar thread={thread} />
+        </Suspense>
+      }
+    >
+      <article className="flex max-w-[45rem] flex-col">
+        <Breadcrumbs thread={thread} />
 
-      {/* Phones: title, badges, meta, then a bar with the votes left and the actions right.
-          From sm up the votes stand as a column beside the title. */}
-      <header className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-y-4">
-        <h1 className="col-span-full text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] break-words sm:col-span-2 sm:col-start-2 sm:row-start-1 sm:text-[2.25rem] sm:leading-[1.15]">
-          {thread.title}
-        </h1>
-        <ThreadBadges thread={thread} />
-        <p className="col-span-full flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 self-center text-meta text-muted sm:col-span-1 sm:col-start-2 sm:row-start-3">
-          <Author profile={thread.author} />
-          <span className="inline-flex items-center gap-2 whitespace-nowrap">
-            <span aria-hidden className="text-subtle">·</span>
-            <time dateTime={thread.created_at}>{formatDate(thread.created_at)}</time>
-          </span>
-          {thread.edited_at && (
-            <span className="text-subtle">
-              edited <time dateTime={thread.edited_at}>{formatDate(thread.edited_at)}</time>
-            </span>
-          )}
-          {isPublic(thread) && (
+        {/* Phones: title, badges, meta, then a bar with the votes left and the actions right.
+            From sm up the votes stand as a column beside the title. */}
+        <header className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-y-4">
+          <h1 className="col-span-full text-display font-semibold tracking-[-0.02em] break-words sm:col-span-2 sm:col-start-2 sm:row-start-1">
+            {thread.title}
+          </h1>
+          <ThreadBadges thread={thread} />
+          <p className="col-span-full flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 self-center text-meta text-muted sm:col-span-1 sm:col-start-2 sm:row-start-3">
+            <Author profile={thread.author} />
             <span className="inline-flex items-center gap-2 whitespace-nowrap">
               <span aria-hidden className="text-subtle">·</span>
-              <a
-                href="#comments-heading"
-                className="inline-flex items-center gap-1 rounded-sm tabular-nums transition-colors hover:text-foreground"
-              >
-                <MessageSquare aria-hidden strokeWidth={1.75} className="size-3.5" />
-                {thread.comment_count} {thread.comment_count === 1 ? "comment" : "comments"}
-              </a>
+              <time dateTime={thread.created_at}>{formatDate(thread.created_at)}</time>
             </span>
+            {thread.edited_at && (
+              <span className="text-subtle">
+                edited <time dateTime={thread.edited_at}>{formatDate(thread.edited_at)}</time>
+              </span>
+            )}
+            {isPublic(thread) && (
+              <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                <span aria-hidden className="text-subtle">·</span>
+                <a
+                  href="#comments-heading"
+                  className="inline-flex items-center gap-1 rounded-sm tabular-nums transition-colors hover:text-foreground"
+                >
+                  <MessageSquare aria-hidden strokeWidth={1.75} className="size-3.5" />
+                  {thread.comment_count} {thread.comment_count === 1 ? "comment" : "comments"}
+                </a>
+              </span>
+            )}
+          </p>
+          {isPublic(thread) && (
+            <div className="-ml-1.5 col-start-1 row-start-4 self-center sm:row-span-2 sm:row-start-1 sm:-mt-1 sm:ml-0 sm:-translate-x-1.5 sm:self-start">
+              <Suspense fallback={<ThreadVote thread={thread} viewerId={null} myVote={0} />}>
+                <ViewerThreadVote thread={thread} />
+              </Suspense>
+            </div>
           )}
-        </p>
-        {isPublic(thread) && (
-          <div className="-ml-1.5 col-start-1 row-start-4 self-center sm:row-span-2 sm:row-start-1 sm:-mt-1 sm:ml-0 sm:-translate-x-1.5 sm:self-start">
-            <Suspense fallback={<ThreadVote thread={thread} viewerId={null} myVote={0} />}>
-              <ViewerThreadVote thread={thread} />
+          <div className="col-start-2 row-start-4 flex items-center gap-1 self-center justify-self-end sm:col-start-3 sm:row-start-3">
+            {isPublic(thread) && <ShareButton url={`${siteUrl}/t/${thread.slug}`} title={thread.title} />}
+            <Suspense fallback={<ThreadMenu thread={modFields(thread)} slug={thread.slug} />}>
+              <ViewerThreadMenu thread={thread} />
             </Suspense>
           </div>
-        )}
-        <div className="col-start-2 row-start-4 flex items-center gap-1 self-center justify-self-end sm:col-start-3 sm:row-start-3">
-          {isPublic(thread) && <ShareButton url={`${siteUrl}/t/${thread.slug}`} title={thread.title} />}
-          <Suspense fallback={<ThreadMenu thread={modFields(thread)} slug={thread.slug} />}>
-            <ViewerThreadMenu thread={thread} />
+        </header>
+
+        <div className="mt-6 flex flex-col gap-3 empty:hidden">
+          <Banners thread={thread} />
+        </div>
+
+        <div className="mt-8 border-t border-border pt-8">
+          <Markdown size="reading">{thread.body}</Markdown>
+        </div>
+
+        <div className="mt-12">
+          <Suspense fallback={<PublicComments thread={thread} sort={sort} />}>
+            <ViewerComments thread={thread} sort={sort} />
           </Suspense>
         </div>
-      </header>
-
-      <div className="mt-6 flex flex-col gap-3 empty:hidden">
-        <Banners thread={thread} />
-      </div>
-
-      <div className="mt-8 border-t border-border pt-8">
-        <Markdown>{thread.body}</Markdown>
-      </div>
-
-      <div className="mt-12">
-        <Suspense fallback={<PublicComments thread={thread} sort={sort} />}>
-          <ViewerComments thread={thread} sort={sort} />
-        </Suspense>
-      </div>
-    </article>
+      </article>
+    </FeedLayout>
   );
 }
 
@@ -185,12 +197,17 @@ function ThreadBadges({ thread }: { thread: ThreadDetail }) {
           Pinned
         </Badge>
       )}
-      {statusBadge}
-      {thread.category && <Badge>{thread.category.name}</Badge>}
       {thread.city && (
-        <Badge>
-          <MapPin aria-hidden strokeWidth={1.75} />
+        <span className="mr-1 inline-flex items-center gap-1.5 text-meta text-muted">
+          <MapPin aria-hidden strokeWidth={1.75} className="size-4 text-subtle" />
           {cityLabels[thread.city]}
+        </span>
+      )}
+      {statusBadge}
+      {thread.best_comment_id !== null && (
+        <Badge variant="accent">
+          <CircleCheck aria-hidden strokeWidth={1.75} />
+          Answered
         </Badge>
       )}
       {thread.is_outdated && <Badge variant="warning">Outdated</Badge>}
@@ -346,28 +363,30 @@ async function ViewerThreadMenu({ thread }: { thread: ThreadDetail }) {
 
 function ThreadSkeleton() {
   return (
-    <div role="status" aria-busy="true">
-      <span className="sr-only">Loading thread…</span>
-      <Skeleton className="h-4 w-40" />
-      <Skeleton className="mt-5 h-8 w-11/12" />
-      <Skeleton className="mt-2 h-8 w-2/3" />
-      <div className="mt-5 flex gap-1.5">
-        <Skeleton className="h-5 w-20 rounded-full" />
-        <Skeleton className="h-5 w-16 rounded-full" />
+    <FeedLayout sidebar={<CommunitySidebarSkeleton />}>
+      <div role="status" aria-busy="true" className="max-w-[45rem]">
+        <span className="sr-only">Loading thread…</span>
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="mt-5 h-8 w-11/12" />
+        <Skeleton className="mt-2 h-8 w-2/3" />
+        <div className="mt-5 flex gap-1.5">
+          <Skeleton className="h-5 w-20 rounded-full" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+        <div className="mt-5 flex items-center gap-2">
+          <Skeleton className="size-6 rounded-full" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <div className="mt-8 flex flex-col gap-3 border-t border-border pt-8">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-11/12" />
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+        <div className="mt-12">
+          <CommentsSkeleton />
+        </div>
       </div>
-      <div className="mt-5 flex items-center gap-2">
-        <Skeleton className="size-6 rounded-full" />
-        <Skeleton className="h-4 w-48" />
-      </div>
-      <div className="mt-8 flex flex-col gap-3 border-t border-border pt-8">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-11/12" />
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="h-4 w-2/3" />
-      </div>
-      <div className="mt-12">
-        <CommentsSkeleton />
-      </div>
-    </div>
+    </FeedLayout>
   );
 }

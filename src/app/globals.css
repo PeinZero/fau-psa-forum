@@ -13,6 +13,7 @@
   --background: #ffffff;
   --surface: #f7f8f8;
   --surface-hover: #f0f1f2;
+  --raised: #ffffff;
   --foreground: #0f1011;
   --muted: #53575e;
   --subtle: #65696f;
@@ -35,6 +36,7 @@
   --background: #08090a;
   --surface: #0f1012;
   --surface-hover: #16171a;
+  --raised: #1a1b1e;
   --foreground: #f7f8f8;
   --muted: #9a9fa8;
   --subtle: #7e838c;
@@ -56,6 +58,7 @@
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
+  --color-raised: var(--raised);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-subtle: var(--subtle);
@@ -70,7 +73,7 @@
   --color-danger: var(--danger);
   --color-warning: var(--warning);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-reddit-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 }
 
@@ -100,21 +103,42 @@
   }
 }
 
+/*
+ * Type scale. Body is 15px on desktop and 16px on phones (see the media query below); every
+ * size pairs with its own line height so Tailwind's `text-*` utilities carry the rhythm.
+ */
 @theme static {
-  --text-meta: 0.78125rem;
-  --text-meta--line-height: 1.125rem;
-  --text-body: 0.875rem;
-  --text-body--line-height: 1.4rem;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.25rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5rem;
+  --text-reading: 1rem;
+  --text-reading--line-height: 1.7;
+  --text-title: 1.0625rem;
+  --text-title--line-height: 1.4;
+  --text-heading: 1.125rem;
+  --text-heading--line-height: 1.625rem;
+  --text-display: 1.875rem;
+  --text-display--line-height: 2.375rem;
 
-  /* One step down from Tailwind's defaults for page titles and large figures. */
-  --text-xl: 1.0625rem;
-  --text-xl--line-height: 1.5rem;
-  --text-2xl: 1.375rem;
-  --text-2xl--line-height: 1.75rem;
-  --text-3xl: 1.75rem;
-  --text-3xl--line-height: 2.125rem;
+  --text-xl: 1.125rem;
+  --text-xl--line-height: 1.625rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.375rem;
 
   --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Phones read at arm's length: body steps up to 16px, page titles step down. */
+@media (max-width: 640px) {
+  :root {
+    --text-body: 1rem;
+    --text-body--line-height: 1.625rem;
+    --text-display: 1.625rem;
+    --text-display--line-height: 2rem;
+  }
 }
 
 @keyframes shimmer {
@@ -166,8 +190,6 @@
     font-family: var(--font-sans);
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
-    /* Inter: open digits, single-storey a off, disambiguated l/I for code-ish names. */
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -176,7 +198,7 @@
   h2,
   h3,
   h4 {
-    letter-spacing: -0.015em;
+    letter-spacing: -0.01em;
     text-wrap: balance;
   }
 

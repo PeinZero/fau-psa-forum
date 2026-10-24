@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "next-themes";
-import { Inter } from "next/font/google";
+import { Reddit_Sans } from "next/font/google";
 import { ViewTransition } from "react";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+// Variable font: one file covers the 400–700 weights the design system uses.
+const redditSans = Reddit_Sans({
+  variable: "--font-reddit-sans",
   subsets: ["latin"],
   display: "swap",
 });
@@ -42,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} h-full`}
+      className={`${redditSans.variable} h-full`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
@@ -57,7 +58,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <main
               id="main"
               tabIndex={-1}
-              className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 focus:outline-none sm:px-6 sm:py-12"
+              className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 focus:outline-none sm:px-6 sm:py-8 lg:py-10"
             >
               {children}
             </main>

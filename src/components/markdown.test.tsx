@@ -35,3 +35,19 @@ describe("Markdown mentions", () => {
     expect(container.querySelector("script, b")).toBeNull();
   });
 });
+
+describe("Markdown sizes", () => {
+  it("renders comments at body size by default", () => {
+    const { container } = render(<Markdown>{"text"}</Markdown>);
+    expect(container.firstChild).toHaveClass("text-body");
+    expect(container.firstChild).not.toHaveClass("text-reading");
+  });
+
+  it("renders a thread's own post at the larger reading size", () => {
+    const { container } = render(<Markdown size="reading">{"## Where to look\n\ntext"}</Markdown>);
+    expect(container.firstChild).toHaveClass("text-reading");
+    expect(container.firstChild).not.toHaveClass("text-body");
+    // Authors' headings never compete with the page title.
+    expect(screen.getByRole("heading", { level: 3, name: "Where to look" })).toBeInTheDocument();
+  });
+});

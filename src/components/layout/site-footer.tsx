@@ -42,7 +42,7 @@ const columns = [
 export function SiteFooter() {
   return (
     <footer className="border-t border-border text-meta">
-      <div className="mx-auto w-full max-w-5xl px-4 pt-10 pb-6 sm:px-6">
+      <div className="mx-auto w-full max-w-6xl px-4 pt-10 pb-6 sm:px-6">
         <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:gap-16">
           <div className="max-w-xs space-y-3">
             <Link href="/" className="inline-flex items-center gap-2 font-medium text-foreground">
