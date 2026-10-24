@@ -45,7 +45,7 @@ export async function ModGate({ children }: { children: ReactNode }) {
     { href: "/mod/categories", label: "Categories", icon: "categories" },
     { href: "/mod/replies", label: "Canned replies", icon: "replies" },
     { href: "/mod/users", label: "Users", icon: "users" },
-    { ...FEEDBACK_MOD_NAV_ITEM, icon: "feedback" },
+    { ...FEEDBACK_MOD_NAV_ITEM, icon: "feedback", count: counts.feedback },
     { href: "/mod/log", label: "Log", icon: "log" },
   ];
 

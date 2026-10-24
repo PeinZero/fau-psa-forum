@@ -11,6 +11,7 @@ import {
   Inbox,
   Megaphone,
   MessageSquare,
+  MessageSquareText,
   Reply,
   ShieldCheck,
   ShieldX,
@@ -50,7 +51,8 @@ const notificationSelect = `
   comment:comments!notifications_comment_id_fkey(author_id),
   thread:threads!notifications_thread_id_fkey(slug, title),
   announcement:announcements!notifications_announcement_id_fkey(id, title),
-  restriction:user_restrictions!notifications_restriction_id_fkey(kind, reason, expires_at)
+  restriction:user_restrictions!notifications_restriction_id_fkey(kind, reason, expires_at),
+  feedback:feedback!notifications_feedback_id_fkey(message)
 `;
 
 /** `fetchedAt` anchors "Today" and relative times to the moment the list was read. */
@@ -86,6 +88,7 @@ const icons: Record<NotificationType, LucideIcon> = {
   account_muted: VolumeX,
   account_banned: Ban,
   account_unrestricted: Volume2,
+  mod_new_feedback: MessageSquareText,
 };
 
 // Decisions and announcements come from the moderation team as a whole, so they show no moderator's name.
@@ -104,6 +107,13 @@ const systemTypes: ReadonlySet<NotificationType> = new Set([
 /** Followers hear about a best answer too; then the actor is the moderator, not the comment's author. */
 function isFollowedBestAnswer(n: NotificationRow): boolean {
   return n.type === "followed_thread_activity" && n.comment !== null && n.comment.author_id !== n.actor_id;
+}
+
+const FEEDBACK_EXCERPT_LENGTH = 80;
+
+function excerpt(text: string): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > FEEDBACK_EXCERPT_LENGTH ? `${flat.slice(0, FEEDBACK_EXCERPT_LENGTH).trimEnd()}…` : flat;
 }
 
 function Quoted({ children }: { children: ReactNode }) {
@@ -158,6 +168,14 @@ function sentence(n: NotificationRow): ReactNode {
         </>
       );
     }
+    case "mod_new_feedback":
+      return n.feedback ? (
+        <>
+          New feedback from {actor}: <Quoted>{excerpt(n.feedback.message)}</Quoted>
+        </>
+      ) : (
+        <>New feedback from {actor}</>
+      );
     case "account_unrestricted":
       return n.restriction?.kind === "ban" ? (
         <>The ban on your account was lifted. Welcome back</>
@@ -177,6 +195,8 @@ function target(n: NotificationRow): string {
       return "/mod/reports";
     case "mod_new_update_request":
       return "/mod/updates";
+    case "mod_new_feedback":
+      return "/mod/feedback";
     case "application_approved":
       return "/mod";
     case "application_rejected":
