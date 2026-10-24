@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   agentRules: false,
   cacheComponents: true,
   partialPrefetching: true,
+  async redirects() {
+    return [
+      { source: "/datenschutz", destination: "/privacy", permanent: false },
+      { source: "/imprint", destination: "/impressum", permanent: false },
+    ];
+  },
   // No script-src: a nonce-based CSP would force every page dynamic and defeat cacheComponents.
   async headers() {
     return [

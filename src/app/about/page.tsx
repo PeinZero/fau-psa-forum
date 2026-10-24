@@ -105,7 +105,14 @@ const sections: { icon: LucideIcon; title: string; body: React.ReactNode }[] = [
     title: "Privacy",
     body: (
       <p>
-        We keep minimal data: your email and display name, hosted in the EU.
+        We keep minimal data: no ads, no tracking. Details are in the{" "}
+        <Link
+          href="/privacy"
+          className="font-medium text-accent underline underline-offset-2"
+        >
+          privacy policy
+        </Link>
+        .
       </p>
     ),
   },
