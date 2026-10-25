@@ -21,3 +21,4 @@ at FAU Erlangen-Nürnberg. Next.js 16 App Router + TypeScript + Tailwind v4, Sup
 - [docs/testing.md](docs/testing.md): unit, db and e2e tests, CI. Read before adding tests or changing CI.
 - [docs/delegation.md](docs/delegation.md): subagent split and review lenses. Read before multi-step work or reviews.
 - [docs/deployment.md](docs/deployment.md): hosting, env vars, regions.
+- [docs/tickets.md](docs/tickets.md): how to write tickets and run the board. Read before opening an issue.

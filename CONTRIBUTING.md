@@ -8,7 +8,7 @@ Thanks for helping. You do not need to know Next.js or Supabase well; small fixe
 - Columns: Backlog (ideas, not ready), Todo (ready to take), In progress, In review (PR open), Done.
 - Done means merged. An issue with an open PR is not done.
 - Start with issues labelled [good first issue](https://github.com/PeinZero/fau-psa-forum/labels/good%20first%20issue).
-- Assign yourself to the issue before you start, so two people do not do the same work. If you have an idea that is not on the board, open an issue first and wait for a reply.
+- Assign yourself to the issue before you start, so two people do not do the same work. If you have an idea that is not on the board, open an issue first (see [docs/tickets.md](docs/tickets.md) for how to write one) and wait for a reply.
 
 ## Branches and pull requests
 
