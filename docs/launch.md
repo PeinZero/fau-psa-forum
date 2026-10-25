@@ -9,7 +9,7 @@ Everything about getting from today to a public launch. What the product does: [
 | Missing | Why | Issue |
 |---|---|---|
 | Operator name and address for the Impressum and privacy policy | German law. The pages exist but show placeholders (`src/lib/legal.ts`). Contact: psa.community.forum@gmail.com | #18 |
-| Database backups | The free Supabase plan has none | #69 |
+| Database backups | The free Supabase plan has none. The nightly workflow is built; the owner still has to create the R2 bucket, key and secrets ([deployment.md](deployment.md#backups)) | #69 |
 | Own domain | Trust, and a stable link in WhatsApp | #19 |
 | Bot protection on email sign-in (Cloudflare Turnstile) | Stops fake sign-ups and sign-in email abuse | #74 |
 | Error monitoring (Sentry, EU, no personal data) | Otherwise we only hear about breakage from users | #47 |
@@ -38,7 +38,7 @@ Not blocking the launch, do soon after: Google findability, sitemap and robots (
 | Service | Plan | Limit that matters |
 |---|---|---|
 | Vercel (website) | Hobby, free | Personal, non-commercial use only; about 100 GB traffic per month |
-| Supabase (database, sign-in) | Free | 500 MB database, 50,000 monthly users, 5 GB traffic; pauses after 7 quiet days (our keep-awake job prevents that); no backups |
+| Supabase (database, sign-in) | Free | 500 MB database, 50,000 monthly users, 5 GB traffic; pauses after 7 quiet days (our keep-awake job prevents that); no backups (our nightly dump covers that) |
 | GitHub (code, CI, board) | Free | none for us |
 | Gmail SMTP (sign-in emails) | Free | about 500 emails per day |
 

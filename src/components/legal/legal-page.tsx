@@ -1,7 +1,7 @@
 import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/ui/page-header";
-import { completeOperator, formatLegalDate, lastUpdated, operator } from "@/lib/legal";
+import { completeOperator, formatLegalDate, joinNames, lastUpdated, operator } from "@/lib/legal";
 
 export const legalLinkClass = "font-medium text-accent underline underline-offset-2 [overflow-wrap:anywhere]";
 
@@ -59,30 +59,36 @@ export function EmailLink() {
   );
 }
 
-/** Name and postal address of the responsible person, or a notice while they are not filled in. */
+/** Names of the responsible people and their postal address, or a note while the address is missing. */
 export function OperatorDetails({ nameOnly = false }: { nameOnly?: boolean }) {
+  const names = joinNames(operator.names);
   const details = completeOperator();
   if (!details) {
     return (
-      <p
-        role="note"
-        className="flex items-start gap-2 rounded-lg bg-warning/10 p-4 text-warning"
-      >
-        <Info aria-hidden strokeWidth={1.75} className="mt-0.5 size-4 shrink-0" />
-        <span>
-          Responsible person: details are being finalised. Until then, contact us at{" "}
-          <a href={`mailto:${operator.email}`} className="font-medium underline underline-offset-2 [overflow-wrap:anywhere]">
-            {operator.email}
-          </a>
-          .
-        </span>
-      </p>
+      <div className="space-y-3">
+        <p className="text-foreground">{names}</p>
+        {!nameOnly && (
+          <p role="note" className="flex items-start gap-2 rounded-lg bg-warning/10 p-4 text-warning">
+            <Info aria-hidden strokeWidth={1.75} className="mt-0.5 size-4 shrink-0" />
+            <span>
+              Our postal address will be added soon. Until then, contact us at{" "}
+              <a
+                href={`mailto:${operator.email}`}
+                className="font-medium underline underline-offset-2 [overflow-wrap:anywhere]"
+              >
+                {operator.email}
+              </a>
+              .
+            </span>
+          </p>
+        )}
+      </div>
     );
   }
-  if (nameOnly) return <p className="text-foreground">{details.name}, address as above</p>;
+  if (nameOnly) return <p className="text-foreground">{names}, address as above</p>;
   return (
     <address className="not-italic text-foreground">
-      {details.name}
+      {names}
       <br />
       {details.street}
       <br />

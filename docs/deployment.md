@@ -34,5 +34,32 @@ Read before deploying, changing env vars or applying migrations.
 ## Keep-awake
 `.github/workflows/keep-supabase-awake.yml` reads one row through the REST API every 3 days so the free project never pauses. It needs the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets in the GitHub environment "wake up call for superbase". A failed run emails the watchers.
 
+## Backups
+`.github/workflows/backup.yml` runs every night at 02:30 UTC (or by hand: Actions → Nightly backup → Run workflow). It dumps the data of `public`, `auth.users`, `auth.identities` and `supabase_migrations.schema_migrations` with `pg_dump` 17 through the session pooler, gzips it, encrypts it with `age` to a public key and uploads it to a private R2 bucket: every night to `daily/`, on Sundays also to `weekly/`. Dumps never become workflow artifacts (the repo is public). A missing secret, a dump without users or threads, or a failed upload fails the run, and GitHub emails the watchers. The nightly connection also counts as activity for the free project.
+
+Data only, because the schema is `supabase/migrations` and a local stack already has Supabase's auth and storage schemas and roles. `schema_migrations` records which migrations production had, with their SQL. Sessions and tokens are left out: after a restore people simply sign in again.
+
+One-time setup (owner):
+1. Cloudflare → R2 → Create bucket, e.g. `psa-forum-backups`, jurisdiction **EU**, no public access. Keep it separate from the images bucket.
+2. Bucket → Settings → Object lifecycle rules: delete prefix `daily/` after 7 days and prefix `weekly/` after 28 days (7 daily and 4 weekly copies).
+3. R2 → Manage API tokens → Create: **Object Read & Write**, applied to this bucket only. Note the access key ID, secret access key and account ID.
+4. Locally: `age-keygen -o psa-backup.key`. Save the whole file in the shared Bitwarden vault, then delete it locally. Its `# public key: age1…` line is the recipient; only that goes to GitHub.
+5. Supabase dashboard → Connect → Session pooler: copy the URI (`postgresql://postgres.zjhrjhwqybzlahwbcxwh:<password>@<pooler-host>:5432/postgres`) with the database password filled in.
+6. GitHub → Settings → Environments → `nightly backup`, with the secrets `SUPABASE_DB_URL`, `AGE_RECIPIENT` (the public key), `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`.
+7. Run the workflow once by hand, check that `daily/` holds a file, then do a test restore.
+
+Restore, into the local Supabase only (needs Docker, `age` and `psql` 17.6 or newer: `brew install age libpq`, then add `$(brew --prefix libpq)/bin` to `PATH`):
+
+```sh
+# Download a file from the bucket in the R2 dashboard, and the key from Bitwarden.
+age -d -i psa-backup.key psa-forum-<date>.sql.gz.age | gunzip \
+  | awk '/^COPY supabase_migrations/ { f = 1; next } /^\\.$/ { f = 0 } f { print $1 }' | sort | tail -n 1
+git checkout <a commit whose newest migration is that version>
+npx supabase start && npx supabase db reset
+scripts/restore-backup.sh psa-forum-<date>.sql.gz.age psa-backup.key
+```
+
+The script refuses any database that is not on this machine, replaces exactly the tables in the dump in one transaction (a failure changes nothing) and prints the restored users, threads and comments. Loading a backup into production is a deliberate manual step: check it locally first.
+
 ## Legal pages
 `/impressum` and `/privacy` are linked from the footer. Operator name and postal address still have to be filled in `src/lib/legal.ts`; until then both pages show a notice ([launch.md](launch.md)).

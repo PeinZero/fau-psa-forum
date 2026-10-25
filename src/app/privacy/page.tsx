@@ -124,8 +124,8 @@ export default function PrivacyPage() {
 
       <LegalSection id="controller" title="1. Who is responsible">
         <p>
-          The controller under the EU General Data Protection Regulation (GDPR) for this forum is the
-          person who runs it:
+          The joint controllers under the EU General Data Protection Regulation (GDPR) for this forum are
+          the two people who run it:
         </p>
         <OperatorDetails />
         <p>
@@ -274,6 +274,12 @@ export default function PrivacyPage() {
             .
           </p>
         </LegalSubsection>
+        <LegalSubsection title="Cloudflare (backups)">
+          <p>
+            Cloudflare, Inc. stores our encrypted database backups in a private R2 bucket in the EU. It
+            cannot read them, because they are encrypted before they are uploaded.
+          </p>
+        </LegalSubsection>
         <LegalSubsection title="Google (only if you choose “Continue with Google”)">
           <p>
             If you sign in with Google, you are sent to Google, which learns that you are signing in to
@@ -350,6 +356,11 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Feedback</strong>: until we have dealt with it.
+          </li>
+          <li>
+            <strong>Backups</strong>: we keep nightly encrypted copies of the database in a private
+            Cloudflare R2 bucket in the EU, 7 daily and 4 weekly copies. Data you delete can therefore
+            remain in these backups for up to 4 weeks, until the copy holding it is replaced.
           </li>
           <li>
             <strong>Server and sign-in logs</strong>: deleted automatically by Vercel and Supabase after

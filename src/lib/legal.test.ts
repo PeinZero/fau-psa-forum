@@ -1,16 +1,30 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { completeOperator, formatLegalDate, lastUpdated, operator } from "./legal";
+import { completeOperator, formatLegalDate, joinNames, lastUpdated, operator } from "./legal";
 
 const original = { ...operator };
 afterEach(() => Object.assign(operator, original));
 
-const fill = () => Object.assign(operator, { name: "Ayesha Khan", street: "Hauptstr. 1", postcode: "91054", city: "Erlangen" });
+const fill = () => Object.assign(operator, { street: "Hauptstr. 1", postcode: "91054", city: "Erlangen" });
+
+describe("operator", () => {
+  it("names both founders", () => {
+    expect(joinNames(operator.names)).toBe("Mahad Khalid Tarar and Abdul Moeez");
+  });
+});
+
+describe("joinNames", () => {
+  it("joins one, two and three names", () => {
+    expect(joinNames(["A"])).toBe("A");
+    expect(joinNames(["A", "B"])).toBe("A and B");
+    expect(joinNames(["A", "B", "C"])).toBe("A, B and C");
+  });
+});
 
 describe("completeOperator", () => {
-  it("is null while any required detail is missing", () => {
+  it("is null while any part of the address is missing", () => {
     expect(completeOperator()).toBeNull();
-    for (const key of ["name", "street", "postcode", "city"] as const) {
+    for (const key of ["street", "postcode", "city"] as const) {
       fill();
       operator[key] = null;
       expect(completeOperator()).toBeNull();
@@ -23,9 +37,9 @@ describe("completeOperator", () => {
     expect(completeOperator()).toBeNull();
   });
 
-  it("returns the full operator once everything is filled in", () => {
+  it("returns the full operator once the address is filled in", () => {
     fill();
-    expect(completeOperator()).toMatchObject({ name: "Ayesha Khan", city: "Erlangen", country: "Germany", email: operator.email });
+    expect(completeOperator()).toMatchObject({ city: "Erlangen", country: "Germany", email: operator.email });
   });
 });
 
