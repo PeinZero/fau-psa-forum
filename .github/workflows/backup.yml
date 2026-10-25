@@ -20,12 +20,12 @@ jobs:
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
-      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-      R2_BUCKET: ${{ secrets.R2_BUCKET }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: auto
-      # R2 rejects some of the checksum headers newer AWS CLI versions send by default.
+      B2_REGION: ${{ secrets.B2_REGION }}
+      B2_BUCKET: ${{ secrets.B2_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.B2_REGION }}
+      # Backblaze has rejected the checksum headers newer AWS CLI versions send by default.
       AWS_REQUEST_CHECKSUM_CALCULATION: when_required
       AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
       PGSSLMODE: require
@@ -33,11 +33,11 @@ jobs:
       - name: Check the secrets
         run: |
           missing=""
-          for name in SUPABASE_DB_URL AGE_RECIPIENT R2_ACCOUNT_ID R2_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+          for name in SUPABASE_DB_URL AGE_RECIPIENT B2_REGION B2_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
             [ -n "${!name}" ] || missing="$missing $name"
           done
           if [ -n "$missing" ]; then
-            echo "::error::Missing secrets in the 'nightly backup' environment:$missing (AWS_* come from R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY; see docs/deployment.md)."
+            echo "::error::Missing secrets in the 'nightly backup' environment:$missing (AWS_* come from B2_KEY_ID and B2_APPLICATION_KEY; see docs/deployment.md)."
             exit 1
           fi
 
@@ -80,15 +80,15 @@ jobs:
           rm -f "$plain"
           echo "name=$name" >> "$GITHUB_OUTPUT"
 
-      - name: Upload to R2
+      - name: Upload to Backblaze
         env:
           NAME: ${{ steps.dump.outputs.name }}
         run: |
           set -euo pipefail
-          endpoint="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
-          # Lifecycle rules in R2 delete daily/ after 7 days and weekly/ after 28 days.
-          aws s3 cp "$RUNNER_TEMP/$NAME" "s3://$R2_BUCKET/daily/$NAME" --endpoint-url "$endpoint" --no-progress
+          endpoint="https://s3.$B2_REGION.backblazeb2.com"
+          # Lifecycle rules in Backblaze remove daily/ after 7 days and weekly/ after 28 days.
+          aws s3 cp "$RUNNER_TEMP/$NAME" "s3://$B2_BUCKET/daily/$NAME" --endpoint-url "$endpoint" --no-progress
           if [ "$(date -u +%u)" = 7 ]; then
-            aws s3 cp "$RUNNER_TEMP/$NAME" "s3://$R2_BUCKET/weekly/$NAME" --endpoint-url "$endpoint" --no-progress
+            aws s3 cp "$RUNNER_TEMP/$NAME" "s3://$B2_BUCKET/weekly/$NAME" --endpoint-url "$endpoint" --no-progress
           fi
           echo "Uploaded $NAME."

@@ -35,23 +35,24 @@ Read before deploying, changing env vars or applying migrations.
 `.github/workflows/keep-supabase-awake.yml` reads one row through the REST API every 3 days so the free project never pauses. It needs the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets in the GitHub environment "wake up call for superbase". A failed run emails the watchers.
 
 ## Backups
-`.github/workflows/backup.yml` runs every night at 02:30 UTC (or by hand: Actions → Nightly backup → Run workflow). It dumps the data of `public`, `auth.users`, `auth.identities` and `supabase_migrations.schema_migrations` with `pg_dump` 17 through the session pooler, gzips it, encrypts it with `age` to a public key and uploads it to a private R2 bucket: every night to `daily/`, on Sundays also to `weekly/`. Dumps never become workflow artifacts (the repo is public). A missing secret, a dump without users or threads, or a failed upload fails the run, and GitHub emails the watchers. The nightly connection also counts as activity for the free project.
+`.github/workflows/backup.yml` runs every night at 02:30 UTC (or by hand: Actions → Nightly backup → Run workflow). It dumps the data of `public`, `auth.users`, `auth.identities` and `supabase_migrations.schema_migrations` with `pg_dump` 17 through the session pooler, gzips it, encrypts it with `age` to a public key and uploads it to a private Backblaze B2 bucket: every night to `daily/`, on Sundays also to `weekly/`. Dumps never become workflow artifacts (the repo is public). A missing secret, a dump without users or threads, or a failed upload fails the run, and GitHub emails the watchers. The nightly connection also counts as activity for the free project.
 
 Data only, because the schema is `supabase/migrations` and a local stack already has Supabase's auth and storage schemas and roles. `schema_migrations` records which migrations production had, with their SQL. Sessions and tokens are left out: after a restore people simply sign in again.
 
 One-time setup (owner):
-1. Cloudflare → R2 → Create bucket, e.g. `psa-forum-backups`, jurisdiction **EU**, no public access. Keep it separate from the images bucket.
-2. Bucket → Settings → Object lifecycle rules: delete prefix `daily/` after 7 days and prefix `weekly/` after 28 days (7 daily and 4 weekly copies).
-3. R2 → Manage API tokens → Create: **Object Read & Write**, applied to this bucket only. Note the access key ID, secret access key and account ID.
-4. Locally: `age-keygen -o psa-backup.key`. Save the whole file in the shared Bitwarden vault, then delete it locally. Its `# public key: age1…` line is the recipient; only that goes to GitHub.
-5. Supabase dashboard → Connect → Session pooler: copy the URI (`postgresql://postgres.zjhrjhwqybzlahwbcxwh:<password>@<pooler-host>:5432/postgres`) with the database password filled in.
-6. GitHub → Settings → Environments → `nightly backup`, with the secrets `SUPABASE_DB_URL`, `AGE_RECIPIENT` (the public key), `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`.
-7. Run the workflow once by hand, check that `daily/` holds a file, then do a test restore.
+1. Sign up at Backblaze with the project Gmail and choose region **EU Central** (data in Amsterdam; it can't be changed later). Don't add a payment method: without one the account can never bill, and the 10 GB free storage is permanent. Turning on B2 asks for a phone number by SMS. Save the login in Bitwarden.
+2. B2 → Buckets → Create a Bucket, e.g. `psa-forum-backups`, **Private**. Keep it separate from the image buckets (#71).
+3. Bucket → Lifecycle Settings → custom rules: prefix `daily/` hidden after 6 days, prefix `weekly/` hidden after 27 days, both deleted 1 day after hiding (7 daily and 4 weekly copies; hidden files count as storage until deleted).
+4. B2 → Application Keys → Add a New Application Key: this bucket only, **Read and Write**. Note the keyID, the applicationKey (shown once) and the region from the bucket's S3 endpoint `s3.<region>.backblazeb2.com` (e.g. `eu-central-003`).
+5. Locally: `age-keygen -o psa-backup.key`. Save the whole file in the shared Bitwarden vault, then delete it locally. Its `# public key: age1…` line is the recipient; only that goes to GitHub.
+6. Supabase dashboard → Connect → Session pooler: copy the URI (`postgresql://postgres.zjhrjhwqybzlahwbcxwh:<password>@<pooler-host>:5432/postgres`) with the database password filled in.
+7. GitHub → Settings → Environments → `nightly backup`, with the secrets `SUPABASE_DB_URL`, `AGE_RECIPIENT` (the public key), `B2_REGION`, `B2_BUCKET`, `B2_KEY_ID`, `B2_APPLICATION_KEY`.
+8. Run the workflow once by hand, check that `daily/` holds a file, then do a test restore.
 
 Restore, into the local Supabase only (needs Docker, `age` and `psql` 17.6 or newer: `brew install age libpq`, then add `$(brew --prefix libpq)/bin` to `PATH`):
 
 ```sh
-# Download a file from the bucket in the R2 dashboard, and the key from Bitwarden.
+# Download a file from the bucket (Backblaze → Browse Files), and the key from Bitwarden.
 age -d -i psa-backup.key psa-forum-<date>.sql.gz.age | gunzip \
   | awk '/^COPY supabase_migrations/ { f = 1; next } /^\\.$/ { f = 0 } f { print $1 }' | sort | tail -n 1
 git checkout <a commit whose newest migration is that version>

@@ -29,5 +29,5 @@ Decisions agreed with the owner. Read before any user-facing feature. What exist
 ## Other decisions
 - Announcements are written by moderators in markdown; everyone is notified; the newest pinned one shows as a dismissible home banner.
 - Shared thread links must render rich previews in WhatsApp, so thread pages are server-rendered with per-thread metadata.
-- Voice notes are postponed. When built: browser MediaRecorder with a supported mimeType (Safari/iOS records `audio/mp4`), stored in Cloudflare R2.
+- Voice notes are postponed. When built: browser MediaRecorder with a supported mimeType (Safari/iOS records `audio/mp4`), stored like images (Backblaze B2 behind the Cloudflare media Worker).
 - Communities and sub-communities (other groups or universities) are on hold.
