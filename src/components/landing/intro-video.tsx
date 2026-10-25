@@ -76,7 +76,6 @@ export function IntroVideo({ video = introVideo }: { video?: IntroVideoConfig | 
           </>
         )}
       </div>
-      <p className="mt-3 text-center text-meta text-subtle">AI-generated video</p>
     </section>
   );
 }
