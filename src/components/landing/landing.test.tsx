@@ -6,8 +6,8 @@ import type { GuideSummary } from "@/components/guides/data";
 import { ClosingCta } from "./closing-cta";
 import { CommunityStripView } from "./community-strip";
 import { Hero } from "./hero";
+import { HeroEyebrowSkeleton, HeroEyebrowView } from "./hero-announcement";
 import { HowItWorks } from "./how-it-works";
-import { LatestAnnouncementView } from "./latest-announcement";
 import { type PopularQuestion, PopularQuestionsView } from "./popular-questions";
 import { StartHereView } from "./start-here";
 import { TopicsView } from "./topics";
@@ -147,33 +147,55 @@ describe("HowItWorks", () => {
   });
 });
 
-describe("LatestAnnouncementView", () => {
-  const announcement = {
-    href: "/announcements/7",
-    title: "Welcome evening on 3 November",
-    body: "Join us at the **Mensa Südmensa** for chai and samosas.",
-    is_pinned: true,
-    created_at: "2026-10-20T10:00:00Z",
-  };
+describe("HeroEyebrowView", () => {
+  const announcement = { href: "/announcements/7", title: "Welcome evening on 3 November", is_pinned: true };
 
-  it("is left out when nothing was announced", () => {
-    const { container } = render(<LatestAnnouncementView announcement={null} />);
-    expect(container).toBeEmptyDOMElement();
+  it("shows the PSA pill and no link when nothing was announced", () => {
+    render(<HeroEyebrowView announcement={null} />);
+    expect(screen.getByText(/Pakistan Student Association/)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).toBeNull();
   });
 
-  it("shows the title, a plain-text excerpt, the date and a link to read it", () => {
-    render(<LatestAnnouncementView announcement={announcement} />);
+  it("links a pinned announcement with its tag, title and Read", () => {
+    render(<HeroEyebrowView announcement={announcement} />);
     const link = screen.getByRole("link", { name: /Welcome evening on 3 November/ });
     expect(link).toHaveAttribute("href", "/announcements/7");
-    expect(link).toHaveTextContent("Join us at the Mensa Südmensa for chai and samosas.");
     expect(link).toHaveTextContent("Pinned");
     expect(link).toHaveTextContent("Read");
-    expect(within(link).getByText(/2026/)).toHaveAttribute("datetime", "2026-10-20T10:00:00Z");
+    expect(link).toHaveClass("min-h-11");
+    expect(within(link).getByText("Welcome evening on 3 November")).toHaveClass("truncate");
   });
 
-  it("drops the pinned mark for a regular announcement", () => {
-    render(<LatestAnnouncementView announcement={{ ...announcement, is_pinned: false }} />);
-    expect(screen.getByRole("link", { name: /Welcome evening/ })).not.toHaveTextContent("Pinned");
+  it("tags a regular announcement as new", () => {
+    render(<HeroEyebrowView announcement={{ ...announcement, is_pinned: false }} />);
+    const link = screen.getByRole("link", { name: /Welcome evening/ });
+    expect(link).toHaveTextContent("New");
+    expect(link).not.toHaveTextContent("Pinned");
+  });
+
+  it("keeps the association's name as a quiet line outside the link", () => {
+    render(<HeroEyebrowView announcement={announcement} />);
+    const line = screen.getByText(/Pakistan Student Association/);
+    expect(line).toHaveTextContent("FAU Erlangen-Nürnberg");
+    expect(screen.getByRole("link")).not.toContainElement(line);
+  });
+
+  it("reserves the same height while loading", () => {
+    const { container: loaded } = render(<HeroEyebrowView announcement={announcement} />);
+    const { container: loading } = render(<HeroEyebrowSkeleton />);
+    expect(loading.firstElementChild?.className).toContain("min-h-[4.5rem]");
+    expect(loaded.firstElementChild?.className).toContain("min-h-[4.5rem]");
+  });
+});
+
+describe("Hero eyebrow", () => {
+  it("defaults to the PSA pill and accepts the announcement pill instead", () => {
+    const { rerender } = render(<Hero />);
+    expect(screen.getByText(/Pakistan Student Association/)).toBeInTheDocument();
+    rerender(<Hero eyebrow={<HeroEyebrowView announcement={{ href: "/announcements/1", title: "Hello", is_pinned: false }} />} />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    const link = screen.getByRole("link", { name: /Hello/ });
+    expect(link.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
 

@@ -61,9 +61,9 @@ Tailwind steps only: 1 (4px), 1.5 (6px, icon–text gap), 2 (8), 3 (12), 4 (16),
   category (`AboutCard`), which the page itself only names in the breadcrumb.
 - Reading column on thread pages: `max-w-[45rem]` (~720px).
 - Home (`src/components/landing/`) is a landing page, not a feed, and has no sidebar: centred hero
-  (pill, 34/48/56px headline, Ask + Search ⌘K, trust line, `hero-spotlight` glow over a faint grid),
+  (announcement pill above the headline, else the PSA pill; 34/48/56px headline, Ask + Search ⌘K, trust line, `hero-spotlight` glow over a faint grid),
   then Start here (featured guides), Browse by topic, Popular questions (5 hot threads, topped up with
-  the newest), How it works, Latest announcement (pinned first, hidden if none), the community strip
+  the newest), How it works, the community strip
   and a closing Ask. Sections sit in a `max-w-5xl` column, 64/96/112px apart (phone/sm/lg); each data
   section has its own `<Suspense>` with a skeleton that keeps the real heading.
 
