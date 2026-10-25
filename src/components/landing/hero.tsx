@@ -1,5 +1,6 @@
 import { Check, PenLine, Search } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { OpenSearchButton } from "@/components/thread/open-search-button";
 import { SearchShortcut } from "@/components/thread/search-shortcut";
@@ -7,29 +8,19 @@ import { buttonClasses } from "@/components/ui/button";
 import { stagger } from "@/components/ui/motion";
 import { type IntroVideo, introVideo } from "@/lib/site";
 
+import { PsaPill } from "./hero-announcement";
 import { WatchIntroLink } from "./intro-video";
 
 export const trustPoints = ["Moderated by students", "Verified guides", "Free and independent"] as const;
 
-export function Hero({ video = introVideo }: { video?: IntroVideo | null }) {
+export function Hero({ video = introVideo, eyebrow = <PsaPill /> }: { video?: IntroVideo | null; eyebrow?: ReactNode }) {
   return (
     <section aria-labelledby="hero-heading" className="hero-spotlight flex flex-col items-center pt-12 text-center sm:pt-16 lg:pt-20">
-      <p
-        className="animate-fade-up inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-background/70 py-1 pr-3 pl-2.5 text-meta font-medium text-muted shadow-[0_1px_2px_var(--shadow-color)] backdrop-blur"
-        style={stagger(0)}
-      >
-        <span aria-hidden className="relative flex size-2 shrink-0">
-          <span className="absolute inset-0 rounded-full bg-accent opacity-30 blur-[3px]" />
-          <span className="relative size-2 rounded-full bg-accent" />
-        </span>
-        <span className="truncate">
-          Pakistan Student Association<span className="text-subtle"> · </span>FAU Erlangen-Nürnberg
-        </span>
-      </p>
+      {eyebrow}
 
       <h1
         id="hero-heading"
-        className="animate-fade-up mt-6 max-w-[15em] text-[2.125rem] leading-[1.1] font-semibold tracking-[-0.035em] text-balance text-foreground sm:mt-7 sm:text-5xl sm:leading-[1.05] lg:text-[3.5rem]"
+        className="animate-fade-up mt-2 max-w-[15em] text-[2.125rem] leading-[1.1] font-semibold tracking-[-0.035em] text-balance text-foreground sm:mt-2 sm:text-5xl sm:leading-[1.05] lg:text-[3.5rem]"
         style={stagger(1)}
       >
         Answers for Pakistani students in Erlangen&nbsp;&amp;&nbsp;Nuremberg

@@ -5,7 +5,7 @@ import { fetchCategoriesWithCounts } from "@/components/thread/thread-list";
 
 import { CommunityStripView } from "./community-strip";
 import { fetchCommunity, fetchPopularQuestions } from "./data";
-import { LatestAnnouncementView } from "./latest-announcement";
+import { HeroEyebrowView } from "./hero-announcement";
 import { PopularQuestionsView } from "./popular-questions";
 import { START_HERE_LIMIT } from "./shape";
 import { StartHereView } from "./start-here";
@@ -27,10 +27,10 @@ export async function PopularQuestions() {
 }
 
 /** The pinned announcement leads; without one, the newest. */
-export async function LatestAnnouncement() {
+export async function HeroEyebrow() {
   const { items } = await fetchLatestAnnouncements();
   const lead = items[0];
-  return <LatestAnnouncementView announcement={lead ? { ...lead, href: announcementHref(lead.id) } : null} />;
+  return <HeroEyebrowView announcement={lead ? { href: announcementHref(lead.id), title: lead.title, is_pinned: lead.is_pinned } : null} />;
 }
 
 export async function CommunityStrip() {
