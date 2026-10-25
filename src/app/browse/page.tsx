@@ -7,6 +7,8 @@ import { BrowseControls } from "@/components/browse/browse-controls";
 import { BrowseResults } from "@/components/browse/browse-results";
 import { BrowseSkeleton } from "@/components/browse/browse-skeleton";
 import { browseHref, browseTitle, parseBrowseParams } from "@/components/browse/params";
+import { CommunitySidebar } from "@/components/sidebar/community-sidebar";
+import { FeedLayout } from "@/components/sidebar/feed-layout";
 import { fetchCategories } from "@/components/thread/thread-list";
 import { buttonClasses } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -30,13 +32,12 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
 
 export default function BrowsePage({ searchParams }: { searchParams: SearchParams }) {
   return (
-    <div className="flex flex-col">
+    <FeedLayout sidebar={<CommunitySidebar />}>
       <PageHeader
-        className="mb-6"
         title="Browse"
         description={description}
         actions={
-          <Link href="/new" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+          <Link href="/new" className={buttonClasses({ variant: "secondary", size: "sm", className: "lg:hidden" })}>
             <PenLine strokeWidth={1.75} />
             Ask a question
           </Link>
@@ -45,7 +46,7 @@ export default function BrowsePage({ searchParams }: { searchParams: SearchParam
       <Suspense fallback={<BrowseSkeleton />}>
         <BrowseContent searchParams={searchParams} />
       </Suspense>
-    </div>
+    </FeedLayout>
   );
 }
 

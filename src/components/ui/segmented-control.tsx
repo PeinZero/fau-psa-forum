@@ -4,7 +4,7 @@ import { LinkPending } from "@/components/layout/link-pending";
 
 import { cn } from "./cn";
 
-const activeLook = "bg-background shadow-[0_1px_2px_var(--shadow-color)] ring-1 ring-border";
+const activeLook = "bg-raised shadow-[0_1px_2px_var(--shadow-color)] ring-1 ring-border";
 
 const frame = "inline-flex max-w-full gap-0.5 rounded-lg border border-border bg-surface p-0.5";
 

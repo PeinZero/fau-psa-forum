@@ -22,9 +22,9 @@ export default async function ApplicationsPage() {
     .eq("status", "pending")
     .order("created_at", { ascending: true });
 
-  if (error) return <p role="alert" className="text-danger">Could not load applications. Please reload.</p>;
+  if (error) return <p role="alert" className="text-body text-danger">Could not load applications. Please reload.</p>;
   if (!applications.length) {
-    return <EmptyState icon={<CheckCircle2 />} title="No open applications">Nobody is waiting for a decision.</EmptyState>;
+    return <EmptyState icon={<CheckCircle2 />} title="All caught up">No applications are waiting for a decision.</EmptyState>;
   }
 
   return (

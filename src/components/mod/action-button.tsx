@@ -81,7 +81,7 @@ export function ActionButton({
           {reason && <ReasonField id={uid} spec={reason} />}
           <div className="flex flex-wrap gap-2">
             <Button type="submit" variant={submitLook === "secondary" ? "primary" : submitLook} size={size} disabled={pending}>
-              {pending ? (pendingLabel ?? "Working...") : label}
+              {pending ? (pendingLabel ?? "Working…") : label}
             </Button>
             <Button
               variant="ghost"
@@ -105,7 +105,7 @@ export function ActionButton({
 
       {!needsStep && (
         <Button type="submit" variant={look} size={size} disabled={pending}>
-          {pending ? (pendingLabel ?? "Working...") : label}
+          {pending ? (pendingLabel ?? "Working…") : label}
         </Button>
       )}
 

@@ -22,7 +22,7 @@ const variants: Record<ButtonVariant, string> = {
 // Compact on mouse, 44px on touch screens.
 const sizes: Record<ButtonSize, string> = {
   sm: "min-h-8 px-3 text-meta pointer-coarse:min-h-11",
-  md: "min-h-9 px-4 text-sm pointer-coarse:min-h-11",
+  md: "min-h-9 px-4 text-small pointer-coarse:min-h-11",
   icon: "size-9 pointer-coarse:size-11",
 };
 

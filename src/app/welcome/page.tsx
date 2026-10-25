@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { SignInPrompt } from "@/components/sign-in-prompt";
-import { Card } from "@/components/ui/card";
+import { SignInCard } from "@/components/sign-in-prompt";
+import { stagger } from "@/components/ui/motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getViewer } from "@/lib/auth/viewer";
 import { safeNextPath } from "@/lib/safe-next";
@@ -28,9 +28,11 @@ async function WelcomeContent({ searchParams }: Props) {
   const viewer = await getViewer();
   if (!viewer) {
     return (
-      <Card>
-        <SignInPrompt next="/welcome" purpose="to set up your profile." />
-      </Card>
+      <SignInCard
+        next="/welcome"
+        title="Sign in to set up your profile"
+        description="Choose the name and username people see next to your questions and answers."
+      />
     );
   }
 
@@ -57,13 +59,14 @@ export default function WelcomePage(props: Props) {
       <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
         <WelcomeContent {...props} />
       </Suspense>
-      <section aria-labelledby="how-it-works" className="animate-fade-up flex flex-col gap-3 px-1">
-        <h2 id="how-it-works" className="text-meta font-medium text-muted">
+      <section aria-labelledby="how-it-works" className="animate-fade-up flex flex-col gap-3 px-1"
+        style={stagger(1)}>
+        <h2 id="how-it-works" className="text-body font-semibold text-foreground">
           How it works
         </h2>
-        <ul className="flex flex-col gap-2.5">
+        <ul className="flex flex-col gap-3">
           {HOW_IT_WORKS.map(({ icon: Icon, text }) => (
-            <li key={text} className="flex items-start gap-3 text-sm text-muted">
+            <li key={text} className="flex items-start gap-3 text-meta text-muted">
               <Icon aria-hidden strokeWidth={1.75} className="mt-0.5 size-4 shrink-0 text-accent" />
               {text}
             </li>

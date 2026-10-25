@@ -82,4 +82,22 @@ describe("DropdownMenu", () => {
     await user.click(screen.getByRole("button", { name: "Hide comment" }));
     expect(onSelect).toHaveBeenCalledWith({ reason: "spam" });
   });
+
+  it("shows the heading above the items, set off by a separator and skipped by the arrows", async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu
+        label="Account menu"
+        heading={<span>Ayesha Khan @ayesha</span>}
+        items={[{ label: "My profile", href: "/u/ayesha" }]}
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: "Account menu" });
+    trigger.focus();
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("menuitem", { name: "My profile" })).toHaveFocus();
+    const menu = screen.getByRole("menu");
+    expect(menu.firstElementChild).toHaveTextContent("Ayesha Khan @ayesha");
+    expect(menu.children[1]).toHaveAttribute("role", "separator");
+  });
 });

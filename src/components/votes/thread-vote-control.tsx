@@ -14,12 +14,12 @@ type Props = {
   disabledTitle?: string;
 };
 
-/** ▲ score ▼ beside the thread title: a column from sm up, a row on phones. */
+/** ▲ score ▼ as a pill in the action bar under the thread title. */
 export function ThreadVoteControl({ threadId, ...props }: Props) {
   return (
     <VoteControl
       {...props}
-      orientation="responsive"
+      appearance="pill"
       onVote={(value) => castThreadVote({ threadId, value })}
     />
   );

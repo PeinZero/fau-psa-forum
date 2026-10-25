@@ -24,7 +24,7 @@ export default async function SignupsPage() {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (error) return <p role="alert" className="text-danger">Could not load sign-ups. Please reload.</p>;
+  if (error) return <p role="alert" className="text-body text-danger">Could not load sign-ups. Please reload.</p>;
   if (!users.length) return <EmptyState icon={<UserPlus />} title="No sign-ups yet">New accounts appear here.</EmptyState>;
 
   const restrictions = await getActiveRestrictions(users.map((user) => user.id));
@@ -42,9 +42,9 @@ export default async function SignupsPage() {
               style={stagger(index)}
               className="flex animate-fade-up flex-wrap items-start justify-between gap-3 px-4 py-3"
             >
-              <div className="min-w-0 pt-1.5 text-sm">
+              <div className="min-w-0 pt-1.5 text-small">
                 <Author profile={user} />
-                <p className="mt-1 text-meta text-subtle">Joined {formatDate(user.created_at)}</p>
+                <p className="mt-1 text-meta text-muted">Joined {formatDate(user.created_at)}</p>
               </div>
               <div className="w-full sm:w-auto sm:max-w-80">
                 <RestrictControls

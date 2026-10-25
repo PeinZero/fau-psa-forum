@@ -40,3 +40,8 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZ
 export function formatDate(iso: string): string {
   return dateFormat.format(new Date(iso));
 }
+
+/** "1 comment", "2 comments"; `plural` for irregular words. */
+export function countLabel(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}

@@ -11,7 +11,7 @@ Agreed with the owner. Read before building any user-facing feature.
 - Any signed-in user can apply to become a moderator; moderators or superadmins approve/reject.
 - Moderators manage threads: approve/reject, mark outdated (banner, still open), archive (read-only,
   hidden from lists, still linkable), pin, pick one best answer, hide comments, create categories.
-  The founders (owner and abdulmoeez1225) are superadmins; only superadmins change roles, and the last superadmin cannot be demoted.
+  The founders (Mahad Khalid Tarar, GitHub PeinZero, Founder; Abdul Moeez, GitHub abdulmoeez1225, Co-founder) are superadmins; only superadmins change roles, and the last superadmin cannot be demoted.
 - Threads carry a category and an optional city (Erlangen / Nuremberg / both).
 - Authors can edit their threads after approval; edits go live and appear on the moderator dashboard.
 - Moderators may edit any thread's title, body, category and city to keep information current;

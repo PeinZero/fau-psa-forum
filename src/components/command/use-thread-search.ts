@@ -14,6 +14,7 @@ export type ThreadSearch = {
   suggestions: Suggestions | null;
   loading: boolean;
   failed: boolean;
+  retry: () => void;
 };
 
 async function fetchSearch(query: string, signal: AbortSignal): Promise<SearchResponse> {
@@ -29,6 +30,7 @@ async function fetchSearch(query: string, signal: AbortSignal): Promise<SearchRe
 export function useThreadSearch(query: string, enabled: boolean): ThreadSearch {
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestions | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const trimmed = query.trim();
 
   useEffect(() => {
@@ -54,7 +56,7 @@ export function useThreadSearch(query: string, enabled: boolean): ThreadSearch {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [trimmed, enabled]);
+  }, [trimmed, enabled, attempt]);
 
   const current = answer?.query === trimmed;
   return {
@@ -62,5 +64,9 @@ export function useThreadSearch(query: string, enabled: boolean): ThreadSearch {
     suggestions,
     loading: enabled && (trimmed ? !current : suggestions === null && !current),
     failed: current && answer.failed,
+    retry: () => {
+      setAnswer(null);
+      setAttempt((value) => value + 1);
+    },
   };
 }

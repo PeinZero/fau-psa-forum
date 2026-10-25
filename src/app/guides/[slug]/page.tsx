@@ -14,7 +14,6 @@ import {
 import { Markdown } from "@/components/markdown";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
-import { cardClasses } from "@/components/ui/card";
 import { stagger } from "@/components/ui/motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getEffectiveViewer, getViewer, isModerator } from "@/lib/auth/viewer";
@@ -84,22 +83,22 @@ async function GuideContent({ params }: { params: Params }) {
       >
         <header className="mt-4 flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
-            <h1 className="min-w-0 text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] break-words sm:text-[2.25rem] sm:leading-[1.15]">
+            <h1 className="min-w-0 text-display font-semibold tracking-[-0.025em] break-words">
               {guide.title}
             </h1>
             <Suspense fallback={null}>
               <EditLink guideId={guide.id} />
             </Suspense>
           </div>
-          {guide.summary && <p className="max-w-2xl text-base text-muted">{guide.summary}</p>}
+          {guide.summary && <p className="max-w-2xl text-body text-muted">{guide.summary}</p>}
         </header>
 
-        <div className="sticky top-14 z-10 -mx-4 mt-6 border-b border-border bg-background/85 px-4 py-3 backdrop-blur-xl sm:mx-0 sm:rounded-xl sm:border sm:bg-surface/85 sm:px-5">
+        <div className="sticky top-14 z-10 -mx-4 mt-6 border-b border-border bg-background/85 px-4 py-3 backdrop-blur-xl sm:mx-0 sm:rounded-xl sm:border-0 sm:bg-surface/85 sm:px-5">
           <GuideProgressSummary />
         </div>
 
         {guide.steps.length === 0 ? (
-          <p className="mt-10 text-sm text-muted">This guide has no steps yet.</p>
+          <p className="mt-10 text-body text-muted">This guide has no steps yet.</p>
         ) : (
           <ol className="mt-10 flex flex-col">
             {guide.steps.map((step, index) => (
@@ -143,12 +142,12 @@ function LinkedThread({ thread }: { thread: NonNullable<GuideStep["thread"]> }) 
   return (
     <Link
       href={`/t/${thread.slug}`}
-      className={cardClasses({ interactive: true, padding: "none", className: "mt-4 flex items-center gap-3 px-4 py-3" })}
+      className="mt-4 flex items-center gap-3 rounded-lg bg-surface px-4 py-3 transition-colors duration-150 ease-out hover:bg-surface-hover active:bg-surface-hover/70"
     >
       <MessageSquare aria-hidden strokeWidth={1.75} className="size-4 shrink-0 text-muted" />
       <span className="min-w-0 flex-1">
-        <span className="block text-meta text-subtle">Related thread</span>
-        <span className="block truncate text-sm font-medium text-foreground">{thread.title}</span>
+        <span className="block text-meta text-muted">Related thread</span>
+        <span className="block truncate text-body font-medium text-foreground">{thread.title}</span>
       </span>
       {answered && (
         <Badge variant="accent">

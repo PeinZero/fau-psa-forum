@@ -68,7 +68,7 @@ export function RoleForm({ target, name, role }: { target: string; name: string;
           </p>
           <div className="flex flex-wrap gap-2">
             <Button type="submit" variant="danger" disabled={pending}>
-              {pending ? "Saving..." : "Confirm"}
+              {pending ? "Saving…" : "Confirm"}
             </Button>
             <Button
               variant="ghost"

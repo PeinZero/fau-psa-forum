@@ -10,8 +10,8 @@ export const metadata: Metadata = { title: "Moderation", robots: { index: false 
 
 export default function ModLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-10">
-      <PageHeader title="Moderation" description="Review threads, reports and applications for the forum." className="mb-6 sm:mb-8" />
+    <div className="w-full">
+      <PageHeader title="Moderation" description="Review what members send in, and keep the forum tidy." className="mb-6 sm:mb-8" />
       <Suspense
         fallback={
           <div className="grid gap-3" aria-busy>

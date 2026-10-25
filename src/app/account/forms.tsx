@@ -57,7 +57,7 @@ export function ProfileForm({
   const set = (patch: Partial<typeof fields>) => setFields((current) => ({ ...current, ...patch }));
   const usernameError = state?.field === "username" ? state.message : undefined;
   return (
-    <form onSubmit={submitWithoutReset(action)} className="space-y-4">
+    <form onSubmit={submitWithoutReset(action)} className="space-y-5">
       <div className="space-y-1.5">
         <Label htmlFor="display_name">Display name</Label>
         <Input
@@ -131,10 +131,12 @@ export function ProfileForm({
           Self-chosen and not verified; it is shown next to your name.
         </p>
       </div>
-      {!usernameError && <Feedback id="profile-feedback" state={state} />}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving..." : "Save profile"}
-      </Button>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving…" : "Save profile"}
+        </Button>
+        {!usernameError && <Feedback id="profile-feedback" state={state} />}
+      </div>
     </form>
   );
 }
@@ -142,7 +144,7 @@ export function ProfileForm({
 export function ModeratorApplicationForm() {
   const [state, action, pending] = useActionState(applyForModerator, null);
   return (
-    <form onSubmit={submitWithoutReset(action)} className="space-y-4">
+    <form onSubmit={submitWithoutReset(action)} className="space-y-5">
       <div className="space-y-1.5">
         <Label htmlFor="motivation">Why do you want to moderate?</Label>
         <Textarea
@@ -158,10 +160,12 @@ export function ModeratorApplicationForm() {
           20 to 1000 characters.
         </p>
       </div>
-      <Feedback id="application-feedback" state={state} />
-      <Button type="submit" disabled={pending}>
-        {pending ? "Sending..." : "Send application"}
-      </Button>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Button type="submit" disabled={pending}>
+          {pending ? "Sending…" : "Send application"}
+        </Button>
+        <Feedback id="application-feedback" state={state} />
+      </div>
     </form>
   );
 }
@@ -185,19 +189,11 @@ export function DeleteAccountForm() {
   }
 
   return (
-    <form
-      action={action}
-      className="space-y-4 rounded-lg border border-danger/25 bg-danger/5 p-4"
-    >
-      <p className="flex items-start gap-2 text-sm text-foreground">
-        <TriangleAlert
-          className="mt-0.5 size-4 shrink-0 text-danger"
-          strokeWidth={1.75}
-          aria-hidden
-        />
+    <form action={action} className="space-y-5">
+      <p className="flex items-start gap-2 text-body text-foreground">
+        <TriangleAlert className="mt-1 size-4 shrink-0 text-danger" strokeWidth={1.75} aria-hidden />
         <span>
-          This removes your login and profile for good. Your threads and
-          comments stay visible as &ldquo;Deleted user&rdquo;.
+          Your threads and comments stay visible as &ldquo;Deleted user&rdquo;. Everything else tied to you is removed.
         </span>
       </p>
       <div className="space-y-1.5">
@@ -214,18 +210,15 @@ export function DeleteAccountForm() {
           spellCheck={false}
           autoFocus
           aria-describedby="delete-feedback"
+          className="sm:max-w-xs"
         />
       </div>
       <div id="delete-feedback">
         <Feedback id="delete-feedback-message" state={state} />
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="submit"
-          variant="danger"
-          disabled={pending || typed.trim() !== "DELETE"}
-        >
-          {pending ? "Deleting..." : "Delete my account"}
+        <Button type="submit" variant="danger" disabled={pending || typed.trim() !== "DELETE"}>
+          {pending ? "Deleting…" : "Delete my account"}
         </Button>
         <Button
           variant="ghost"

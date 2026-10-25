@@ -29,7 +29,7 @@ export function MarkAllReadButton({ disabled }: { disabled: boolean }) {
         }
       >
         <CheckCheck strokeWidth={1.75} />
-        {pending ? "Marking..." : "Mark all as read"}
+        {pending ? "Marking…" : "Mark all as read"}
       </Button>
       <FieldError id="mark-all-error" message={error} />
     </div>

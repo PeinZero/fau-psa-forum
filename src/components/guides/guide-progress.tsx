@@ -251,7 +251,7 @@ export function StepTitle({ stepId, id, children }: { stepId: number; id: string
     <h2
       id={id}
       className={cn(
-        "text-base font-medium tracking-tight break-words transition-colors duration-150",
+        "text-title font-semibold break-words transition-colors duration-150",
         done.has(stepId) ? "text-muted line-through decoration-subtle" : "text-foreground",
       )}
     >

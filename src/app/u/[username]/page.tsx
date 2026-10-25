@@ -59,39 +59,39 @@ async function ProfileContent({ params, searchParams }: { params: Params; search
   if (!profile) notFound();
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="animate-fade-up flex items-start gap-4">
-        <Avatar name={profile.display_name} size="lg" />
+    <div className="flex flex-col gap-10">
+      <header className="animate-fade-up flex items-start gap-4 sm:gap-5">
+        <Avatar name={profile.display_name} size="lg" className="sm:size-16 sm:text-xl" />
         <div className="min-w-0 flex-1">
-          <h1 className="break-words text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem] sm:leading-9">
+          <h1 className="break-words text-display font-semibold tracking-tight text-foreground">
             {profile.display_name}
           </h1>
-          <p className="mt-0.5 break-all text-body text-muted">@{profile.username}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-meta text-muted">
-            {profile.role !== "member" && (
-              <Badge variant="accent">{profile.role === "superadmin" ? "Superadmin" : "Moderator"}</Badge>
-            )}
-            {profile.affiliation && <Badge>{affiliationLabels[profile.affiliation]}</Badge>}
-            {isTopHelper(profile.best_answer_count) && <TopHelperBadge />}
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarDays aria-hidden strokeWidth={1.75} className="size-3.5" />
-              Joined <time dateTime={profile.created_at}>{formatDate(profile.created_at)}</time>
-            </span>
-          </div>
+          <p className="break-all text-body text-muted">@{profile.username}</p>
+          {(profile.role !== "member" || profile.affiliation || isTopHelper(profile.best_answer_count)) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {profile.role !== "member" && (
+                <Badge variant="accent">{profile.role === "superadmin" ? "Superadmin" : "Moderator"}</Badge>
+              )}
+              {profile.affiliation && <Badge>{affiliationLabels[profile.affiliation]}</Badge>}
+              {isTopHelper(profile.best_answer_count) && <TopHelperBadge />}
+            </div>
+          )}
+          <dl className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-meta text-muted">
+            <Stat icon={<Sparkles />} label="Reputation" value={profile.reputation} />
+            <Stat icon={<MessageSquareCheck />} label="Best answers" value={profile.best_answer_count} />
+            <div className="flex items-center gap-1.5">
+              <CalendarDays aria-hidden strokeWidth={1.75} className="size-4 text-subtle" />
+              <dt className="sr-only">Joined</dt>
+              <dd>
+                Joined <time dateTime={profile.created_at} className="tabular-nums">{formatDate(profile.created_at)}</time>
+              </dd>
+            </div>
+          </dl>
         </div>
       </header>
 
-      <dl className="animate-fade-up grid grid-cols-2 gap-3" style={{ "--i": 1 } as React.CSSProperties}>
-        <Stat icon={<Sparkles aria-hidden strokeWidth={1.75} />} label="Reputation" value={profile.reputation} />
-        <Stat
-          icon={<MessageSquareCheck aria-hidden strokeWidth={1.75} />}
-          label="Best answers"
-          value={profile.best_answer_count}
-        />
-      </dl>
-
-      <section aria-labelledby="profile-threads" className="flex flex-col gap-3">
-        <h2 id="profile-threads" className="text-base font-semibold tracking-tight">
+      <section aria-labelledby="profile-threads" className="animate-fade-up" style={{ "--i": 1 } as React.CSSProperties}>
+        <h2 id="profile-threads" className="mb-2 text-heading font-semibold text-foreground">
           Threads
         </h2>
         <Suspense fallback={<ThreadListSkeleton rows={3} />}>
@@ -109,14 +109,12 @@ async function ProfileContent({ params, searchParams }: { params: Params; search
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3">
-      <span aria-hidden className="text-accent [&_svg]:size-4">
+    <div className="flex items-center gap-1.5">
+      <span aria-hidden className="text-subtle [&_svg]:size-4 [&_svg]:stroke-[1.75]">
         {icon}
       </span>
-      <div>
-        <dd className="text-lg font-semibold tabular-nums leading-tight tracking-tight">{value}</dd>
-        <dt className="text-meta text-muted">{label}</dt>
-      </div>
+      <dd className="font-semibold tabular-nums text-foreground">{value}</dd>
+      <dt>{label}</dt>
     </div>
   );
 }
@@ -145,7 +143,7 @@ async function ProfileThreads({
 
   if (error) {
     return (
-      <p role="alert" className="text-sm text-danger">
+      <p role="alert" className="text-body text-danger">
         Could not load threads. Please try again later.
       </p>
     );
@@ -156,7 +154,8 @@ async function ProfileThreads({
     <>
       <ThreadList
         threads={threads}
-        emptyText={`${name} has not published any threads yet.`}
+        hideAuthor
+        emptyText={`${name} has no published threads yet`}
         emptyDescription="Threads appear here once a moderator has approved them."
         emptyAction={null}
       />
@@ -167,17 +166,20 @@ async function ProfileThreads({
 
 function ProfileSkeleton() {
   return (
-    <div role="status" aria-busy="true" className="flex flex-col gap-8">
+    <div role="status" aria-busy="true" className="flex flex-col gap-10">
       <span className="sr-only">Loading profile…</span>
-      <div className="flex items-start gap-4">
-        <Skeleton className="size-14 rounded-full" />
+      <div className="flex items-start gap-4 sm:gap-5">
+        <Skeleton className="size-14 rounded-full sm:size-16" />
         <div className="flex-1 space-y-2">
-          <Skeleton className="h-7 w-48" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-5 w-56" />
+          <Skeleton className="h-9 w-56 max-w-full" />
+          <Skeleton className="h-6 w-28" />
+          <Skeleton className="mt-4 h-5 w-64 max-w-full" />
         </div>
       </div>
-      <ThreadListSkeleton rows={3} />
+      <div>
+        <Skeleton className="mb-2 h-6 w-20" />
+        <ThreadListSkeleton rows={3} />
+      </div>
     </div>
   );
 }

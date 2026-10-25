@@ -1,8 +1,9 @@
 import { Award, Code2, ExternalLink, PenLine, ShieldCheck, Users } from "lucide-react";
 import type { Metadata } from "next";
 import { cacheLife } from "next/cache";
+import { connection } from "next/server";
 import { Suspense } from "react";
-import { Avatar } from "@/components/author";
+import { Avatar, profileHref, profileLinkClasses } from "@/components/author";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { Card, cardClasses } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { stagger } from "@/components/ui/motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { affiliationLabels } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
+import { avatarSrc, founders, FOUNDERS_STORY, shapeContributors, type GithubContributor } from "@/lib/team";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -19,13 +21,6 @@ export const metadata: Metadata = {
 };
 
 const REPO = "https://github.com/PeinZero/fau-psa-forum";
-
-type GithubContributor = {
-  login: string;
-  avatar_url: string;
-  html_url: string;
-  contributions: number;
-};
 
 async function fetchContributors(): Promise<GithubContributor[] | null> {
   "use cache";
@@ -38,22 +33,14 @@ async function fetchContributors(): Promise<GithubContributor[] | null> {
       },
     );
     if (!res.ok) return null;
-    const data = (await res.json()) as (GithubContributor & { type: string })[];
-    return data
-      .filter((c) => c.type !== "Bot")
-      .map(({ login, avatar_url, html_url, contributions }) => ({
-        login,
-        avatar_url,
-        html_url,
-        contributions,
-      }));
+    return shapeContributors(await res.json());
   } catch {
     return null;
   }
 }
 
 async function CodeContributors() {
-  const contributors = await fetchContributors();
+  const contributors: GithubContributor[] | null = await fetchContributors();
   if (!contributors?.length) {
     return (
       <EmptyState
@@ -76,27 +63,19 @@ async function CodeContributors() {
       {contributors.map((c, i) => (
         <li key={c.login} className="animate-fade-up" style={stagger(i)}>
           <a
-            href={c.html_url}
-            className={cardClasses({ interactive: true, padding: "none", className: "flex items-center gap-3 p-3" })}
+            href={c.profileUrl}
+            className={cardClasses({ variant: "quiet", interactive: true, padding: "none", className: "flex items-center gap-3 p-3" })}
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- GitHub avatars are not in next.config remotePatterns */}
             <img
-              src={`${c.avatar_url}${c.avatar_url.includes("?") ? "&" : "?"}s=80`}
+              src={avatarSrc(c.avatarUrl)}
               alt=""
               width={40}
               height={40}
               loading="lazy"
-              className="size-10 rounded-full border border-border"
+              className="size-10 shrink-0 rounded-full border border-border"
             />
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-foreground">
-                {c.login}
-              </span>
-              <span className="block text-meta text-muted">
-                {c.contributions}{" "}
-                {c.contributions === 1 ? "contribution" : "contributions"}
-              </span>
-            </span>
+            <span className="min-w-0 truncate text-body font-medium text-foreground">{c.login}</span>
           </a>
         </li>
       ))}
@@ -104,17 +83,17 @@ async function CodeContributors() {
   );
 }
 
-async function Community() {
+async function Moderators() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, affiliation, role")
+    .select("id, display_name, username, affiliation, role")
     .in("role", ["moderator", "superadmin"])
     .order("display_name");
 
   if (error)
     return (
-      <p className="text-sm text-muted">
+      <p className="text-body text-muted">
         The community list could not be loaded.
       </p>
     );
@@ -129,19 +108,20 @@ async function Community() {
     <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {data.map((p, i) => (
         <li key={p.id} className="animate-fade-up" style={stagger(i)}>
-          <Card className="flex items-center gap-3 p-3 sm:p-3">
-            <span
-              aria-hidden
-              className="flex size-10 shrink-0 items-center justify-center rounded-full border border-accent/20 bg-accent-soft text-sm font-semibold text-accent"
-            >
-              {p.display_name.trim().slice(0, 1).toUpperCase()}
-            </span>
+          <Card variant="quiet" className="flex items-center gap-3 p-3 sm:p-3">
+            <Avatar name={p.display_name} size="md" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium">
-                {p.display_name}
+              <span className="block truncate text-body font-medium text-foreground">
+                {p.username ? (
+                  <Link href={profileHref(p.username)} className={profileLinkClasses}>
+                    {p.display_name}
+                  </Link>
+                ) : (
+                  p.display_name
+                )}
               </span>
-              <span className="block text-meta text-muted">
-                {p.affiliation ? affiliationLabels[p.affiliation] : " "}
+              <span className="block truncate text-meta text-muted">
+                {p.affiliation ? affiliationLabels[p.affiliation] : " "}
               </span>
             </span>
             <Badge variant={p.role === "superadmin" ? "accent" : "neutral"}>
@@ -155,12 +135,14 @@ async function Community() {
 }
 
 async function TopHelpers() {
+  // The month window depends on the request time, so this cannot be prerendered.
+  await connection();
   const supabase = await createClient();
   const now = new Date();
   const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   const { data, error } = await supabase.rpc("top_helpers", { since });
 
-  if (error) return <p className="text-sm text-muted">Top helpers could not be loaded.</p>;
+  if (error) return <p className="text-body text-muted">Top helpers could not be loaded.</p>;
   if (!data.length) {
     return (
       <EmptyState icon={<Award />} title="No helpers ranked yet this month">
@@ -174,14 +156,14 @@ async function TopHelpers() {
         <li key={helper.user_id} className="animate-fade-up" style={stagger(i)}>
           <Link
             href={`/u/${helper.username}`}
-            className={cardClasses({ interactive: true, padding: "none", className: "flex items-center gap-3 p-3" })}
+            className={cardClasses({ variant: "quiet", interactive: true, padding: "none", className: "flex items-center gap-3 p-3" })}
           >
             <span aria-hidden className="w-4 text-center text-meta tabular-nums text-subtle">
               {i + 1}
             </span>
             <Avatar name={helper.display_name} size="md" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-foreground">{helper.display_name}</span>
+              <span className="block truncate text-body font-medium text-foreground">{helper.display_name}</span>
               <span className="block truncate text-meta text-muted">@{helper.username}</span>
             </span>
             <Badge variant="accent">
@@ -230,33 +212,30 @@ const ways = [
 
 export default function ContributorsPage() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
-      <header className="hero-glow mb-12 text-center">
-        <h1 className="animate-fade-up text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-          Built by the community
+    <div className="mx-auto w-full max-w-5xl py-4 sm:py-8">
+      <header className="hero-glow mb-10 text-center sm:mb-12">
+        <h1 className="animate-fade-up text-balance text-display font-semibold text-foreground">
+          The people behind the forum
         </h1>
         <p
-          className="animate-fade-up mx-auto mt-3 max-w-xl text-balance text-muted"
+          className="animate-fade-up mx-auto mt-3 max-w-xl text-body text-balance text-muted"
           style={stagger(1)}
         >
-          The people who write the code and keep the answers right.
+          Moderators who keep answers right, and the people who built it.
         </p>
       </header>
 
-      <section aria-labelledby="code-heading" className="mb-12">
-        <h2
-          id="code-heading"
-          className="mb-4 text-lg font-semibold tracking-tight"
-        >
-          Code
+      <section aria-labelledby="moderators-heading" className="mb-12">
+        <h2 id="moderators-heading" className="mb-4 text-heading font-semibold">
+          Moderators
         </h2>
         <Suspense fallback={<GridSkeleton />}>
-          <CodeContributors />
+          <Moderators />
         </Suspense>
       </section>
 
       <section aria-labelledby="helpers-heading" className="mb-12">
-        <h2 id="helpers-heading" className="mb-4 text-lg font-semibold tracking-tight">
+        <h2 id="helpers-heading" className="mb-4 text-heading font-semibold">
           Top helpers this month
         </h2>
         <Suspense fallback={<GridSkeleton />}>
@@ -264,42 +243,79 @@ export default function ContributorsPage() {
         </Suspense>
       </section>
 
-      <section aria-labelledby="community-heading" className="mb-12">
-        <h2
-          id="community-heading"
-          className="mb-4 text-lg font-semibold tracking-tight"
-        >
-          Community
+      <section aria-labelledby="founders-heading" className="mb-12">
+        <h2 id="founders-heading" className="mb-1 text-heading font-semibold">
+          Founders
         </h2>
+        <p className="mb-4 text-body text-muted">{FOUNDERS_STORY}</p>
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {founders.map((f, i) => (
+            <li key={f.githubHandle} className="animate-fade-up" style={stagger(i)}>
+              <a
+                href={f.github}
+                className={cardClasses({ variant: "quiet", interactive: true, padding: "none", className: "flex items-center gap-4 p-4" })}
+              >
+                <Avatar name={f.name} size="lg" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-title font-semibold text-foreground">{f.name}</span>
+                  <span className="block text-meta text-muted">{f.role}</span>
+                  <span className="block truncate text-meta text-subtle">github.com/{f.githubHandle}</span>
+                </span>
+                <ExternalLink aria-hidden className="size-4 shrink-0 text-subtle" strokeWidth={1.75} />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="code-heading" className="mb-12">
+        <h2 id="code-heading" className="mb-1 text-heading font-semibold">
+          Open-source contributors
+        </h2>
+        <p className="mb-4 text-body text-muted">
+          Want to help? See{" "}
+          <a href={`${REPO}/blob/main/CONTRIBUTING.md`} className="text-accent underline underline-offset-2">
+            CONTRIBUTING
+          </a>{" "}
+          and the{" "}
+          <a
+            href={`${REPO}/issues?q=is%3Aopen+label%3A%22good+first+issue%22`}
+            className="text-accent underline underline-offset-2"
+          >
+            good first issues
+          </a>
+          .
+        </p>
         <Suspense fallback={<GridSkeleton />}>
-          <Community />
+          <CodeContributors />
         </Suspense>
       </section>
 
       <section aria-labelledby="contribute-heading">
         <h2
           id="contribute-heading"
-          className="mb-4 text-lg font-semibold tracking-tight"
+          className="mb-4 text-heading font-semibold"
         >
           How to contribute
         </h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {ways.map(({ icon: Icon, title, body, href, cta }, i) => (
             <Card
+              variant="quiet"
               key={title}
               className="animate-fade-up flex flex-col gap-3"
               style={stagger(i)}
             >
               <span
                 aria-hidden
-                className="flex size-8 items-center justify-center rounded-md border border-border bg-background text-accent"
+                className="flex size-8 items-center justify-center rounded-md bg-raised text-accent"
               >
                 <Icon className="size-4" strokeWidth={1.75} />
               </span>
-              <h3 className="text-base font-semibold tracking-tight">
+              <h3 className="text-title font-semibold">
                 {title}
               </h3>
-              <p className="flex-1 text-sm text-muted">{body}</p>
+              <p className="flex-1 text-body text-muted">{body}</p>
               {href.startsWith("/") ? (
                 <Link
                   href={href}

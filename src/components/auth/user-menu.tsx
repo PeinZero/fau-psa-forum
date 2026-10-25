@@ -65,6 +65,7 @@ export default async function UserMenu() {
       )}
       <AccountMenu
         displayName={viewer.displayName}
+        username={username}
         initials={initials(viewer.displayName)}
         // Without a handle yet there is no public profile, so the account page stands in.
         profileHref={username ? `/u/${username}` : "/account"}

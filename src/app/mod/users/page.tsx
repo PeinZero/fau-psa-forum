@@ -47,20 +47,20 @@ export default async function UsersPage({ searchParams }: Props) {
         <Label htmlFor="user-search">Search by display name</Label>
         <div className="flex gap-2">
           <Input id="user-search" name="q" type="search" defaultValue={q} maxLength={40} className="min-w-0 flex-1" />
-          <Button type="submit" variant="primary">
+          <Button type="submit" variant="secondary">
             <Search aria-hidden strokeWidth={1.75} />
             Search
           </Button>
         </div>
         <p className="text-meta text-subtle">
           {isSuperadmin
-            ? "The last superadmin can't be demoted. Only you can ban, or restrict moderators."
+            ? "The last superadmin can't be demoted. Only you can ban or restrict moderators."
             : "Moderators mute members; the superadmin bans and changes roles."}
         </p>
       </Form>
 
       {error ? (
-        <p role="alert" className="text-danger">Could not load users. Please reload.</p>
+        <p role="alert" className="text-body text-danger">Could not load users. Please reload.</p>
       ) : !users.length ? (
         <EmptyState icon={<Search />} title="No users found">Try a different name.</EmptyState>
       ) : (
@@ -77,7 +77,7 @@ export default async function UsersPage({ searchParams }: Props) {
                 style={stagger(index)}
                 className="grid animate-fade-up gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_16rem_minmax(0,18rem)] md:items-start md:gap-4"
               >
-                <div className="min-w-0 pt-1.5 text-sm">
+                <div className="min-w-0 pt-1.5 text-small">
                   <Author profile={user} />
                 </div>
                 {isSuperadmin ? (

@@ -1,17 +1,19 @@
-import { Info } from "lucide-react";
+import { ArrowLeft, Info, Lock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { SignInPrompt } from "@/components/sign-in-prompt";
+import { SignInCard } from "@/components/sign-in-prompt";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { updateThreadAction } from "@/components/write/actions";
 import { ThreadForm } from "@/components/write/thread-form";
+import { ThreadFormSkeleton } from "@/components/write/thread-form-skeleton";
 import { getOwnRestriction } from "@/components/restrictions/data";
 import { RestrictionBanner } from "@/components/restrictions/restriction-banner";
 
@@ -29,23 +31,35 @@ async function EditThread({ params }: { params: Promise<{ slug: string }> }) {
 
   const viewer = await getViewer();
   if (!viewer) {
-    return <SignInPrompt next={`/t/${slug}/edit`} purpose="to edit this thread." />;
+    return (
+      <SignInCard
+        next={`/t/${slug}/edit`}
+        title="Sign in to edit this thread"
+        description="Only the author and moderators can edit a thread."
+      />
+    );
   }
 
   const isAuthor = thread.author_id === viewer.userId;
   if (!isAuthor && !isModerator(viewer.role)) {
     return (
-      <p role="alert" className="text-muted">
-        You are not allowed to edit this thread.{" "}
-        <Link href={`/t/${slug}`} className="text-accent underline underline-offset-2">
-          Back to the thread
-        </Link>
-      </p>
+      <EmptyState
+        icon={<Lock />}
+        title="You can't edit this thread"
+        action={
+          <Link href={`/t/${slug}`} className={buttonClasses({ variant: "secondary", size: "sm" })}>
+            <ArrowLeft strokeWidth={1.75} />
+            Back to the thread
+          </Link>
+        }
+      >
+        <span role="alert">Only the author and moderators can edit it.</span>
+      </EmptyState>
     );
   }
 
   const [{ data: categories }, restriction] = await Promise.all([
-    supabase.from("categories").select("id, name").order("sort_order"),
+    supabase.from("categories").select("id, slug, name, description").order("sort_order"),
     getOwnRestriction(viewer.userId),
   ]);
 
@@ -65,17 +79,16 @@ async function EditThread({ params }: { params: Promise<{ slug: string }> }) {
           <p className="text-meta text-muted">{note}</p>
         </Card>
       ) : null}
-      <Card className="animate-fade-up" style={stagger(1)}>
+      <div className="animate-fade-up" style={stagger(1)}>
         <ThreadForm
           categories={categories ?? []}
           initial={{ title: thread.title, body: thread.body, categoryId: thread.category_id, city: thread.city }}
           submitLabel="Save changes"
+          pendingLabel="Saving…"
+          cancelHref={`/t/${slug}`}
           action={updateThreadAction.bind(null, thread.id)}
         />
-      </Card>
-      <Link href={`/t/${slug}`} className={buttonClasses({ variant: "ghost", className: "self-start" })}>
-        Cancel
-      </Link>
+      </div>
     </>
   );
 }
@@ -83,8 +96,8 @@ async function EditThread({ params }: { params: Promise<{ slug: string }> }) {
 export default function EditThreadPage({ params }: { params: Promise<{ slug: string }> }) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-      <PageHeader className="mb-2" title="Edit thread" />
-      <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      <PageHeader className="mb-4" title="Edit thread" />
+      <Suspense fallback={<ThreadFormSkeleton />}>
         <EditThread params={params} />
       </Suspense>
     </div>

@@ -1,25 +1,19 @@
-import { ArrowUp, CircleCheck, MapPin, MessageSquare, PenLine, Search, SearchX } from "lucide-react";
+import { PenLine, Search, SearchX } from "lucide-react";
 import type { Metadata } from "next";
 import Form from "next/form";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { Highlight } from "@/components/command/highlight";
 import { SEARCH_QUERY_MAX } from "@/components/command/types";
-import { ThreadListSkeleton } from "@/components/thread/thread-list";
-import { Badge } from "@/components/ui/badge";
+import { ThreadListSkeleton, ThreadRow, ThreadRows, type ThreadRowData } from "@/components/thread/thread-list";
 import { Button, buttonClasses } from "@/components/ui/button";
-import { cardClasses } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { EmptyState } from "@/components/ui/empty-state";
 import { fieldClasses } from "@/components/ui/field";
-import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { PAGE_SIZE, Pagination, parsePage } from "@/components/ui/pagination";
 import { SegmentedLinks } from "@/components/ui/segmented-control";
-import type { Enums } from "@/lib/supabase/database.types";
-import { cityLabels, formatDate } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
 
 import { SearchFilters } from "./search-filters";
@@ -43,7 +37,7 @@ export default function SearchPage({ searchParams }: { searchParams: SearchParam
 
 function SearchForm({ state }: { state: SearchFilterState }) {
   return (
-    <Form action="/search" role="search" aria-label="Search threads" className="mb-4 flex gap-2">
+    <Form action="/search" role="search" aria-label="Search threads" className="mb-3 flex gap-2">
       {state.category && <input type="hidden" name="category" value={state.category} />}
       {state.city !== "all" && <input type="hidden" name="city" value={state.city} />}
       {state.bestAnswer && <input type="hidden" name="best" value="1" />}
@@ -67,10 +61,10 @@ function SearchForm({ state }: { state: SearchFilterState }) {
           placeholder="Anmeldung, blocked account, halal food…"
           autoComplete="off"
           enterKeyHint="search"
-          className={cn(fieldClasses, "min-h-12 rounded-lg pl-11 text-base sm:text-base")}
+          className={cn(fieldClasses, "min-h-11 rounded-lg pl-11 text-base sm:text-base")}
         />
       </div>
-      <Button type="submit" variant="secondary" className="min-h-12 rounded-lg pointer-coarse:min-h-12">
+      <Button type="submit" variant="secondary" className="min-h-11 rounded-lg">
         Search
       </Button>
     </Form>
@@ -88,22 +82,11 @@ const tips = (
 const dbSort = { relevance: "relevance", hot: "hot", top: "top", new: "newest" } as const;
 
 const resultSelect = `id, slug, title, body, city, created_at, score, comment_count, best_comment_id,
+  is_pinned, is_outdated, last_verified_at,
   category:categories!threads_category_id_fkey(slug, name),
-  author:profiles!threads_author_id_fkey(display_name)`;
+  author:profiles!threads_author_id_fkey(display_name, username)`;
 
-type ResultThread = {
-  id: number;
-  slug: string;
-  title: string;
-  body: string;
-  city: Enums<"city"> | null;
-  created_at: string;
-  score: number;
-  comment_count: number;
-  best_comment_id: number | null;
-  category: { slug: string; name: string } | null;
-  author: { display_name: string } | null;
-};
+type ResultThread = ThreadRowData & { body: string };
 
 async function Results({ searchParams }: { searchParams: SearchParams }) {
   const raw = await searchParams;
@@ -167,7 +150,7 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
       {form}
       <section aria-labelledby="results-heading" className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <h2 id="results-heading" aria-live="polite" className="min-w-0 break-words text-meta text-muted">
+          <h2 id="results-heading" aria-live="polite" className="min-w-0 break-words text-body text-muted">
             {total} {total === 1 ? "result" : "results"} for{" "}
             <span className="font-medium text-foreground">“{state.q}”</span>
           </h2>
@@ -210,72 +193,21 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
             </ul>
           </EmptyState>
         ) : (
-          <ul className={cardClasses({ padding: "none", className: "overflow-hidden divide-y divide-border" })}>
-            {threads.map((thread, i) => (
-              <ResultRow key={thread.id} thread={thread} query={state.q} index={i} />
+          <ThreadRows>
+            {threads.map(({ body, ...thread }, i) => (
+              <ThreadRow
+                key={thread.id}
+                thread={thread}
+                index={i}
+                hideCategory={Boolean(category)}
+                highlight={state.q}
+                excerpt={bodySnippet(body, state.q)?.text}
+              />
             ))}
-          </ul>
+          </ThreadRows>
         )}
         <Pagination path="/search" params={searchParamsOf(state)} page={page} total={total} className="mt-3" />
       </section>
     </>
-  );
-}
-
-function ResultRow({ thread, query, index }: { thread: ResultThread; query: string; index: number }) {
-  const snippet = bodySnippet(thread.body, query);
-  const comments = thread.comment_count;
-  return (
-    <li className="animate-fade-up" style={stagger(index)}>
-      <Link
-        href={`/t/${thread.slug}`}
-        className="group flex items-start gap-3 px-4 py-3.5 transition-colors duration-150 ease-out hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-5"
-      >
-        <div className="min-w-0 flex-1">
-          <h3 className="break-words text-[15px] font-medium leading-snug text-foreground">
-            <Highlight text={thread.title} query={query} />
-          </h3>
-          {snippet && (
-            <p className="mt-1 line-clamp-2 break-words text-meta text-muted">
-              <Highlight text={snippet.text} query={query} />
-            </p>
-          )}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-meta text-muted">
-            {thread.category && <Badge>{thread.category.name}</Badge>}
-            {thread.city && (
-              <Badge>
-                <MapPin aria-hidden strokeWidth={1.75} />
-                {cityLabels[thread.city]}
-              </Badge>
-            )}
-            {thread.best_comment_id !== null && (
-              <span className="inline-flex items-center gap-1 text-accent">
-                <CircleCheck aria-hidden strokeWidth={1.75} className="size-3.5" />
-                Answered
-              </span>
-            )}
-            <span className="truncate">{thread.author?.display_name ?? "Deleted user"}</span>
-            <span aria-hidden className="text-subtle">·</span>
-            <time dateTime={thread.created_at} className="whitespace-nowrap">
-              {formatDate(thread.created_at)}
-            </time>
-          </div>
-        </div>
-        <div className="mt-0.5 flex shrink-0 flex-col items-end gap-1 text-meta tabular-nums text-subtle transition-colors group-hover:text-muted">
-          {thread.score !== 0 && (
-            <span className="inline-flex items-center gap-1">
-              <ArrowUp aria-hidden strokeWidth={1.75} className="size-3.5" />
-              {thread.score}
-              <span className="sr-only">{Math.abs(thread.score) === 1 ? " point" : " points"}</span>
-            </span>
-          )}
-          <span className="inline-flex items-center gap-1">
-            <MessageSquare aria-hidden strokeWidth={1.75} className="size-3.5" />
-            {comments}
-            <span className="sr-only">{comments === 1 ? " comment" : " comments"}</span>
-          </span>
-        </div>
-      </Link>
-    </li>
   );
 }

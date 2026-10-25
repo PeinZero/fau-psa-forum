@@ -27,23 +27,25 @@ export default function GlobalError({ error, retry }: { error: unknown; retry: (
     <html lang="en" className="h-full">
       <body className="flex min-h-full items-center justify-center bg-background px-4 font-sans text-foreground antialiased">
         <title>Something went wrong · PSA FAU Community Forum</title>
-        <main className="flex w-full max-w-md flex-col items-center gap-4 rounded-xl border border-border bg-surface px-6 py-12 text-center">
-          <span className="flex size-10 items-center justify-center rounded-lg border border-border bg-background text-muted">
-            <TriangleAlert aria-hidden strokeWidth={1.75} className="size-5" />
+        <main className="hero-glow flex w-full max-w-md animate-fade-up flex-col items-center text-center">
+          <span
+            aria-hidden
+            className="flex size-11 items-center justify-center rounded-xl bg-surface text-muted ring-1 ring-border"
+          >
+            <TriangleAlert strokeWidth={1.75} className="size-5" />
           </span>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-lg font-semibold tracking-tight">Something went wrong</h1>
-            <p className="text-sm text-muted">
-              The forum couldn&apos;t load right now. It&apos;s usually temporary, so please try again in a moment.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button size="sm" onClick={() => retry()}>
+          <p className="mt-5 text-meta font-medium text-subtle">Something went wrong</p>
+          <h1 className="mt-1 text-display font-semibold tracking-tight">The forum didn&apos;t load</h1>
+          <p className="mt-3 text-body text-muted">
+            It&apos;s on our side and usually temporary, so please try again in a moment.
+          </p>
+          <div className="mt-7 flex w-full flex-col justify-center gap-2 sm:w-auto sm:flex-row">
+            <Button onClick={() => retry()}>
               <RotateCw strokeWidth={1.75} />
               Try again
             </Button>
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- the app shell itself failed, so reload it fully. */}
-            <a href="/" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+            <a href="/" className={buttonClasses({ variant: "secondary" })}>
               <Home strokeWidth={1.75} />
               Back to home
             </a>

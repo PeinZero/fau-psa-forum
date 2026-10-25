@@ -8,7 +8,6 @@ import { AnnouncementCard } from "@/components/announcements/announcement-card";
 import { MarkAnnouncementsSeen } from "@/components/announcements/unseen-mark-seen";
 import { SEARCH_MAX, searchAnnouncements } from "@/components/announcements/data";
 import { Button, buttonClasses } from "@/components/ui/button";
-import { cardClasses } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Label } from "@/components/ui/field";
 import { stagger } from "@/components/ui/motion";
@@ -37,7 +36,7 @@ async function AnnouncementList({ searchParams }: Props) {
 
   if (error) {
     return (
-      <p role="alert" className="text-sm text-danger">
+      <p role="alert" className="text-body text-danger">
         Could not load the announcements. Please try again later.
       </p>
     );
@@ -47,7 +46,7 @@ async function AnnouncementList({ searchParams }: Props) {
     if (q) {
       return (
         <EmptyState icon={<Search />} title="No announcements match">
-          Try a different word.
+          Try a different word, or clear the search to see every announcement.
         </EmptyState>
       );
     }
@@ -77,11 +76,11 @@ function ListSkeleton() {
     <div role="status" aria-busy="true" className="grid gap-4">
       <span className="sr-only">Loading announcements…</span>
       {[0, 1].map((i) => (
-        <div key={i} className={cardClasses()}>
-          <Skeleton className="h-5 w-2/3" />
-          <Skeleton className="mt-3 h-3 w-40" />
-          <Skeleton className="mt-5 h-4 w-full" />
-          <Skeleton className="mt-2 h-4 w-4/5" />
+        <div key={i} className="rounded-xl bg-surface px-4 py-4 sm:px-5">
+          <Skeleton className="my-1 h-3 w-40" />
+          <Skeleton className="mt-3.5 h-[1.125rem] w-2/3" />
+          <Skeleton className="mt-2.5 h-3 w-full" />
+          <Skeleton className="mt-2 h-3 w-4/5" />
         </div>
       ))}
     </div>
@@ -92,7 +91,7 @@ async function NewAnnouncementLink() {
   const viewer = await getViewer();
   if (!viewer || !isModerator(viewer.role)) return null;
   return (
-    <Link href="/mod/announcements" className={buttonClasses({ variant: "primary" })}>
+    <Link href="/mod/announcements" className={buttonClasses({ variant: "primary", size: "sm" })}>
       <Plus aria-hidden strokeWidth={1.75} />
       New announcement
     </Link>
@@ -103,8 +102,10 @@ async function SearchForm({ searchParams }: Props) {
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim().slice(0, SEARCH_MAX) : "";
   return (
-    <Form action="/announcements" role="search" className="mb-6 grid gap-1.5">
-      <Label htmlFor="announcement-search">Search announcements</Label>
+    <Form action="/announcements" role="search" className="mb-8 grid gap-1.5">
+      <Label htmlFor="announcement-search" className="sr-only">
+        Search announcements
+      </Label>
       <div className="flex gap-2">
         <Input
           id="announcement-search"
@@ -112,9 +113,11 @@ async function SearchForm({ searchParams }: Props) {
           type="search"
           defaultValue={q}
           maxLength={SEARCH_MAX}
+          placeholder="Search announcements…"
+          autoComplete="off"
           className="min-w-0 flex-1"
         />
-        <Button type="submit" variant="primary">
+        <Button type="submit" variant="secondary">
           <Search aria-hidden strokeWidth={1.75} />
           Search
         </Button>

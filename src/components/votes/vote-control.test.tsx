@@ -61,3 +61,19 @@ describe("VoteControl", () => {
     expect(cast).toHaveBeenLastCalledWith({ commentId: 7, value: -1 });
   });
 });
+
+describe("VoteControl pill", () => {
+  it("tints the pill once the visitor has upvoted", () => {
+    render(<VoteControl commentId={7} score={3} myVote={1} signedIn appearance="pill" />);
+    const group = screen.getByRole("group", { name: "Vote" });
+    expect(group).toHaveClass("rounded-full", "bg-accent-soft");
+    expect(group).not.toHaveClass("bg-surface");
+  });
+
+  it("stays neutral without a vote, also for visitors who are signed out", () => {
+    render(<VoteControl commentId={7} score={0} myVote={0} signedIn={false} appearance="pill" />);
+    const group = screen.getByRole("group", { name: "Vote" });
+    expect(group).toHaveClass("rounded-full", "bg-surface");
+    expect(group).not.toHaveClass("bg-accent-soft");
+  });
+});

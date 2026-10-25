@@ -1,21 +1,22 @@
 "use client";
 
+import { BookOpen, Compass, Info, type LucideIcon, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UnseenAnnouncementsBadge } from "@/components/announcements/unseen-badge";
 import { cn } from "@/components/ui/cn";
 import { LinkPending } from "./link-pending";
 
-export type NavItem = { href: string; label: string; matches: (path: string) => boolean };
+export type NavItem = { href: string; label: string; icon: LucideIcon; matches: (path: string) => boolean };
 
 const under = (prefix: string) => (path: string) => path === prefix || path.startsWith(`${prefix}/`);
 
 /** Home is the logo; categories live under Browse. */
 export const navItems: readonly NavItem[] = [
-  { href: "/browse", label: "Browse", matches: (path) => under("/browse")(path) || path.startsWith("/c/") },
-  { href: "/guides", label: "Guides", matches: under("/guides") },
-  { href: "/announcements", label: "Announcements", matches: under("/announcements") },
-  { href: "/about", label: "About", matches: under("/about") },
+  { href: "/browse", label: "Browse", icon: Compass, matches: (path) => under("/browse")(path) || path.startsWith("/c/") },
+  { href: "/guides", label: "Guides", icon: BookOpen, matches: under("/guides") },
+  { href: "/announcements", label: "Announcements", icon: Megaphone, matches: under("/announcements") },
+  { href: "/about", label: "About", icon: Info, matches: under("/about") },
 ];
 
 // While another link is loading, the current one lets go of its highlight.
@@ -34,10 +35,10 @@ export function NavLinkList({ pathname }: { pathname: string | null }) {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative isolate inline-flex min-h-8 items-center whitespace-nowrap rounded-md px-2.5 text-meta font-medium transition-colors duration-150 pointer-coarse:min-h-11 has-data-pending:text-foreground",
+              "relative isolate inline-flex h-8 items-center whitespace-nowrap rounded-md px-2.5 text-meta font-medium transition-colors duration-150 ease-out pointer-coarse:h-11 has-data-pending:text-foreground",
               active
-                ? cn("bg-surface-hover text-foreground", dimWhilePending)
-                : "text-muted hover:bg-surface-hover hover:text-foreground",
+                ? cn("bg-surface text-foreground hover:bg-surface-hover", dimWhilePending)
+                : "text-muted hover:bg-surface-hover hover:text-foreground active:bg-surface-hover",
             )}
           >
             {label}

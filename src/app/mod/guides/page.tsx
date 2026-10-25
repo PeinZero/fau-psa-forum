@@ -26,7 +26,7 @@ export default async function ModGuidesPage() {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold tracking-tight">Guides</h2>
+        <h2 className="text-heading font-semibold tracking-tight">Guides</h2>
         <Link href="/mod/guides/new" className={buttonClasses({ variant: "primary", size: "sm" })}>
           <Plus aria-hidden strokeWidth={1.75} />
           New guide
@@ -34,7 +34,7 @@ export default async function ModGuidesPage() {
       </div>
 
       {error ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="text-body text-danger">
           Could not load guides. Please reload.
         </p>
       ) : guides.length === 0 ? (
@@ -51,7 +51,7 @@ export default async function ModGuidesPage() {
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <Link
                       href={`/mod/guides/${guide.id}`}
-                      className="min-w-0 truncate text-sm font-medium text-foreground underline-offset-2 hover:underline"
+                      className="min-w-0 truncate text-small font-medium text-foreground underline-offset-2 hover:underline"
                     >
                       {guide.title}
                     </Link>
@@ -75,7 +75,7 @@ export default async function ModGuidesPage() {
                       action={moderateGuide}
                       fields={{ guideId: guide.id, op: guide.is_featured ? "unfeature" : "feature" }}
                       label={guide.is_featured ? "Unfeature" : "Feature"}
-                      pendingLabel="Saving..."
+                      pendingLabel="Saving…"
                     />
                     <Link href={guideHref(guide.slug)} className={buttonClasses({ variant: "ghost", size: "sm" })}>
                       View
@@ -86,7 +86,7 @@ export default async function ModGuidesPage() {
                         action={moderateGuide}
                         fields={{ guideId: guide.id, op: "delete" }}
                         label="Delete"
-                        pendingLabel="Deleting..."
+                        pendingLabel="Deleting…"
                         tone="danger"
                         confirm={`Delete "${guide.title}"? Its steps and everyone's progress are removed. This cannot be undone.`}
                       />

@@ -7,16 +7,15 @@ import remarkGfm from "remark-gfm";
 import { cn } from "@/components/ui/cn";
 
 const prose = cn(
-  "min-w-0 break-words text-body text-foreground/90",
-  "[&>*+*]:mt-4 [&>h3:not(:first-child)]:mt-7",
+  "min-w-0 break-words text-foreground/90",
   "[&_li>p]:my-1 [&_li+li]:mt-1.5 [&_li_ul]:mt-1.5 [&_li_ol]:mt-1.5",
   "[&_strong]:font-semibold [&_strong]:text-foreground",
-  "[&_:not(pre)>code]:rounded [&_:not(pre)>code]:border [&_:not(pre)>code]:border-border [&_:not(pre)>code]:bg-surface [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-px [&_:not(pre)>code]:font-mono [&_:not(pre)>code]:text-[0.85em]",
+  "[&_:not(pre)>code]:rounded-md [&_:not(pre)>code]:bg-surface-hover [&_:not(pre)>code]:px-1.5 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:font-mono [&_:not(pre)>code]:text-[0.85em]",
   "[&_input[type=checkbox]]:mr-1.5 [&_input[type=checkbox]]:accent-(--accent)",
 );
 
 function Heading({ children }: { children?: ReactNode }) {
-  return <h3 className="text-base font-semibold tracking-tight text-foreground">{children}</h3>;
+  return <h3 className="scroll-mt-20 font-semibold text-foreground">{children}</h3>;
 }
 
 // Same boundary as the database's mention rule, so a linked handle is one that gets notified
@@ -57,9 +56,15 @@ function remarkMentions() {
 
 // User-written content: react-markdown never renders raw HTML, and links open outside the forum.
 // Mentions are the only internal links.
-export function Markdown({ children }: { children: string }) {
+/** `reading` is the long-form size for a thread's own post; comments stay at body size. */
+const sizes = {
+  body: "text-body [&>*+*]:mt-4 [&>h3:not(:first-child)]:mt-7",
+  reading: "text-reading [&>*+*]:mt-5 [&>h3:not(:first-child)]:mt-10 [&_h3]:text-heading [&_li+li]:mt-2",
+};
+
+export function Markdown({ children, size = "body" }: { children: string; size?: keyof typeof sizes }) {
   return (
-    <div className={prose}>
+    <div className={cn(prose, sizes[size])}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMentions]}
         components={{
@@ -91,15 +96,15 @@ export function Markdown({ children }: { children: string }) {
           ul: ({ children }) => <ul className="list-disc pl-5 marker:text-subtle">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-5 marker:text-subtle">{children}</ol>,
           blockquote: ({ children }) => (
-            <blockquote className="border-l-2 border-accent/40 pl-4 text-muted [&>*+*]:mt-2">{children}</blockquote>
+            <blockquote className="border-l-2 border-border-strong/50 pl-4 text-muted [&>*+*]:mt-2">{children}</blockquote>
           ),
-          hr: () => <hr className="border-border" />,
+          hr: () => <hr className="my-2 border-border" />,
           table: ({ children }) => (
             <div
               tabIndex={0}
               role="region"
               aria-label="Table"
-              className="overflow-x-auto rounded-lg border border-border"
+              className="overflow-x-auto rounded-lg bg-surface/60 ring-1 ring-inset ring-border"
             >
               <table className="w-full border-collapse text-meta [&_tbody_tr+tr>td]:border-t [&_tbody_tr+tr>td]:border-border">{children}</table>
             </div>
@@ -119,12 +124,12 @@ export function Markdown({ children }: { children: string }) {
               tabIndex={0}
               role="region"
               aria-label="Code"
-              className="overflow-x-auto rounded-lg border border-border bg-surface"
+              className="overflow-x-auto rounded-lg bg-surface"
             >
-              <pre className="px-4 py-3 font-mono text-[13px] leading-relaxed">{children}</pre>
+              <pre className="px-4 py-3 font-mono text-[13px] leading-relaxed text-foreground">{children}</pre>
             </div>
           ),
-          img: ({ alt }) => <span>{alt}</span>,
+          img: ({ alt }) => (alt ? <span className="italic text-muted">[Image: {alt}]</span> : null),
         }}
       >
         {children}

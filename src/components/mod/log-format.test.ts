@@ -82,7 +82,7 @@ describe("describeLogEntry", () => {
     expect(text({ ...none, action: "category_updated", details: { name: "B", old_name: "A" } })).toBe("Ali renamed the category “A” to “B”");
     const announcement = describeLogEntry({ ...base, ...none, action: "announcement_created", details: { announcement_id: 4, title: "Iftar" } });
     expect(logPartsToText(announcement)).toBe("Ali posted the announcement “Iftar”");
-    expect(announcement.some((part) => typeof part !== "string" && part.href?.includes("announcement-4"))).toBe(true);
+    expect(announcement.some((part) => typeof part !== "string" && part.href === "/announcements/4")).toBe(true);
     const guide = describeLogEntry({ ...base, ...none, action: "guide_created", details: { title: "Anmeldung", slug: "anmeldung" } });
     expect(guide).toContainEqual({ text: "Anmeldung", href: "/guides/anmeldung", quoted: true });
     const deleted = describeLogEntry({ ...base, ...none, action: "guide_deleted", details: { title: "Anmeldung", slug: "anmeldung" } });

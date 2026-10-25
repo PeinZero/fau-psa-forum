@@ -66,7 +66,7 @@ export default async function RecentEditsPage({ searchParams }: Props) {
     return (
       <div className="grid gap-5">
         {header}
-        <p role="alert" className="text-danger">Could not load edits. Please reload.</p>
+        <p role="alert" className="text-body text-danger">Could not load edits. Please reload.</p>
       </div>
     );
   }
@@ -210,7 +210,7 @@ function EditCard({
   return (
     <Card className="grid gap-4">
       <div className="min-w-0">
-        <h2 className="break-words text-base font-semibold tracking-tight">
+        <h2 className="break-words text-title font-semibold tracking-tight">
           {revision.thread ? (
             <Link href={`/t/${revision.thread.slug}`} className="hover:underline">
               {revision.thread.title}

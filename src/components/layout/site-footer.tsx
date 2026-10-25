@@ -4,7 +4,7 @@ import { ShortcutsLink } from "@/components/shortcuts/shortcuts-link";
 import { cn } from "@/components/ui/cn";
 
 const linkClass =
-  "inline-flex min-h-8 items-center gap-2 text-muted transition-colors duration-150 hover:text-foreground pointer-coarse:min-h-11";
+  "inline-flex min-h-7 items-center gap-1.5 rounded-sm text-muted transition-colors duration-150 ease-out hover:text-foreground active:text-foreground pointer-coarse:min-h-11";
 
 function GitHubMark() {
   return (
@@ -30,32 +30,33 @@ const columns = [
       { href: "/contributors", label: "Contributors" },
     ],
   },
-  {
-    title: "Legal",
-    links: [
-      { href: "/impressum", label: "Impressum" },
-      { href: "/privacy", label: "Privacy" },
-    ],
-  },
+];
+
+const legalLinks = [
+  { href: "/impressum", label: "Impressum" },
+  { href: "/privacy", label: "Privacy" },
 ];
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-border text-meta">
-      <div className="mx-auto w-full max-w-5xl px-4 pt-10 pb-6 sm:px-6">
-        <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:gap-16">
-          <div className="max-w-xs space-y-3">
-            <Link href="/" className="inline-flex items-center gap-2 font-medium text-foreground">
+      <div className="mx-auto w-full max-w-6xl px-4 pt-12 pb-8 sm:px-6">
+        <div className="grid gap-10 md:grid-cols-[minmax(0,1fr)_auto] md:gap-16">
+          <div className="max-w-xs">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-md font-semibold tracking-tight text-foreground transition-opacity duration-150 ease-out hover:opacity-80"
+            >
               <LogoMark className="size-5" />
               PSA FAU Community Forum
             </Link>
-            <p className="text-muted">By and for Pakistani students at FAU Erlangen-Nürnberg.</p>
+            <p className="mt-2 text-muted">By and for Pakistani students at FAU Erlangen-Nürnberg.</p>
           </div>
 
-          <nav aria-label="Footer" className="grid grid-cols-3 gap-6 sm:gap-12">
+          <nav aria-label="Footer" className="grid grid-cols-2 gap-x-6 sm:gap-x-16">
             {columns.map((column) => (
               <div key={column.title}>
-                <p className="mb-2 font-medium text-foreground">{column.title}</p>
+                <h2 className="mb-1.5 text-meta font-medium text-foreground">{column.title}</h2>
                 <ul>
                   {column.links.map(({ href, label }) => (
                     <li key={href}>
@@ -78,10 +79,21 @@ export function SiteFooter() {
           </nav>
         </div>
 
-        <div className="mt-8 flex flex-col gap-2 border-t border-border pt-5 text-subtle sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 text-subtle sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <p>Independent student project. Not affiliated with or endorsed by FAU.</p>
-          {/* Shortcuts need a keyboard, so phones don't get the link. */}
-          <ShortcutsLink className={cn(linkClass, "text-subtle max-md:hidden")} />
+          <ul className="flex flex-wrap items-center gap-x-5">
+            {legalLinks.map(({ href, label }) => (
+              <li key={href}>
+                <Link href={href} className={cn(linkClass, "text-subtle")}>
+                  {label}
+                </Link>
+              </li>
+            ))}
+            {/* Shortcuts need a keyboard, so phones don't get the link. */}
+            <li className="max-md:hidden">
+              <ShortcutsLink className={cn(linkClass, "text-subtle")} />
+            </li>
+          </ul>
         </div>
       </div>
     </footer>

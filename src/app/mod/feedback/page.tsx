@@ -50,7 +50,7 @@ export default async function FeedbackPage({ searchParams }: Props) {
 
   return (
     <div className="grid gap-5">
-      <p className="max-w-prose text-sm text-muted">
+      <p className="max-w-prose text-small text-muted">
         Notes members sent with the feedback button. Only moderators see them; mark one handled once someone has
         looked at it.
       </p>
@@ -65,15 +65,15 @@ export default async function FeedbackPage({ searchParams }: Props) {
       />
 
       {error ? (
-        <p role="alert" className="text-danger">Could not load feedback. Please reload.</p>
+        <p role="alert" className="text-body text-danger">Could not load feedback. Please reload.</p>
       ) : rows.length === 0 ? (
         handled ? (
           <EmptyState icon={<MessageSquareHeart />} title="No handled feedback">
             Feedback you mark as handled moves here.
           </EmptyState>
         ) : (
-          <EmptyState icon={<CheckCircle2 />} title="No new feedback">
-            When members send feedback from the site, it shows up here.
+          <EmptyState icon={<CheckCircle2 />} title="All caught up">
+            No new feedback. Messages sent with the feedback button show up here.
           </EmptyState>
         )
       ) : (
@@ -81,7 +81,7 @@ export default async function FeedbackPage({ searchParams }: Props) {
           {rows.map((row, index) => (
             <li key={row.id} style={stagger(index)} className="animate-fade-up">
               <Card className="grid gap-3">
-                <p className="whitespace-pre-wrap break-words text-sm text-foreground">{row.message}</p>
+                <p className="whitespace-pre-wrap break-words text-body text-foreground">{row.message}</p>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-meta text-muted">
                   <span>
                     {row.author ? (
@@ -105,9 +105,9 @@ export default async function FeedbackPage({ searchParams }: Props) {
                     </Link>
                   ) : null}
                 </div>
-                <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 border-t border-border pt-3">
+                <div className="flex flex-wrap items-start gap-2 border-t border-border pt-3">
                   {row.handled_at ? (
-                    <p className="mr-auto text-meta text-muted">
+                    <p className="w-full pt-1 text-meta text-muted">
                       Handled by{" "}
                       {row.handler ? (
                         <Link
@@ -122,13 +122,6 @@ export default async function FeedbackPage({ searchParams }: Props) {
                       on <time dateTime={row.handled_at}>{dateTime.format(new Date(row.handled_at))}</time>
                     </p>
                   ) : null}
-                  <ActionButton
-                    action={deleteFeedback}
-                    fields={{ feedbackId: row.id }}
-                    label="Delete"
-                    tone="danger"
-                    confirm="Delete this feedback?"
-                  />
                   {row.handled_at ? (
                     <ActionButton action={markFeedbackNew} fields={{ feedbackId: row.id }} label="Mark new" />
                   ) : (
@@ -139,6 +132,13 @@ export default async function FeedbackPage({ searchParams }: Props) {
                       variant="primary"
                     />
                   )}
+                  <ActionButton
+                    action={deleteFeedback}
+                    fields={{ feedbackId: row.id }}
+                    label="Delete"
+                    tone="danger"
+                    confirm="Delete this feedback?"
+                  />
                 </div>
               </Card>
             </li>

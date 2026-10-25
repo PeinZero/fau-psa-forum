@@ -9,7 +9,7 @@ export function SavedLink({ className }: { className?: string }) {
     <Link
       href="/saved"
       className={cn(
-        "inline-flex min-h-9 items-center gap-2 rounded-md px-2 text-sm text-foreground transition-colors duration-150 hover:bg-surface-hover pointer-coarse:min-h-11 [&_svg]:size-4 [&_svg]:text-muted",
+        "inline-flex min-h-9 items-center gap-2 rounded-md px-2 text-small text-foreground transition-colors duration-150 hover:bg-surface-hover pointer-coarse:min-h-11 [&_svg]:size-4 [&_svg]:text-muted",
         className,
       )}
     >

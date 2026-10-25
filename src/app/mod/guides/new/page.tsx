@@ -11,7 +11,7 @@ export default function NewGuidePage() {
     <div className="grid gap-4">
       <GuidesBackLink />
       <Card>
-        <h2 className="mb-5 text-base font-semibold tracking-tight">New guide</h2>
+        <h2 className="mb-5 text-heading font-semibold tracking-tight">New guide</h2>
         <GuideEditor />
       </Card>
     </div>
