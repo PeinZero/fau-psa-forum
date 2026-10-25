@@ -14,6 +14,7 @@ Read before deploying, changing env vars or applying migrations.
 ## Supabase Auth
 - URL Configuration: Site URL = production domain. Redirect URLs: `http://localhost:3000/**`, `https://<prod-domain>/**`, and previews scoped to the team (`https://*-<team>.vercel.app/**`), never a bare `*.vercel.app`.
 - Google sign-in: OAuth client (Web) in Google Cloud, redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`; ID and secret go into Supabase.
+- Cloudflare Turnstile: widget for the production domain and localhost. Production gets the real `NEXT_PUBLIC_TURNSTILE_SITE_KEY`; Preview and Development use Cloudflare's test key `1x00000000000000000000AA`. The secret key goes only into Supabase (Authentication → Bot and Abuse Protection) and Bitwarden. Deploy the code first, then enable captcha in Supabase. Any Supabase project that previews talk to needs the matching test secret `1x0000000000000000000000000000000AA`, or preview tokens are rejected.
 - Email: custom SMTP through a Gmail account is configured (the built-in mailer allows only a few emails per hour). Update `/privacy` when the sender changes.
 
 ## Migrations

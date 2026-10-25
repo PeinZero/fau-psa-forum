@@ -4,6 +4,7 @@ import { AlertCircle, ArrowLeft, ArrowUpRight, Loader2, MailCheck, RotateCw } fr
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { Turnstile, type TurnstileHandle } from "@/components/auth/turnstile";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/field";
@@ -15,6 +16,9 @@ type Props = { next: string; initialError?: string };
 
 // Supabase allows one email per address per 60 s by default; waiting avoids a rate-limit error.
 const RESEND_COOLDOWN_SECONDS = 60;
+
+// Unset locally unless a key is configured; Supabase only requires a token once captcha is enabled there.
+const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 // Created lazily so the page still renders before Supabase env vars are configured.
 let browserClient: ReturnType<typeof createClient> | undefined;
@@ -72,6 +76,8 @@ export default function LoginForm({ next, initialError }: Props) {
   const [googlePending, setGooglePending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [resent, setResent] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstile = useRef<TurnstileHandle>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const switched = useRef(false);
@@ -99,7 +105,7 @@ export default function LoginForm({ next, initialError }: Props) {
     try {
       const { error } = await getClient().auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: callbackUrl() },
+        options: { emailRedirectTo: callbackUrl(), captchaToken: captchaToken ?? undefined },
       });
       if (error) {
         setError(friendlyAuthError(error));
@@ -111,6 +117,8 @@ export default function LoginForm({ next, initialError }: Props) {
       setError(friendlyAuthError(e instanceof Error ? { name: e.name } : {}));
       return false;
     } finally {
+      // A token is single-use, so every attempt needs a new one.
+      turnstile.current?.reset();
       setPending(false);
     }
   }
@@ -154,6 +162,7 @@ export default function LoginForm({ next, initialError }: Props) {
     }
   }
 
+  const awaitingCaptcha = Boolean(SITE_KEY) && !captchaToken;
   const inbox = sent ? inboxFor(email) : null;
 
   return (
@@ -203,7 +212,7 @@ export default function LoginForm({ next, initialError }: Props) {
             <Button
               variant="secondary"
               onClick={resendLink}
-              disabled={pending || cooldown > 0}
+              disabled={pending || cooldown > 0 || awaitingCaptcha}
               className="w-full"
             >
               {pending ? <Loader2 aria-hidden className="animate-spin" /> : <RotateCw aria-hidden strokeWidth={1.75} />}
@@ -275,7 +284,7 @@ export default function LoginForm({ next, initialError }: Props) {
                   We&apos;ll email you a sign-in link. No password needed.
                 </p>
               </div>
-              <Button type="submit" variant="secondary" disabled={pending || googlePending} className="min-h-10 w-full">
+              <Button type="submit" variant="secondary" disabled={pending || googlePending || awaitingCaptcha} className="min-h-10 w-full">
                 {pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
                 {pending ? "Sending…" : "Email me a sign-in link"}
               </Button>
@@ -291,6 +300,8 @@ export default function LoginForm({ next, initialError }: Props) {
           </div>
         </>
       )}
+      {/* Mounted for both views: resending needs a fresh single-use token too. */}
+      {SITE_KEY ? <Turnstile ref={turnstile} siteKey={SITE_KEY} onToken={setCaptchaToken} /> : null}
     </Card>
   );
 }
