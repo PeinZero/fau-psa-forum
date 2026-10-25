@@ -1,25 +1,21 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { GuideSummary } from "@/components/guides/data";
-
 import { ClosingCta } from "./closing-cta";
-import { CommunityStripView } from "./community-strip";
+import { CommunityStripView, ModeratorApplyLink } from "./community-strip";
 import { Hero } from "./hero";
-import { HeroEyebrowSkeleton, HeroEyebrowView } from "./hero-announcement";
 import { HowItWorks } from "./how-it-works";
 import { type PopularQuestion, PopularQuestionsView } from "./popular-questions";
-import { StartHereView } from "./start-here";
+import type { HomeGuide } from "./shape";
+import { GuideProgressLine, StartHereView } from "./start-here";
 import { TopicsView } from "./topics";
 
-const guide = (overrides: Partial<GuideSummary> = {}): GuideSummary => ({
+const guide = (overrides: Partial<HomeGuide> = {}): HomeGuide => ({
   id: 1,
   slug: "first-weeks-in-erlangen",
   title: "First weeks in Erlangen",
   summary: "Anmeldung, bank account and health insurance, in a sensible order.",
-  isFeatured: true,
-  stepCount: 8,
-  doneCount: null,
+  stepIds: [11, 12, 13, 14, 15, 16, 17, 18],
   ...overrides,
 });
 
@@ -76,14 +72,34 @@ describe("StartHereView", () => {
     expect(within(section).getByRole("link", { name: "All guides" })).toHaveAttribute("href", "/guides");
   });
 
+  it("puts each guide's own progress into its card", () => {
+    render(
+      <StartHereView
+        guides={[guide(), guide({ id: 2, slug: "jobs", title: "Finding a student job", stepIds: [21, 22] })]}
+        progress={(g) => <GuideProgressLine stepCount={g.stepIds.length} doneCount={g.id === 1 ? 3 : 2} />}
+      />,
+    );
+    const cards = screen.getAllByRole("listitem");
+    expect(cards[0]).toHaveTextContent("3 of 8 steps done");
+    expect(cards[1]).toHaveTextContent("All 2 steps done");
+  });
+});
+
+describe("GuideProgressLine", () => {
+  it("shows only the step count without a member's progress", () => {
+    render(<GuideProgressLine stepCount={8} doneCount={null} />);
+    expect(screen.getByText("8 steps")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar", { hidden: true })).toBeNull();
+  });
+
   it("shows members their progress", () => {
-    render(<StartHereView guides={[guide({ doneCount: 3 })]} />);
+    render(<GuideProgressLine stepCount={8} doneCount={3} />);
     expect(screen.getByText("3 of 8 steps done")).toBeInTheDocument();
     expect(screen.getByRole("progressbar", { hidden: true })).toHaveAttribute("aria-valuenow", "3");
   });
 
   it("marks a finished guide", () => {
-    render(<StartHereView guides={[guide({ doneCount: 8 })]} />);
+    render(<GuideProgressLine stepCount={8} doneCount={8} />);
     expect(screen.getByText("All 8 steps done")).toBeInTheDocument();
   });
 });
@@ -147,55 +163,12 @@ describe("HowItWorks", () => {
   });
 });
 
-describe("HeroEyebrowView", () => {
-  const announcement = { href: "/announcements/7", title: "Welcome evening on 3 November", is_pinned: true };
-
-  it("shows the PSA pill and no link when nothing was announced", () => {
-    render(<HeroEyebrowView announcement={null} />);
-    expect(screen.getByText(/Pakistan Student Association/)).toBeInTheDocument();
-    expect(screen.queryByRole("link")).toBeNull();
-  });
-
-  it("links a pinned announcement with its tag, title and Read", () => {
-    render(<HeroEyebrowView announcement={announcement} />);
-    const link = screen.getByRole("link", { name: /Welcome evening on 3 November/ });
-    expect(link).toHaveAttribute("href", "/announcements/7");
-    expect(link).toHaveTextContent("Pinned");
-    expect(link).toHaveTextContent("Read");
-    expect(link).toHaveClass("min-h-11");
-    expect(within(link).getByText("Welcome evening on 3 November")).toHaveClass("truncate");
-  });
-
-  it("tags a regular announcement as new", () => {
-    render(<HeroEyebrowView announcement={{ ...announcement, is_pinned: false }} />);
-    const link = screen.getByRole("link", { name: /Welcome evening/ });
-    expect(link).toHaveTextContent("New");
-    expect(link).not.toHaveTextContent("Pinned");
-  });
-
-  it("keeps the association's name as a quiet line outside the link", () => {
-    render(<HeroEyebrowView announcement={announcement} />);
-    const line = screen.getByText(/Pakistan Student Association/);
-    expect(line).toHaveTextContent("FAU Erlangen-Nürnberg");
-    expect(screen.getByRole("link")).not.toContainElement(line);
-  });
-
-  it("reserves the same height while loading", () => {
-    const { container: loaded } = render(<HeroEyebrowView announcement={announcement} />);
-    const { container: loading } = render(<HeroEyebrowSkeleton />);
-    expect(loading.firstElementChild?.className).toContain("min-h-[4.5rem]");
-    expect(loaded.firstElementChild?.className).toContain("min-h-[4.5rem]");
-  });
-});
-
 describe("Hero eyebrow", () => {
-  it("defaults to the PSA pill and accepts the announcement pill instead", () => {
-    const { rerender } = render(<Hero />);
-    expect(screen.getByText(/Pakistan Student Association/)).toBeInTheDocument();
-    rerender(<Hero eyebrow={<HeroEyebrowView announcement={{ href: "/announcements/1", title: "Hello", is_pinned: false }} />} />);
-    const heading = screen.getByRole("heading", { level: 1 });
-    const link = screen.getByRole("link", { name: /Hello/ });
-    expect(link.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  it("shows the PSA pill and no announcement", () => {
+    render(<Hero />);
+    expect(screen.getByText(/Pakistan Student Association/)).toHaveTextContent("FAU Erlangen-Nürnberg");
+    expect(screen.queryByRole("link", { name: /Pinned|New|Read/ })).toBeNull();
+    expect(screen.queryByText("Pinned")).toBeNull();
   });
 });
 
@@ -203,7 +176,7 @@ describe("CommunityStripView", () => {
   const moderators = Array.from({ length: 6 }, (_, i) => ({ id: `m${i}`, display_name: `Moderator ${i + 1}` }));
 
   it("shows the moderators' faces with the rest folded into a count", () => {
-    render(<CommunityStripView moderators={moderators} total={9} signedIn={false} />);
+    render(<CommunityStripView moderators={moderators} total={9} />);
     const team = screen.getByRole("link", { name: "Meet the 9 moderators" });
     expect(team).toHaveAttribute("href", "/contributors");
     expect(team).toHaveTextContent("+3");
@@ -211,22 +184,25 @@ describe("CommunityStripView", () => {
   });
 
   it("says 'team' rather than counting a single moderator", () => {
-    render(<CommunityStripView moderators={moderators.slice(0, 1)} total={1} signedIn={false} />);
+    render(<CommunityStripView moderators={moderators.slice(0, 1)} total={1} />);
     expect(screen.getByRole("link", { name: "Meet the team" })).toHaveAttribute("href", "/contributors");
   });
 
   it("leaves out the avatar row before anyone moderates", () => {
-    render(<CommunityStripView moderators={[]} total={0} signedIn={false} />);
+    render(<CommunityStripView moderators={[]} total={0} />);
     const team = screen.getByRole("link", { name: "Meet the team" });
     expect(team).toHaveAttribute("href", "/contributors");
     expect(team).not.toHaveTextContent("+");
   });
 
-  it("sends visitors through sign-in to apply and members straight to their account", () => {
-    const { rerender } = render(<CommunityStripView moderators={moderators} total={6} signedIn={false} />);
+  it("sends visitors through sign-in to apply until the session says otherwise", () => {
+    render(<CommunityStripView moderators={moderators} total={6} />);
     expect(screen.getByRole("link", { name: "Become a moderator" })).toHaveAttribute("href", "/login?next=%2Faccount");
     expect(screen.getByRole("link", { name: "Meet the 6 moderators" })).not.toHaveTextContent("+");
-    rerender(<CommunityStripView moderators={moderators} total={6} signedIn />);
+  });
+
+  it("shows the apply link it is given, straight to the account page for members", () => {
+    render(<CommunityStripView moderators={moderators} total={6} apply={<ModeratorApplyLink signedIn />} />);
     expect(screen.getByRole("link", { name: "Become a moderator" })).toHaveAttribute("href", "/account");
   });
 });

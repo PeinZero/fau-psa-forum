@@ -6,6 +6,35 @@ export const POPULAR_LIMIT = 5;
 export const START_HERE_LIMIT = 2;
 export const MODERATOR_AVATARS = 6;
 
+/** A featured guide as every visitor sees it; the viewer's own progress is looked up separately. */
+export type HomeGuide = { id: number; slug: string; title: string; summary: string | null; stepIds: number[] };
+
+export function toHomeGuides(
+  rows: readonly { id: number; slug: string; title: string; summary: string | null; guide_steps: readonly { id: number }[] }[],
+): HomeGuide[] {
+  return rows.map(({ guide_steps, ...guide }) => ({ ...guide, stepIds: guide_steps.map((step) => step.id) }));
+}
+
+/** How many of a guide's steps the viewer has finished. */
+export function countDone(stepIds: readonly number[], done: ReadonlySet<number>): number {
+  return stepIds.filter((id) => done.has(id)).length;
+}
+
+export type HomeTopic = { id: number; slug: string; name: string; description: string | null; threadCount: number };
+
+/** The embedded count only covers published threads, and a category without any comes back empty. */
+export function toTopics(
+  rows: readonly { id: number; slug: string; name: string; description: string | null; threads: readonly { count: number }[] }[],
+): HomeTopic[] {
+  return rows.map(({ threads, ...category }) => ({ ...category, threadCount: threads[0]?.count ?? 0 }));
+}
+
+/** Rows loaded by id come back unordered; this restores the ranking and drops ids that no longer resolve. */
+export function orderByIds<T extends { id: number }>(ids: readonly number[], rows: readonly T[]): T[] {
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return ids.flatMap((id) => byId.get(id) ?? []);
+}
+
 /** Hot threads first; a young forum without enough activity tops the list up with the newest ones. */
 export function fillPopular<T extends { id: number }>(hot: readonly T[], newest: readonly T[], limit = POPULAR_LIMIT): T[] {
   const seen = new Set(hot.map((thread) => thread.id));

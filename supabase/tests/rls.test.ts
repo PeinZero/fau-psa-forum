@@ -1143,6 +1143,46 @@ describe("comment votes", () => {
   });
 });
 
+describe("thread votes", () => {
+  // The statements supabase-js sends for castThreadVote: upsert for ±1, delete for 0.
+  const vote = (actor: Actor, thread: number, value: number) =>
+    as(
+      actor,
+      `insert into public.thread_votes (thread_id, value) values ($1, $2)
+       on conflict (thread_id, user_id) do update set thread_id = excluded.thread_id, value = excluded.value`,
+      [thread, value],
+    );
+  const unvote = (actor: Actor, thread: number) =>
+    as(actor, "delete from public.thread_votes where thread_id = $1 and user_id = $2 returning 1", [thread, actor.sub]);
+  const score = async (thread: number) =>
+    (await sql<{ score: number }>("select score from public.threads where id = $1", [thread]))[0].score;
+
+  test("members vote, flip and withdraw their own vote; the cached score follows", async () => {
+    assert.equal(await score(threads.otherPublished), 0);
+    await vote(A, threads.otherPublished, 1);
+    assert.equal(await score(threads.otherPublished), 1);
+    assert.equal((await unvote(A, threads.otherPublished)).length, 1);
+    assert.equal(await score(threads.otherPublished), 0);
+    await vote(A, threads.otherPublished, -1);
+    assert.equal(await score(threads.otherPublished), -1);
+    await vote(A, threads.otherPublished, 1);
+    assert.equal(await score(threads.otherPublished), 1);
+    await vote(MOD, threads.otherPublished, -1);
+    assert.equal(await score(threads.otherPublished), 0);
+    assert.equal((await unvote(A, threads.otherPublished)).length, 1);
+    assert.equal(await score(threads.otherPublished), -1);
+    assert.deepEqual(await as(A, "select value from public.thread_votes"), []);
+    await assert.rejects(vote(A, threads.otherPublished, 0), /thread_votes_value_check/);
+  });
+
+  test("withdrawing removes only the voter's own row", async () => {
+    await vote(MOD, threads.otherPublished, 1);
+    assert.equal((await unvote(A, threads.otherPublished)).length, 0);
+    assert.equal((await as(A, "delete from public.thread_votes where thread_id = $1 returning 1", [threads.otherPublished])).length, 0);
+    assert.equal(await score(threads.otherPublished), 1);
+  });
+});
+
 describe("handle backfill on an existing database", () => {
   const fresh = newDatabase();
   after(async () => {

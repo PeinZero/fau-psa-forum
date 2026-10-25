@@ -1,5 +1,3 @@
-import { stagger } from "@/components/ui/motion";
-
 import { LandingSection } from "./section";
 import { howItWorksSteps } from "./shape";
 
@@ -14,8 +12,7 @@ export function HowItWorks() {
         {howItWorksSteps.map(({ title, body, icon: Icon }, i) => (
           <li
             key={title}
-            className="animate-fade-up relative flex gap-4 md:flex-col md:gap-5 md:not-last:after:absolute md:not-last:after:top-5 md:not-last:after:right-3 md:not-last:after:left-16 md:not-last:after:h-px md:not-last:after:bg-gradient-to-r md:not-last:after:from-border-strong/40 md:not-last:after:to-transparent"
-            style={stagger(i)}
+            className="relative flex gap-4 md:flex-col md:gap-5 md:not-last:after:absolute md:not-last:after:top-5 md:not-last:after:right-3 md:not-last:after:left-16 md:not-last:after:h-px md:not-last:after:bg-gradient-to-r md:not-last:after:from-border-strong/40 md:not-last:after:to-transparent"
           >
             <span
               aria-hidden

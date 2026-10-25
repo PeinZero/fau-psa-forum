@@ -5,8 +5,6 @@ import { CategoryGlyph } from "@/components/thread/category-icon";
 import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { EmptyState } from "@/components/ui/empty-state";
-import { stagger } from "@/components/ui/motion";
-import { Skeleton } from "@/components/ui/skeleton";
 
 import { CardArrow, LandingSection } from "./section";
 import { POPULAR_LIMIT, popularStatus } from "./shape";
@@ -43,8 +41,8 @@ export function PopularQuestionsView({ questions }: { questions: readonly Popula
         </EmptyState>
       ) : (
         <ol className={listFrame}>
-          {questions.slice(0, POPULAR_LIMIT).map((question, i) => (
-            <li key={question.id} className="animate-fade-up" style={stagger(i)}>
+          {questions.slice(0, POPULAR_LIMIT).map((question) => (
+            <li key={question.id}>
               <QuestionRow question={question} />
             </li>
           ))}
@@ -89,20 +87,5 @@ function QuestionRow({ question }: { question: PopularQuestion }) {
       </span>
       <CardArrow />
     </Link>
-  );
-}
-
-export function PopularQuestionsSkeleton() {
-  return (
-    <LandingSection id="popular" title={title} description={description} link={link} busy>
-      <div className={listFrame}>
-        {Array.from({ length: POPULAR_LIMIT }, (_, i) => (
-          <div key={i} className="px-4 py-4 sm:px-5">
-            <Skeleton className={cn("my-1 h-4", i % 2 ? "w-1/2" : "w-3/4")} />
-            <Skeleton className="mt-2.5 h-3 w-40" />
-          </div>
-        ))}
-      </div>
-    </LandingSection>
   );
 }

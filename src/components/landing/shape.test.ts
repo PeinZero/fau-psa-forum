@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import {
   avatarOverflow,
+  countDone,
   fillPopular,
   howItWorksSteps,
   moderatorApplyHref,
+  orderByIds,
   popularStatus,
+  toHomeGuides,
   topicCountLabel,
+  toTopics,
 } from "./shape";
 
 const thread = (id: number) => ({ id, title: `Thread ${id}` });
@@ -95,5 +99,53 @@ describe("howItWorksSteps", () => {
       expect(step.body).not.toContain("\n");
       expect(step.icon).toBeTruthy();
     }
+  });
+});
+
+describe("toHomeGuides", () => {
+  it("keeps the guides in order and lists each one's step ids", () => {
+    const rows = [
+      { id: 2, slug: "first-weeks-in-erlangen", title: "First weeks in Erlangen", summary: "Anmeldung first.", guide_steps: [{ id: 21 }, { id: 22 }] },
+      { id: 1, slug: "finding-a-student-job", title: "Finding a student job", summary: null, guide_steps: [] },
+    ];
+    expect(toHomeGuides(rows)).toEqual([
+      { id: 2, slug: "first-weeks-in-erlangen", title: "First weeks in Erlangen", summary: "Anmeldung first.", stepIds: [21, 22] },
+      { id: 1, slug: "finding-a-student-job", title: "Finding a student job", summary: null, stepIds: [] },
+    ]);
+  });
+});
+
+describe("countDone", () => {
+  it("counts only this guide's finished steps", () => {
+    expect(countDone([21, 22, 23], new Set([22, 23, 99]))).toBe(2);
+  });
+
+  it("is zero with no progress or no steps", () => {
+    expect(countDone([21, 22], new Set())).toBe(0);
+    expect(countDone([], new Set([21]))).toBe(0);
+  });
+});
+
+describe("toTopics", () => {
+  it("turns the embedded published count into a thread count", () => {
+    const rows = [
+      { id: 1, slug: "rp-visa", name: "RP & Visa", description: "Residence permits", threads: [{ count: 12 }] },
+      { id: 2, slug: "jobs", name: "Jobs", description: null, threads: [] },
+    ];
+    expect(toTopics(rows)).toEqual([
+      { id: 1, slug: "rp-visa", name: "RP & Visa", description: "Residence permits", threadCount: 12 },
+      { id: 2, slug: "jobs", name: "Jobs", description: null, threadCount: 0 },
+    ]);
+  });
+});
+
+describe("orderByIds", () => {
+  it("restores the ranking of rows loaded by id", () => {
+    expect(orderByIds([3, 1, 2], [1, 2, 3].map(thread)).map((t) => t.id)).toEqual([3, 1, 2]);
+  });
+
+  it("drops ids whose row is gone, such as a thread unpublished since the ranking", () => {
+    expect(orderByIds([3, 4, 1], [1, 3].map(thread)).map((t) => t.id)).toEqual([3, 1]);
+    expect(orderByIds([], [1].map(thread))).toEqual([]);
   });
 });

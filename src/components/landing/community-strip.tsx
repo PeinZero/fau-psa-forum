@@ -1,9 +1,9 @@
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { Avatar } from "@/components/author";
 import { buttonClasses } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 
 import { avatarOverflow, MODERATOR_AVATARS, moderatorApplyHref } from "./shape";
 
@@ -16,11 +16,12 @@ const panel =
 export function CommunityStripView({
   moderators,
   total,
-  signedIn,
+  apply = <ModeratorApplyLink signedIn={false} />,
 }: {
   moderators: readonly CommunityModerator[];
   total: number;
-  signedIn: boolean;
+  /** The apply link depends on the session, so Home streams it in; it is the same size either way. */
+  apply?: ReactNode;
 }) {
   const shown = moderators.slice(0, MODERATOR_AVATARS);
   const extra = avatarOverflow(total, shown.length);
@@ -63,34 +64,20 @@ export function CommunityStripView({
             </span>
           </Link>
         </div>
-        <Link
-          href={moderatorApplyHref(signedIn)}
-          className={buttonClasses({ variant: "secondary", className: "min-h-11 self-start px-5 text-body md:self-center" })}
-        >
-          <ShieldCheck strokeWidth={1.75} className="text-accent" />
-          Become a moderator
-        </Link>
+        {apply}
       </div>
     </section>
   );
 }
 
-export function CommunityStripSkeleton() {
+export function ModeratorApplyLink({ signedIn }: { signedIn: boolean }) {
   return (
-    <div aria-busy="true" className={panel}>
-      <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between md:gap-12">
-        <div className="w-full max-w-xl">
-          <Skeleton className="h-7 w-72 max-w-full" />
-          <Skeleton className="mt-4 h-4 w-full" />
-          <Skeleton className="mt-2 h-4 w-3/4" />
-          <div className="mt-6 flex -space-x-2.5">
-            {Array.from({ length: 4 }, (_, i) => (
-              <Skeleton key={i} className="size-10 rounded-full ring-[3px] ring-surface" />
-            ))}
-          </div>
-        </div>
-        <Skeleton className="h-11 w-48" />
-      </div>
-    </div>
+    <Link
+      href={moderatorApplyHref(signedIn)}
+      className={buttonClasses({ variant: "secondary", className: "min-h-11 self-start px-5 text-body md:self-center" })}
+    >
+      <ShieldCheck strokeWidth={1.75} className="text-accent" />
+      Become a moderator
+    </Link>
   );
 }
