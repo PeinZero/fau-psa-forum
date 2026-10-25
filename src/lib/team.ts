@@ -17,7 +17,7 @@ export const founders: readonly TeamMember[] = [
   {
     name: "Abdul Moeez",
     role: "Co-founder",
-    link: { href: "https://abdulmoeez.com/", label: "abdulmoeez.com" },
+    link: { href: "https://abdulmoeez.com", label: "abdulmoeez.com" },
   },
 ];
 

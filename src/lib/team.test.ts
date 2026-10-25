@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { avatarSrc, founders, shapeContributors } from "./team";
 
 describe("founders", () => {
-  it("names the founder and co-founder, linking the founder's site and the co-founder's GitHub", () => {
+  it("names the founder and co-founder, linking each to their personal site", () => {
     expect(founders.map((f) => [f.name, f.role])).toEqual([
       ["Mahad Khalid Tarar", "Founder"],
       ["Abdul Moeez", "Co-founder"],
     ]);
     expect(founders.map((f) => f.link.href)).toEqual([
       "https://mahadkhalidtarar.com",
-      "https://github.com/abdulmoeez1225",
+      "https://abdulmoeez.com",
     ]);
     for (const f of founders) expect(`https://${f.link.label}`).toBe(f.link.href);
   });
