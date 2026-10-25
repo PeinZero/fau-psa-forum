@@ -46,7 +46,7 @@ One-time setup (owner):
 4. B2 → Application Keys → Add a New Application Key: this bucket only, **Read and Write**. Note the keyID, the applicationKey (shown once) and the region from the bucket's S3 endpoint `s3.<region>.backblazeb2.com` (e.g. `eu-central-003`).
 5. Locally: `age-keygen -o psa-backup.key`. Save the whole file in the shared Bitwarden vault, then delete it locally. Its `# public key: age1…` line is the recipient; only that goes to GitHub.
 6. Supabase dashboard → Connect → Session pooler: copy the URI (`postgresql://postgres.zjhrjhwqybzlahwbcxwh:<password>@<pooler-host>:5432/postgres`) with the database password filled in.
-7. GitHub → Settings → Environments → `nightly backup`, with the secrets `SUPABASE_DB_URL`, `AGE_RECIPIENT` (the public key), `B2_REGION`, `B2_BUCKET`, `B2_KEY_ID`, `B2_APPLICATION_KEY`.
+7. GitHub → Settings → Environments → `psa-forum-nightly-backup`, limited to the `main` branch (Deployment branches → Selected branches), with the secrets `SUPABASE_DB_URL`, `AGE_RECIPIENT` (the public key), `B2_REGION`, `B2_BUCKET`, `B2_KEY_ID`, `B2_APPLICATION_KEY`.
 8. Run the workflow once by hand, check that `daily/` holds a file, then do a test restore.
 
 Restore, into the local Supabase only (needs Docker, `age` and `psql` 17.6 or newer: `brew install age libpq`, then add `$(brew --prefix libpq)/bin` to `PATH`):

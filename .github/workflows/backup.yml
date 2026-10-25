@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # The secrets live in this GitHub environment, not at repository level.
-    environment: nightly backup
+    environment: psa-forum-nightly-backup
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
@@ -37,7 +37,7 @@ jobs:
             [ -n "${!name}" ] || missing="$missing $name"
           done
           if [ -n "$missing" ]; then
-            echo "::error::Missing secrets in the 'nightly backup' environment:$missing (AWS_* come from B2_KEY_ID and B2_APPLICATION_KEY; see docs/deployment.md)."
+            echo "::error::Missing secrets in the 'psa-forum-nightly-backup' environment:$missing (AWS_* come from B2_KEY_ID and B2_APPLICATION_KEY; see docs/deployment.md)."
             exit 1
           fi
 
