@@ -33,4 +33,5 @@ Read before touching auth, redirects, headers, user-generated content or RLS. La
 - Review the Markdown renderer (`src/components/markdown.tsx`) and the thread write/edit flow once
   merged: they are the main XSS surface.
 - Review RLS policies against the matrix in `schema.md` before launch.
-- Enable GitHub private vulnerability reporting and decide where the reporting policy lives.
+- Enable GitHub private vulnerability reporting; until then CONTRIBUTING.md names the maintainers as the contact.
+- Bot protection on email sign-in (Cloudflare Turnstile, #74).

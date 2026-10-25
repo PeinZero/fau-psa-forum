@@ -1,6 +1,6 @@
 # PSA FAU Community Forum
 
-A question-and-answer forum for Pakistani students, graduates and residents around FAU Erlangen-Nürnberg. People ask the questions that keep coming up in WhatsApp groups (residence permit, Anmeldung, courses, housing, jobs) and the answers stay easy to find. Anyone can read; you sign in to post; moderators approve every new thread.
+A question-and-answer forum for Pakistani students, graduates and residents around FAU Erlangen-Nürnberg, run by the Pakistan Student Association community. People ask the questions that keep coming up in WhatsApp groups (residence permit, Anmeldung, courses, housing, jobs) and the answers stay easy to find. Anyone can read; you sign in to post; moderators approve every new thread. An independent student project, not affiliated with FAU.
 
 Live site: https://fau-psa-forum.vercel.app
 
@@ -22,7 +22,7 @@ Full list: [docs/features.md](docs/features.md)
 - [Next.js 16](https://nextjs.org) (App Router) with TypeScript
 - Supabase: Postgres and Auth, with Row Level Security (RLS) as the authorization layer
 - Tailwind CSS v4
-- Vercel for hosting (every push to `main` deploys)
+- Vercel for hosting (every push to `main` deploys), region London next to Supabase
 
 ## Local setup (about 10 minutes)
 
@@ -121,7 +121,7 @@ Stop the stack with `npx supabase stop`.
 | `npm run typecheck` | `next typegen` and `tsc --noEmit` | nothing |
 | `npm test` | Vitest unit and component tests | nothing |
 | `npm run test:db` | RLS and trigger tests on PGlite (in-memory Postgres) | nothing |
-| `npm run test:e2e` | Playwright browser tests, desktop and 390px mobile | local Supabase (Path B) plus `E2E_SUPABASE_SERVICE_ROLE_KEY`, see [docs/testing.md](docs/testing.md) |
+| `npm run test:e2e` | Playwright browser tests (paused in CI, run by hand) | local Supabase (Path B) plus `E2E_SUPABASE_SERVICE_ROLE_KEY`, see [docs/testing.md](docs/testing.md) |
 
 ## Project structure
 
@@ -136,14 +136,17 @@ Stop the stack with `npx supabase stop`.
 
 Docs index:
 
-- [docs/features.md](docs/features.md): what is built, launch plan, costs
-- [docs/product.md](docs/product.md): product rules and roles
+- [docs/features.md](docs/features.md): what the product does
+- [docs/launch.md](docs/launch.md): launch plan, costs, legal
+- [docs/product.md](docs/product.md): naming, roles, posting rules
 - [docs/schema.md](docs/schema.md): tables, RLS matrix, migrations
 - [docs/design.md](docs/design.md): design system and UI components
 - [docs/security.md](docs/security.md): auth, redirects, headers, RLS rules
 - [docs/testing.md](docs/testing.md): unit, db and e2e tests, CI
-- [docs/deployment.md](docs/deployment.md): hosting and environment variables
+- [docs/deployment.md](docs/deployment.md): hosting, environment, migration push
+- [docs/tickets.md](docs/tickets.md): how tickets are written
 - [docs/delegation.md](docs/delegation.md): how work and reviews are split
+- [docs/content/README.md](docs/content/README.md): starter threads and guides
 
 ## Contributing
 

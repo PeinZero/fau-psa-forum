@@ -28,7 +28,7 @@ Tailwind utilities from `@theme static` in `src/app/globals.css`; each carries i
 | `text-reading` | 16px / 1.7 | the thread's own post (`<Markdown size="reading">`) |
 | `text-title` | 17px / 1.4, `font-semibold` | thread titles in lists |
 | `text-heading` | 18 / 26px, `font-semibold` | section headings, headings inside a reading post |
-| `text-2xl` | 24 / 32px | the compact welcome headline on Home |
+| `text-2xl` | 24 / 32px | compact section headlines |
 | `text-display` | 30 / 38px desktop, 26 / 32px phones | page h1 (`PageHeader`, thread title) |
 
 Weights: 400 body, 500 labels/links/sidebar rows, 600 titles and headings (the `text-title`,
@@ -52,16 +52,15 @@ Tailwind steps only: 1 (4px), 1.5 (6px, icon–text gap), 2 (8), 3 (12), 4 (16),
 
 - Container `max-w-6xl` (header, main, footer).
 - `FeedLayout` (`src/components/sidebar/feed-layout.tsx`): `minmax(0,1fr)` feed + `19rem`
-  sidebar from `lg`; below `lg` the sidebar stacks after the feed. Home, `/browse`, `/c/[slug]`
-  and thread pages use it. Wrap the last sidebar group in `SidebarSticky` (sticks under the header
+  sidebar from `lg`; below `lg` the sidebar stacks after the feed. `/browse`, `/c/[slug]`
+  and thread pages use it; Home is a landing-style page (hero, guides, topics, popular
+  questions, how it works, announcement, community strip). Wrap the last sidebar group in `SidebarSticky` (sticks under the header
   only on windows at least 48rem tall, so a short window can still scroll to the group's end).
-- The first sidebar card never repeats the page headline: Home, `/browse` and category pages open
+- The first sidebar card never repeats the page headline: `/browse` and category pages open
   with `WelcomeCard` (visitors: "Have a question?" with Ask + Sign in; members: a greeting, Ask and
   links to their threads, saved threads and notifications). The thread page opens with the thread's
   category (`AboutCard`), which the page itself only names in the breadcrumb.
 - Reading column on thread pages: `max-w-[45rem]` (~720px).
-- Phones: Home shows the welcome strip with Ask + Guides buttons and the pinned announcement
-  above the feed, because the sidebar only follows the feed there.
 
 ## Surfaces and depth
 
