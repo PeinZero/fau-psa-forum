@@ -86,6 +86,8 @@ export type ThreadListProps = {
   emptyAction?: ReactNode;
   /** On a category page every row would repeat the same category. */
   hideCategory?: boolean;
+  /** On a profile every row would repeat the same author. */
+  hideAuthor?: boolean;
 };
 
 const askAction = (
@@ -101,6 +103,7 @@ export function ThreadList({
   emptyDescription,
   emptyAction = askAction,
   hideCategory = false,
+  hideAuthor = false,
 }: ThreadListProps) {
   if (threads.length === 0) {
     return (
@@ -113,7 +116,7 @@ export function ThreadList({
   return (
     <ThreadRows>
       {threads.map((thread, i) => (
-        <ThreadRow key={thread.id} thread={thread} index={i} hideCategory={hideCategory} />
+        <ThreadRow key={thread.id} thread={thread} index={i} hideCategory={hideCategory} hideAuthor={hideAuthor} />
       ))}
     </ThreadRows>
   );
@@ -150,6 +153,7 @@ export type ThreadRowProps = {
   /** Position in the list, for the staggered entrance. */
   index?: number;
   hideCategory?: boolean;
+  hideAuthor?: boolean;
   /** Search words to mark in the title and excerpt. */
   highlight?: string;
   /** Replaces `thread.excerpt`, e.g. with a search snippet around the match. */
@@ -160,7 +164,14 @@ export type ThreadRowProps = {
  * One feed row: score column (display only, without a score the column is left out), meta line
  * with the comment count trailing, title, two-line excerpt and status pills when any apply.
  */
-export function ThreadRow({ thread, index = 0, hideCategory = false, highlight, excerpt }: ThreadRowProps) {
+export function ThreadRow({
+  thread,
+  index = 0,
+  hideCategory = false,
+  hideAuthor = false,
+  highlight,
+  excerpt,
+}: ThreadRowProps) {
   const author = thread.author?.display_name ?? "Deleted user";
   const username = thread.author?.username;
   const teaser = excerpt ?? thread.excerpt;
@@ -199,20 +210,24 @@ export function ThreadRow({ thread, index = 0, hideCategory = false, highlight, 
                 <Dot />
               </span>
             )}
-            {username ? (
-              <Link
-                href={profileHref(username)}
-                title={author}
-                className={cn(metaLink, profileLinkClasses, "min-w-0 truncate")}
-              >
-                {author}
-              </Link>
-            ) : (
-              <span className="min-w-0 truncate" title={author}>
-                {author}
-              </span>
+            {!hideAuthor && (
+              <>
+                {username ? (
+                  <Link
+                    href={profileHref(username)}
+                    title={author}
+                    className={cn(metaLink, profileLinkClasses, "min-w-0 truncate")}
+                  >
+                    {author}
+                  </Link>
+                ) : (
+                  <span className="min-w-0 truncate" title={author}>
+                    {author}
+                  </span>
+                )}
+                <Dot />
+              </>
             )}
-            <Dot />
             <time
               dateTime={thread.created_at}
               title={formatDate(thread.created_at)}

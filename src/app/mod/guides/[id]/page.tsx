@@ -26,7 +26,7 @@ export default async function EditGuidePage({ params }: { params: Promise<{ id: 
       <GuidesBackLink />
       <Card>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-semibold tracking-tight">Edit guide</h2>
+          <h2 className="text-heading font-semibold tracking-tight">Edit guide</h2>
           <Link href={guideHref(guide.slug)} className={buttonClasses({ variant: "ghost", size: "sm" })}>
             View guide
             <ArrowRight aria-hidden strokeWidth={1.75} />
@@ -35,14 +35,14 @@ export default async function EditGuidePage({ params }: { params: Promise<{ id: 
         <GuideEditor guide={guide} />
       </Card>
       <Card className="grid gap-3">
-        <h2 className="text-sm font-semibold tracking-tight">Delete guide</h2>
+        <h2 className="text-heading font-semibold tracking-tight">Delete guide</h2>
         <p className="text-meta text-muted">Removes the guide, its steps and every member&apos;s progress on it.</p>
         <div>
           <ActionButton
             action={moderateGuide}
             fields={{ guideId: guide.id, op: "delete" }}
             label="Delete guide"
-            pendingLabel="Deleting..."
+            pendingLabel="Deleting…"
             tone="danger"
             confirm={`Delete "${guide.title}"? This cannot be undone.`}
           />

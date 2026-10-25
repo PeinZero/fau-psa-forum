@@ -102,7 +102,7 @@ export function CategoryForm({ category }: { category?: Category }) {
       </div>
       <div>
         <Button type="submit" variant="primary" disabled={pending}>
-          {pending ? "Saving..." : category ? "Save changes" : "Create category"}
+          {pending ? "Saving…" : category ? "Save changes" : "Create category"}
         </Button>
       </div>
       {state && (

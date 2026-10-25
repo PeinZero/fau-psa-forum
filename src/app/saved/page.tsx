@@ -36,8 +36,10 @@ function SavedTabs({ current }: { current: Tab | null }) {
   );
 }
 
+/** Signed-out visitors only get the sign-in prompt below; tabs would have nothing to switch. */
 async function CurrentSavedTabs({ searchParams }: { searchParams: SearchParams }) {
-  const { tab } = await searchParams;
+  const [{ tab }, userId] = await Promise.all([searchParams, getUserId()]);
+  if (!userId) return null;
   return <SavedTabs current={currentTab(tab)} />;
 }
 
@@ -114,7 +116,7 @@ function SavedEmpty({ tab }: { tab: Tab }) {
       Tap the bookmark icon on a thread to keep it here for later.
     </EmptyState>
   ) : (
-    <EmptyState icon={<Bell />} title="You're not following any threads" action={browse}>
+    <EmptyState icon={<Bell />} title="Not following any threads yet" action={browse}>
       Threads you start or comment on are followed automatically. You can also follow any thread from its ⋯ menu.
     </EmptyState>
   );

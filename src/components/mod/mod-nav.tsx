@@ -64,7 +64,7 @@ export function ModNav({ items }: { items: ModNavItem[] }) {
                 href={item.href}
                 aria-current={current ? "page" : undefined}
                 className={cn(
-                  "flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors duration-150 ease-out active:bg-surface-hover lg:min-h-9 lg:pointer-coarse:min-h-11",
+                  "flex min-h-11 items-center gap-2 rounded-md px-3 text-small font-medium transition-colors duration-150 ease-out active:bg-surface-hover lg:min-h-9 lg:pointer-coarse:min-h-11",
                   current ? "bg-surface-hover text-foreground" : "text-muted hover:bg-surface-hover hover:text-foreground",
                 )}
               >

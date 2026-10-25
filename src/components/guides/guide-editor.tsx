@@ -366,7 +366,7 @@ export function GuideEditor({ guide }: { guide?: EditorGuide }) {
       <div className="flex flex-col gap-2 border-t border-border pt-5">
         <div>
           <Button type="submit" variant="primary" disabled={pending}>
-            {pending ? (guide ? "Saving..." : "Creating...") : guide ? "Save guide" : "Create guide"}
+            {pending ? (guide ? "Saving…" : "Creating…") : guide ? "Save guide" : "Create guide"}
           </Button>
         </div>
         {state && (

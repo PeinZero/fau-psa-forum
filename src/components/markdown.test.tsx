@@ -51,3 +51,23 @@ describe("Markdown sizes", () => {
     expect(screen.getByRole("heading", { level: 3, name: "Where to look" })).toBeInTheDocument();
   });
 });
+
+describe("Markdown images", () => {
+  it("shows an image's alt text instead of loading it", () => {
+    const { container } = render(<Markdown>{"Map: ![Rathaus entrance on the ground floor](https://example.com/rathaus.jpg)"}</Markdown>);
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("[Image: Rathaus entrance on the ground floor]")).toBeInTheDocument();
+  });
+
+  it("drops an image without alt text entirely", () => {
+    const { container } = render(<Markdown>{"before ![](https://example.com/tracker.gif) after"}</Markdown>);
+    expect(container.querySelector("img")).toBeNull();
+    expect(container).not.toHaveTextContent("Image");
+    expect(container).toHaveTextContent("before after");
+  });
+
+  it("keeps a linked image's alt text inside the link", () => {
+    render(<Markdown>{"[![Opening hours](https://example.com/hours.png)](https://example.com/hours)"}</Markdown>);
+    expect(screen.getByRole("link", { name: "[Image: Opening hours]" })).toHaveAttribute("href", "https://example.com/hours");
+  });
+});

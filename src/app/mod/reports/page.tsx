@@ -79,7 +79,7 @@ export default async function ReportsPage({ searchParams }: Props) {
       />
 
       {error ? (
-        <p role="alert" className="text-danger">Could not load reports. Please reload.</p>
+        <p role="alert" className="text-body text-danger">Could not load reports. Please reload.</p>
       ) : !reports.length ? (
         <EmptyState icon={<CheckCircle2 />} title={status === "open" ? "All caught up" : `No ${status} reports`}>
           {status === "open" ? "Nothing has been flagged. Reports from members show up here." : "Reports you move here are kept for reference."}
@@ -108,13 +108,13 @@ export default async function ReportsPage({ searchParams }: Props) {
                     {thread && href ? (
                       <Link
                         href={href}
-                        className="inline-flex min-h-11 max-w-full items-center gap-1.5 break-words text-sm font-medium hover:underline"
+                        className="inline-flex min-h-11 max-w-full items-center gap-1.5 break-words text-small font-medium hover:underline"
                       >
                         <span className="min-w-0 break-words">{thread.title}</span>
-                        <ExternalLink aria-hidden strokeWidth={1.75} className="size-3.5 shrink-0 text-muted" />
+                        <ExternalLink aria-hidden strokeWidth={1.75} className="size-4 shrink-0 text-muted" />
                       </Link>
                     ) : (
-                      <p className="text-sm text-muted">The reported content is no longer available.</p>
+                      <p className="text-small text-muted">The reported content is no longer available.</p>
                     )}
                     {content && (
                       <blockquote className="mt-1 break-words border-l-2 border-border-strong pl-3 text-meta text-muted">

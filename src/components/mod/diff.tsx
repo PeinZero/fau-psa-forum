@@ -35,7 +35,7 @@ function Column({ label, ops, side }: { label: string; ops: Op[]; side: "removed
   return (
     <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-background">
       <p className="border-b border-border bg-surface px-3 py-1.5 text-meta font-medium text-muted">{label}</p>
-      <div className="py-1 font-mono text-[13px] leading-6">
+      <div className="py-1 font-mono text-meta leading-6">
         {ops
           .filter((op) => op.kind === "same" || op.kind === side)
           .map((op, index) => (

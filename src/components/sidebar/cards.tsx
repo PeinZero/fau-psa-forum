@@ -186,10 +186,12 @@ export async function CategoriesCard({ currentSlug }: { currentSlug?: string }) 
                 >
                   {category.name}
                 </span>
-                <span className="shrink-0 text-meta tabular-nums text-muted">
-                  {category.threadCount}
-                  <span className="sr-only"> {category.threadCount === 1 ? "thread" : "threads"}</span>
-                </span>
+                {category.threadCount > 0 && (
+                  <span className="shrink-0 text-meta tabular-nums text-muted">
+                    {category.threadCount}
+                    <span className="sr-only"> {category.threadCount === 1 ? "thread" : "threads"}</span>
+                  </span>
+                )}
               </Link>
             </li>
           );

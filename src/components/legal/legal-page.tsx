@@ -30,7 +30,7 @@ export function LegalPage({
 export function LegalSection({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={id ? `${id}-heading` : undefined} className="scroll-mt-20 space-y-4">
-      <h2 id={id ? `${id}-heading` : undefined} className="text-heading text-foreground">
+      <h2 id={id ? `${id}-heading` : undefined} className="text-heading font-semibold text-foreground">
         {title}
       </h2>
       {children}

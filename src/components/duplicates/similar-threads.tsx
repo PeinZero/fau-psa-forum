@@ -31,7 +31,7 @@ export function SimilarThreads({ title }: { title: string }) {
           <div className="flex items-start gap-2">
             <Lightbulb aria-hidden strokeWidth={1.75} className="mt-0.5 size-4 shrink-0 text-accent" />
             <div className="min-w-0">
-              <h3 id={headingId} className="text-sm font-medium text-foreground">
+              <h3 id={headingId} className="text-small font-medium text-foreground">
                 Already asked?
               </h3>
               <p className="text-meta text-muted">These threads look similar. They open in a new tab, so your draft stays.</p>

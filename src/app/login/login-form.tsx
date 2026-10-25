@@ -157,14 +157,14 @@ export default function LoginForm({ next, initialError }: Props) {
   const inbox = sent ? inboxFor(email) : null;
 
   return (
-    <Card className="animate-fade-up flex flex-col gap-6 p-5 sm:p-7">
+    <Card className="animate-fade-up flex flex-col gap-6 p-5 sm:p-8">
       {sent ? (
         <div className="animate-fade-in flex flex-col items-center gap-4 text-center">
           <span className="flex size-12 items-center justify-center rounded-full bg-accent-soft text-accent">
             <MailCheck aria-hidden strokeWidth={1.75} className="size-6" />
           </span>
           <div className="flex flex-col gap-1.5">
-            <h1 ref={headingRef} tabIndex={-1} className="text-xl font-semibold tracking-tight outline-none">
+            <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold tracking-tight outline-none">
               Check your inbox
             </h1>
             <p role="status" className="text-body text-muted">
@@ -222,7 +222,7 @@ export default function LoginForm({ next, initialError }: Props) {
           <div className="flex flex-col items-center gap-3 text-center">
             <LogoMark />
             <div className="flex flex-col gap-1">
-              <h1 className="text-xl font-semibold tracking-tight">Sign in to the forum</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">Sign in to the forum</h1>
               <p className="text-meta text-muted">
                 You only need an account to ask, answer or vote. Reading is open to everyone.
               </p>

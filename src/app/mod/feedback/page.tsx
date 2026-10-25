@@ -50,7 +50,7 @@ export default async function FeedbackPage({ searchParams }: Props) {
 
   return (
     <div className="grid gap-5">
-      <p className="max-w-prose text-sm text-muted">
+      <p className="max-w-prose text-small text-muted">
         Notes members sent with the feedback button. Only moderators see them; mark one handled once someone has
         looked at it.
       </p>
@@ -65,7 +65,7 @@ export default async function FeedbackPage({ searchParams }: Props) {
       />
 
       {error ? (
-        <p role="alert" className="text-danger">Could not load feedback. Please reload.</p>
+        <p role="alert" className="text-body text-danger">Could not load feedback. Please reload.</p>
       ) : rows.length === 0 ? (
         handled ? (
           <EmptyState icon={<MessageSquareHeart />} title="No handled feedback">

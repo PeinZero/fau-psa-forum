@@ -158,7 +158,7 @@ export function MentionTextarea({ value, onValueChange, onKeyDown, onBlur, ref, 
                 )}
               >
                 <Avatar name={user.display_name} />
-                <span className="min-w-0 flex-1 truncate text-sm text-foreground" title={`${user.display_name} @${user.username}`}>
+                <span className="min-w-0 flex-1 truncate text-small text-foreground" title={`${user.display_name} @${user.username}`}>
                   <span className="font-medium">{user.display_name}</span>{" "}
                   <span className="text-muted">@{user.username}</span>
                 </span>

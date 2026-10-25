@@ -9,7 +9,6 @@ import { fetchAnnouncement } from "@/components/announcements/data";
 import { announcementExcerpt } from "@/components/announcements/excerpt";
 import { MarkAnnouncementsSeen } from "@/components/announcements/unseen-mark-seen";
 import { buttonClasses } from "@/components/ui/button";
-import { cardClasses } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
 
@@ -42,7 +41,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default function AnnouncementPage({ params }: { params: Params }) {
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-[45rem]">
       <Link
         href="/announcements"
         className="mb-6 inline-flex min-h-9 items-center gap-1.5 rounded-md text-meta text-muted transition-colors hover:text-foreground pointer-coarse:min-h-11"
@@ -65,7 +64,7 @@ async function AnnouncementContent({ params }: { params: Params }) {
   if (!announcement) notFound();
 
   return (
-    <div className="grid gap-4">
+    <div className="flex flex-col gap-8">
       <AnnouncementCard announcement={announcement} variant="full" />
       <Suspense fallback={null}>
         <ModeratorActions id={announcement.id} />
@@ -79,13 +78,10 @@ async function ModeratorActions({ id }: { id: number }) {
   if (!viewer || !isModerator(viewer.role)) return null;
   const href = `/mod/announcements#announcement-${id}`;
   return (
-    <div className="flex flex-wrap gap-2">
-      <Link href={href} className={buttonClasses({ variant: "secondary" })}>
+    <div className="flex flex-wrap items-center gap-2 border-t border-border pt-6">
+      <Link href={href} className={buttonClasses({ variant: "secondary", size: "sm" })}>
         <Pencil aria-hidden strokeWidth={1.75} />
-        Edit
-      </Link>
-      <Link href={href} className={buttonClasses({ variant: "danger" })}>
-        Delete
+        Edit or delete
       </Link>
     </div>
   );
@@ -93,12 +89,21 @@ async function ModeratorActions({ id }: { id: number }) {
 
 function DetailSkeleton() {
   return (
-    <div role="status" aria-busy="true" className={cardClasses()}>
+    <div role="status" aria-busy="true">
       <span className="sr-only">Loading announcement…</span>
-      <Skeleton className="h-6 w-2/3" />
-      <Skeleton className="mt-3 h-3 w-40" />
-      <Skeleton className="mt-5 h-4 w-full" />
-      <Skeleton className="mt-2 h-4 w-4/5" />
+      <Skeleton className="h-8 w-2/3" />
+      <div className="mt-4 flex items-center gap-3">
+        <Skeleton className="size-9 rounded-full" />
+        <div className="flex-1">
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="mt-2 h-3 w-24" />
+        </div>
+      </div>
+      <div className="mt-6 border-t border-border pt-6 sm:pt-8">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="mt-3 h-4 w-11/12" />
+        <Skeleton className="mt-3 h-4 w-4/5" />
+      </div>
     </div>
   );
 }

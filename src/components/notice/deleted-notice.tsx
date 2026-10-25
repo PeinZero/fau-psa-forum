@@ -22,7 +22,7 @@ export function DeletedNotice() {
   return (
     <div
       role="status"
-      className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface py-1 pl-4 pr-1 text-sm text-foreground"
+      className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface py-1 pl-4 pr-1 text-small text-foreground"
     >
       <p>Your account was deleted.</p>
       <button

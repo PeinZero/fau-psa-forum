@@ -57,7 +57,7 @@ export function CategoryPicker({
                 className="mt-0.5 text-subtle transition-colors duration-150 group-hover/choice:text-muted peer-checked:text-accent"
               />
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-sm font-medium text-foreground">{category.name}</span>
+                <span className="text-small font-medium text-foreground">{category.name}</span>
                 {description ? <span className="mt-0.5 line-clamp-2 text-meta text-muted">{description}</span> : null}
               </span>
               <Check

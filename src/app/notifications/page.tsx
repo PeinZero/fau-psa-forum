@@ -223,7 +223,7 @@ function NotificationItem({ n, index, now }: { n: NotificationRow; index: number
         id={n.id}
         href={target(n)}
         unread={unread}
-        className="group flex items-start gap-3 rounded-lg px-3 py-3.5 transition-colors duration-150 ease-out hover:bg-surface-hover focus-visible:-outline-offset-2 data-unread:bg-accent-soft/40 data-unread:hover:bg-surface-hover sm:px-4"
+        className="group flex items-start gap-3 rounded-lg px-3 py-4 transition-colors duration-150 ease-out hover:bg-surface-hover focus-visible:-outline-offset-2 data-unread:bg-accent-soft/40 data-unread:hover:bg-surface-hover sm:px-4"
       >
         <span className="relative mt-0.5 shrink-0">
           {system ? (
@@ -240,7 +240,7 @@ function NotificationItem({ n, index, now }: { n: NotificationRow; index: number
                 aria-hidden
                 className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full border border-border bg-background text-muted"
               >
-                <Icon strokeWidth={2} className="size-2.5" />
+                <Icon strokeWidth={1.75} className="size-2.5" />
               </span>
             </>
           )}
@@ -249,7 +249,7 @@ function NotificationItem({ n, index, now }: { n: NotificationRow; index: number
           <span className="block break-words text-body text-muted group-data-unread:text-foreground">
             {sentence(n)}
           </span>
-          <time dateTime={n.created_at} title={formatDate(n.created_at)} className="block text-meta text-muted">
+          <time dateTime={n.created_at} title={formatDate(n.created_at)} className="block text-meta tabular-nums text-muted">
             {relativeTime(n.created_at, now)}
           </time>
         </span>
@@ -315,7 +315,7 @@ async function NotificationsContent({ searchParams }: { searchParams: SearchPara
         actions={<MarkAllReadButton disabled={!hasUnread} />}
       />
       {error ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="text-body text-danger">
           Could not load your notifications. Please try again later.
         </p>
       ) : total === 0 ? (
@@ -351,7 +351,7 @@ function NotificationsSkeleton() {
       <Skeleton className="h-6 w-16" />
       <div className="-mx-3 mt-2 flex flex-col gap-0.5 sm:-mx-4">
         {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="flex items-start gap-3 px-3 py-3.5 sm:px-4">
+          <div key={i} className="flex items-start gap-3 px-3 py-4 sm:px-4">
             <Skeleton className="size-8 rounded-full" />
             <div className="flex-1">
               <Skeleton className={i % 2 ? "h-5 w-2/3" : "h-5 w-4/5"} />

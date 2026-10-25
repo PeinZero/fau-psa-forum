@@ -37,7 +37,7 @@ function thread(overrides: Partial<ThreadListRow> = {}): ThreadListRow {
   };
 }
 
-function renderRow(overrides: Partial<ThreadListRow> = {}, props: { hideCategory?: boolean } = {}) {
+function renderRow(overrides: Partial<ThreadListRow> = {}, props: { hideCategory?: boolean; hideAuthor?: boolean } = {}) {
   render(<ThreadList threads={[thread(overrides)]} emptyText="No threads yet" {...props} />);
   return screen.getByRole("listitem");
 }
@@ -66,6 +66,12 @@ describe("ThreadList rows", () => {
   it("hides the category on its own category page", () => {
     const row = renderRow({}, { hideCategory: true });
     expect(within(row).queryByRole("link", { name: "First Steps" })).toBeNull();
+  });
+
+  it("hides the author on their own profile but keeps the time", () => {
+    const row = renderRow({}, { hideAuthor: true });
+    expect(row).not.toHaveTextContent("Ayesha Khan");
+    expect(within(row).getByText("2 hr. ago")).toBeInTheDocument();
   });
 
   it("shows the excerpt below the title", () => {

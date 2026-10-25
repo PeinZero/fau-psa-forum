@@ -57,7 +57,7 @@ export default async function ModAnnouncementsPage() {
                       />
                       <span className="min-w-0 flex-1">
                         <span className="flex min-w-0 items-center gap-2">
-                          <span className="truncate text-sm font-medium">{announcement.title}</span>
+                          <span className="truncate text-small font-medium">{announcement.title}</span>
                           {announcement.is_pinned && (
                             <Badge variant="accent">
                               <Pin aria-hidden strokeWidth={1.75} />
@@ -81,7 +81,7 @@ export default async function ModAnnouncementsPage() {
                           action={moderateAnnouncement}
                           fields={{ announcementId: announcement.id, op: announcement.is_pinned ? "unpin" : "pin" }}
                           label={announcement.is_pinned ? "Unpin" : "Pin"}
-                          pendingLabel={announcement.is_pinned ? "Unpinning..." : "Pinning..."}
+                          pendingLabel={announcement.is_pinned ? "Unpinning…" : "Pinning…"}
                         />
                         <Link
                           href={announcementHref(announcement.id)}
@@ -94,7 +94,7 @@ export default async function ModAnnouncementsPage() {
                           <AnnouncementActionButton
                             fields={{ announcementId: announcement.id, op: "delete" }}
                             label="Delete"
-                            pendingLabel="Deleting..."
+                            pendingLabel="Deleting…"
                             tone="danger"
                             confirm={`Delete "${announcement.title}"? Its notifications are removed too. This cannot be undone.`}
                           />

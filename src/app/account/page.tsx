@@ -81,9 +81,9 @@ async function ModeratorSection({
 
   if (data?.status === "pending") {
     return (
-      <p className="text-body text-muted">
-        <Badge variant="warning">In review</Badge> Your application is being
-        reviewed.
+      <p className="flex flex-wrap items-center gap-2 text-body text-muted">
+        <Badge variant="warning">Waiting for review</Badge>
+        A moderator will get back to you soon.
       </p>
     );
   }

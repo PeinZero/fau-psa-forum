@@ -66,7 +66,7 @@ export default async function ModOverviewPage() {
                   </span>
                   <span
                     className={cn(
-                      "text-3xl font-semibold leading-none tracking-tight tabular-nums",
+                      "text-display font-semibold leading-none tracking-tight tabular-nums",
                       count > 0 ? "text-foreground" : "text-subtle",
                     )}
                   >
@@ -90,7 +90,7 @@ export default async function ModOverviewPage() {
               <Link href={href} className={cardClasses({ interactive: true, className: "flex min-h-11 items-center gap-3" })}>
                 <Icon aria-hidden strokeWidth={1.75} className="size-4 shrink-0 text-muted" />
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium text-foreground">{title}</span>
+                  <span className="block text-small font-medium text-foreground">{title}</span>
                   <span className="block text-meta text-muted">{text}</span>
                 </span>
               </Link>

@@ -60,7 +60,7 @@ function compact(entries: readonly MenuEntry[]): (MenuItem | "separator")[] {
 
 function itemClasses(danger: boolean | undefined): string {
   return cn(
-    "flex min-h-8 w-full select-none items-center gap-2.5 rounded-md px-2 text-left text-sm outline-none transition-colors duration-100 pointer-coarse:min-h-11",
+    "flex min-h-9 w-full select-none items-center gap-2.5 rounded-md px-2 text-left text-small outline-none transition-colors duration-100 pointer-coarse:min-h-11",
     "[&>svg]:size-4 [&>svg]:shrink-0",
     danger ? "text-danger focus:bg-danger/10" : "text-foreground focus:bg-surface-hover [&>svg]:text-muted",
   );
@@ -255,7 +255,7 @@ export function DropdownMenu({ label, items, trigger, triggerClassName, heading,
             if (!confirming) menuRef.current?.focus();
           }}
           className={cn(
-            "absolute right-0 z-50 max-w-[calc(100vw-1rem)] rounded-lg border border-border bg-surface p-1 text-left outline-none",
+            "absolute right-0 z-50 max-w-[calc(100vw-1rem)] rounded-lg border border-border bg-raised p-1 text-left outline-none",
             "shadow-[0_10px_28px_-8px_var(--shadow-color),0_2px_6px_var(--shadow-color)]",
             "transition-[opacity,scale] duration-[120ms] ease-out starting:scale-95 starting:opacity-0",
             confirming ? "w-72" : "w-max min-w-52",
@@ -289,9 +289,12 @@ export function DropdownMenu({ label, items, trigger, triggerClassName, heading,
           ) : (
             <>
               {heading && (
-                <div role="none" className="truncate px-2 pb-1.5 pt-1 text-meta text-muted">
-                  {heading}
-                </div>
+                <>
+                  <div role="none" className="min-w-0 px-2 pb-2 pt-1.5 text-meta text-muted">
+                    {heading}
+                  </div>
+                  <div role="separator" className="-mx-1 mb-1 h-px bg-border" />
+                </>
               )}
               {entries.map((entry, i) => {
                 if (entry === "separator") {

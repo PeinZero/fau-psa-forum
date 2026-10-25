@@ -22,7 +22,7 @@ export default async function CategoriesPage() {
     .order("name");
   const isSuperadmin = viewer?.role === "superadmin";
 
-  if (error) return <p role="alert" className="text-danger">Could not load categories. Please reload.</p>;
+  if (error) return <p role="alert" className="text-body text-danger">Could not load categories. Please reload.</p>;
 
   return (
     <div className="grid gap-8">
@@ -56,7 +56,7 @@ export default async function CategoriesPage() {
                       className="size-4 shrink-0 text-muted transition-transform duration-150 group-open:rotate-90"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">{category.name}</span>
+                      <span className="block truncate text-small font-medium">{category.name}</span>
                       <span className="block truncate text-meta text-muted">
                         /{category.slug} · {countLabel(category.threads[0]?.count ?? 0, "thread")}
                       </span>

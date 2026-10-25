@@ -30,7 +30,7 @@ export default async function UpdateRequestsPage() {
 
   if (error) {
     return (
-      <p role="alert" className="text-danger">
+      <p role="alert" className="text-body text-danger">
         Could not load update requests. Please reload.
       </p>
     );
@@ -67,13 +67,13 @@ export default async function UpdateRequestsPage() {
                 {thread ? (
                   <Link
                     href={`/t/${thread.slug}`}
-                    className="inline-flex min-h-11 max-w-full items-center gap-1.5 break-words text-sm font-medium hover:underline"
+                    className="inline-flex min-h-11 max-w-full items-center gap-1.5 break-words text-small font-medium hover:underline"
                   >
                     <span className="min-w-0 break-words">{thread.title}</span>
-                    <ExternalLink aria-hidden strokeWidth={1.75} className="size-3.5 shrink-0 text-muted" />
+                    <ExternalLink aria-hidden strokeWidth={1.75} className="size-4 shrink-0 text-muted" />
                   </Link>
                 ) : (
-                  <p className="text-sm text-muted">The thread is no longer available.</p>
+                  <p className="text-small text-muted">The thread is no longer available.</p>
                 )}
 
                 {request.note ? (
@@ -95,7 +95,7 @@ export default async function UpdateRequestsPage() {
                     <ActionButton
                       action={markThreadVerified}
                       fields={{ threadId: thread.id }}
-                      label="Mark thread verified"
+                      label="Mark as verified"
                       variant="primary"
                     />
                   )}

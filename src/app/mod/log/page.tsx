@@ -108,7 +108,7 @@ export default async function ModerationLogPage({ searchParams }: Props) {
           <Input id="log-to" name="to" type="date" defaultValue={to} />
         </div>
         <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-4">
-          <Button type="submit" variant="primary">
+          <Button type="submit" variant="secondary">
             <Search aria-hidden strokeWidth={1.75} />
             Filter
           </Button>
@@ -121,7 +121,7 @@ export default async function ModerationLogPage({ searchParams }: Props) {
       </Form>
 
       {error ? (
-        <p role="alert" className="text-danger">Could not load the log. Please reload.</p>
+        <p role="alert" className="text-body text-danger">Could not load the log. Please reload.</p>
       ) : !entries.length ? (
         <EmptyState icon={<ScrollText />} title={page > 1 ? "No more entries" : "No log entries"}>
           {hasFilters || page > 1 ? "Nothing matches these filters." : "Moderator actions show up here."}
@@ -131,7 +131,7 @@ export default async function ModerationLogPage({ searchParams }: Props) {
           <ul className="divide-y divide-border">
             {entries.map((row, index) => (
               <li key={row.id} style={stagger(index)} className="grid animate-fade-up gap-1 px-4 py-3">
-                <p className="break-words text-sm">
+                <p className="break-words text-small">
                   <Sentence parts={describeLogEntry(row as LogEntry)} />
                 </p>
                 {row.reason && <p className="break-words text-meta text-muted">Reason: {row.reason}</p>}

@@ -31,7 +31,9 @@ Tailwind utilities from `@theme static` in `src/app/globals.css`; each carries i
 | `text-2xl` | 24 / 32px | the compact welcome headline on Home |
 | `text-display` | 30 / 38px desktop, 26 / 32px phones | page h1 (`PageHeader`, thread title) |
 
-Weights: 400 body, 500 labels/links/sidebar rows, 600 titles and headings. No 700 walls.
+Weights: 400 body, 500 labels/links/sidebar rows, 600 titles and headings (the `text-title`,
+`text-heading` and `text-display` utilities carry no weight, so always pair them with
+`font-semibold`). No 700 walls. Raw `text-sm` is `text-small`; `<time>` is tabular by default.
 Section headings are real headings in `foreground`, never tiny muted labels. Counts, scores and
 dates use `tabular-nums`.
 
@@ -89,7 +91,13 @@ touch), `Input`, `Textarea`, `Select`, `Label`, `FieldError`, `Card` (`outline` 
 forms, `quiet` borderless `surface` for prompts and notes, `list` hairline-divided rows such as
 moderation queues), `Badge` (neutral / accent / warning / danger), `Kbd`, `Skeleton`, `EmptyState`
 (soft `surface` block, round quiet icon, title, one line of help, action; never dashed),
-`PageHeader`, `SegmentedControl`, `SegmentedLinks`. Icons from `lucide-react`, 16px (`size-4`) beside text, `strokeWidth={1.75}`,
+`PageHeader`, `SegmentedControl`, `SegmentedLinks`, `DropdownMenu` (on `raised`; an optional heading
+line such as the account menu's name + @handle sits above a separator), `Dialog` (`DialogHeader`
+title + one-line description + close button, body, `DialogActions` right-aligned with the main
+action last, `DialogSuccess` check + thank-you + focused Done; Escape, a backdrop press and the close
+button call `onClose`, Tab stays inside, focus returns to the opener; report, feedback, update
+request and shortcuts dialogs use it). Interactive cards only step their fill on hover (no lift,
+no shadow). Icons from `lucide-react`, 16px (`size-4`) beside text, `strokeWidth={1.75}`,
 `text-subtle` when decorative.
 
 `src/components/sidebar/`: `FeedLayout`, `SidebarSticky`, `SidebarCard` (title + optional
@@ -102,7 +110,7 @@ shows only a faint arrow, never a column of zeros), meta line (category link wit
 author link · relative time) with the comment count trailing (left out at zero; phones also show a
 non-zero score there), title, two-line `text-small` excerpt, status pills only when one applies.
 Search passes `highlight` (marks the words) and its own `excerpt` snippet; lists without scores
-drop the column. Links inside a row sit above the title's stretched link (`relative z-10`).
+drop the column; a category page passes `hideCategory`, a profile `hideAuthor`. Links inside a row sit above the title's stretched link (`relative z-10`).
 
 Author names link to `/u/<username>` when the query loaded the handle (quiet until hover: underline
 and `foreground`); "Deleted user" is never a link.
@@ -125,6 +133,11 @@ a primary "Sign in to comment".
 - Plurals through `countLabel(n, "comment")` ("1 comment", "2 comments"). Zero counts in feed rows
   and sidebar lists are left out rather than printed as "0 comments".
 - Times: relative (`relativeTime`) in a `<time dateTime>` with the full date in `title`.
+- Guides index: featured guides first as `surface` cards ("Start here" once other guides exist),
+  the rest as hairline rows; each shows the step count, and members also see a progress bar and
+  "3 of 8 steps done". Announcements list as `surface` cards (pinned pill, date, author, title,
+  three-line excerpt; the whole card opens it); an announcement's own page reads like a thread.
+- Members-only pages show signed-out visitors only the sign-in prompt (no search, tabs or filters).
 - Empty states (`EmptyState`) say what is missing and offer the next action (usually Ask a
   question).
 - Skeletons mirror the final layout (same frame, row count and heights) so nothing jumps.

@@ -61,10 +61,10 @@ export default function WelcomePage(props: Props) {
       </Suspense>
       <section aria-labelledby="how-it-works" className="animate-fade-up flex flex-col gap-3 px-1"
         style={stagger(1)}>
-        <h2 id="how-it-works" className="text-sm font-semibold text-foreground">
+        <h2 id="how-it-works" className="text-body font-semibold text-foreground">
           How it works
         </h2>
-        <ul className="flex flex-col gap-2.5">
+        <ul className="flex flex-col gap-3">
           {HOW_IT_WORKS.map(({ icon: Icon, text }) => (
             <li key={text} className="flex items-start gap-3 text-meta text-muted">
               <Icon aria-hidden strokeWidth={1.75} className="mt-0.5 size-4 shrink-0 text-accent" />

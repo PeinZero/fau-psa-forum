@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -16,6 +16,7 @@ beforeAll(() => {
 });
 
 const isOpen = () => document.querySelector("dialog")!.hasAttribute("open");
+const openFromFooter = () => act(() => window.dispatchEvent(new Event(OPEN_SHORTCUTS_EVENT)));
 
 describe("shortcutGroups", () => {
   it("uses the platform modifier for combinations", () => {
@@ -47,7 +48,7 @@ describe("ShortcutsDialog", () => {
 
   it("closes on a backdrop press but not on a drag that starts inside", () => {
     render(<ShortcutsDialog />);
-    window.dispatchEvent(new Event(OPEN_SHORTCUTS_EVENT));
+    openFromFooter();
     const dialog = document.querySelector("dialog")!;
     fireEvent.pointerDown(screen.getByText("Search threads"));
     fireEvent.click(dialog);
@@ -70,7 +71,7 @@ describe("ShortcutsDialog", () => {
 
   it("groups every shortcut under a labelled section", () => {
     render(<ShortcutsDialog />);
-    window.dispatchEvent(new Event(OPEN_SHORTCUTS_EVENT));
+    openFromFooter();
     for (const name of ["General", "In search", "Writing"]) {
       expect(screen.getByRole("region", { name })).toBeInTheDocument();
     }
@@ -92,7 +93,7 @@ describe("ShortcutsDialog", () => {
 
   it("opens from the footer event", () => {
     render(<ShortcutsDialog />);
-    window.dispatchEvent(new Event(OPEN_SHORTCUTS_EVENT));
+    openFromFooter();
     expect(isOpen()).toBe(true);
   });
 });

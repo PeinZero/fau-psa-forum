@@ -62,7 +62,7 @@ export function ThreadPicker({
     return (
       <div className="flex min-h-11 items-center gap-2 rounded-md border border-border bg-background py-1 pl-3 pr-1">
         <MessageSquare aria-hidden strokeWidth={1.75} className="size-4 shrink-0 text-muted" />
-        <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+        <span className="min-w-0 flex-1 truncate text-small text-foreground">
           <span className="sr-only">{label}: </span>
           {value.title}
         </span>
@@ -157,7 +157,7 @@ export function ThreadPicker({
         role="listbox"
         aria-label="Matching threads"
         hidden={!expanded || results.length === 0}
-        className="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-[0_10px_28px_-8px_var(--shadow-color),0_2px_6px_var(--shadow-color)]"
+        className="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-lg border border-border bg-raised p-1 shadow-[0_10px_28px_-8px_var(--shadow-color),0_2px_6px_var(--shadow-color)]"
       >
         {results.map((thread, index) => (
           <li
@@ -174,7 +174,7 @@ export function ThreadPicker({
               index === active ? "bg-surface-hover" : undefined,
             )}
           >
-            <span className="truncate text-sm text-foreground">{thread.title}</span>
+            <span className="truncate text-small text-foreground">{thread.title}</span>
             {thread.category && <span className="truncate text-meta text-muted">{thread.category.name}</span>}
           </li>
         ))}

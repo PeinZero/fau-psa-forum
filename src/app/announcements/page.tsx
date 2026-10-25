@@ -8,7 +8,6 @@ import { AnnouncementCard } from "@/components/announcements/announcement-card";
 import { MarkAnnouncementsSeen } from "@/components/announcements/unseen-mark-seen";
 import { SEARCH_MAX, searchAnnouncements } from "@/components/announcements/data";
 import { Button, buttonClasses } from "@/components/ui/button";
-import { cardClasses } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Label } from "@/components/ui/field";
 import { stagger } from "@/components/ui/motion";
@@ -60,7 +59,7 @@ async function AnnouncementList({ searchParams }: Props) {
 
   return (
     <>
-      <ul className="grid gap-4 sm:gap-5">
+      <ul className="grid gap-4">
         {announcements.map((announcement, index) => (
           <li key={announcement.id} className="animate-fade-up" style={stagger(index)}>
             <AnnouncementCard announcement={announcement} variant="excerpt" />
@@ -77,11 +76,11 @@ function ListSkeleton() {
     <div role="status" aria-busy="true" className="grid gap-4">
       <span className="sr-only">Loading announcements…</span>
       {[0, 1].map((i) => (
-        <div key={i} className={cardClasses()}>
-          <Skeleton className="h-5 w-2/3" />
-          <Skeleton className="mt-3 h-3 w-40" />
-          <Skeleton className="mt-5 h-4 w-full" />
-          <Skeleton className="mt-2 h-4 w-4/5" />
+        <div key={i} className="rounded-xl bg-surface px-4 py-4 sm:px-5">
+          <Skeleton className="my-1 h-3 w-40" />
+          <Skeleton className="mt-3.5 h-[1.125rem] w-2/3" />
+          <Skeleton className="mt-2.5 h-3 w-full" />
+          <Skeleton className="mt-2 h-3 w-4/5" />
         </div>
       ))}
     </div>
@@ -92,7 +91,7 @@ async function NewAnnouncementLink() {
   const viewer = await getViewer();
   if (!viewer || !isModerator(viewer.role)) return null;
   return (
-    <Link href="/mod/announcements" className={buttonClasses({ variant: "primary" })}>
+    <Link href="/mod/announcements" className={buttonClasses({ variant: "primary", size: "sm" })}>
       <Plus aria-hidden strokeWidth={1.75} />
       New announcement
     </Link>

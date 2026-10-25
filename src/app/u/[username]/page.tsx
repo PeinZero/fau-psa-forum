@@ -83,7 +83,7 @@ async function ProfileContent({ params, searchParams }: { params: Params; search
               <CalendarDays aria-hidden strokeWidth={1.75} className="size-4 text-subtle" />
               <dt className="sr-only">Joined</dt>
               <dd>
-                Joined <time dateTime={profile.created_at}>{formatDate(profile.created_at)}</time>
+                Joined <time dateTime={profile.created_at} className="tabular-nums">{formatDate(profile.created_at)}</time>
               </dd>
             </div>
           </dl>
@@ -154,7 +154,8 @@ async function ProfileThreads({
     <>
       <ThreadList
         threads={threads}
-        emptyText={`${name} has not published any threads yet.`}
+        hideAuthor
+        emptyText={`${name} has no published threads yet`}
         emptyDescription="Threads appear here once a moderator has approved them."
         emptyAction={null}
       />

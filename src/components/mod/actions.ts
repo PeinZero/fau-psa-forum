@@ -340,7 +340,7 @@ export async function markThreadVerified(_prev: ActionState, formData: FormData)
     .eq("thread_id", parsed.data.threadId)
     .eq("status", "open");
   if (resolveError) return fail(friendlyError(resolveError, MOD_ERRORS));
-  return done("Marked as still accurate.");
+  return done("Marked as verified.");
 }
 
 const updateRequestSchema = z.object({

@@ -152,17 +152,18 @@ export default function AboutPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         {sections.map(({ icon: Icon, title, body }, i) => (
           <Card
+            variant="quiet"
             key={title}
             className="animate-fade-up space-y-3"
             style={stagger(i + 3)}
           >
             <span
               aria-hidden
-              className="flex size-8 items-center justify-center rounded-md border border-border bg-background text-accent"
+              className="flex size-8 items-center justify-center rounded-md bg-raised text-accent"
             >
               <Icon className="size-4" strokeWidth={1.75} />
             </span>
-            <h2 className="text-heading">{title}</h2>
+            <h2 className="text-heading font-semibold">{title}</h2>
             <div className="space-y-2 text-body text-muted">
               {body}
             </div>

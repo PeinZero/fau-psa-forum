@@ -60,9 +60,9 @@ export function WelcomeForm({ next, displayName, username, affiliation }: Props)
   const badge = fields.affiliation ? affiliationLabels[fields.affiliation as Enums<"affiliation">] : null;
 
   return (
-    <Card className="flex animate-fade-up flex-col gap-6 p-5 sm:p-7">
+    <Card className="flex animate-fade-up flex-col gap-6 p-5 sm:p-8">
       <div className="flex flex-col gap-1.5">
-        <h1 className="text-xl font-semibold tracking-tight">Welcome to the forum</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome to the forum</h1>
         <p className="text-meta text-muted">
           Confirm how you appear next to your questions and answers. You can change this later in your account.
         </p>
@@ -75,7 +75,7 @@ export function WelcomeForm({ next, displayName, username, affiliation }: Props)
         <Avatar name={previewName} size="md" />
         <div className="flex min-w-0 flex-col">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-sm font-medium text-foreground">{previewName}</span>
+            <span className="truncate text-body font-medium text-foreground">{previewName}</span>
             {badge ? <Badge>{badge}</Badge> : null}
           </span>
           <span className="truncate text-meta text-muted">@{fields.username || "username"}</span>
@@ -168,7 +168,7 @@ export function WelcomeForm({ next, displayName, username, affiliation }: Props)
 
         <div className="mt-1 flex flex-col gap-2">
           <Button type="submit" disabled={pending} className="w-full">
-            {pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
+            {pending ? <Loader2 aria-hidden strokeWidth={1.75} className="motion-safe:animate-spin" /> : null}
             {pending ? "Saving…" : "Continue"}
           </Button>
           <Link

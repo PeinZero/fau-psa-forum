@@ -104,8 +104,15 @@ async function ThreadContent({ params, searchParams }: { params: Params; searchP
                   className="inline-flex h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-meta font-medium tabular-nums text-muted transition-colors duration-150 ease-out hover:bg-surface-hover hover:text-foreground active:bg-surface-hover/70 pointer-coarse:h-11"
                 >
                   <MessageSquare aria-hidden strokeWidth={1.75} className="size-4" />
-                  {thread.comment_count}
-                  <span className="max-[399px]:sr-only">{thread.comment_count === 1 ? "comment" : "comments"}</span>
+                  {thread.comment_count > 0 ? (
+                    <>
+                      {thread.comment_count}
+                      <span className="max-[399px]:sr-only">{thread.comment_count === 1 ? "comment" : "comments"}</span>
+                    </>
+                  ) : (
+                    // A new thread invites the first comment instead of announcing zero.
+                    <span className="max-[399px]:sr-only">Comment</span>
+                  )}
                 </a>
               </>
             )}

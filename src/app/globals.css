@@ -208,6 +208,11 @@
     text-wrap: pretty;
   }
 
+  /* Dates and times line up in lists without every caller remembering tabular-nums. */
+  time {
+    font-variant-numeric: tabular-nums;
+  }
+
   ::selection {
     background-color: color-mix(in oklab, var(--accent) 28%, transparent);
     color: inherit;

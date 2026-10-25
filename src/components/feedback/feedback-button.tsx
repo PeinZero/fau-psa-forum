@@ -1,10 +1,12 @@
 "use client";
 
-import { CircleCheck, LoaderCircle, MessageSquareHeart } from "lucide-react";
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { LoaderCircle, MessageSquareHeart } from "lucide-react";
+import { useId, useState, useTransition } from "react";
 
 import { Button, type ButtonSize, type ButtonVariant } from "@/components/ui/button";
+import { Dialog, DialogActions, DialogHeader, DialogSuccess } from "@/components/ui/dialog";
 import { FieldError, Input, Label, Textarea } from "@/components/ui/field";
+import { CharCounter } from "@/components/write/char-counter";
 
 import { sendFeedback } from "./actions";
 import { FEEDBACK_MESSAGE_MAX, FEEDBACK_PAGE_MAX } from "./limits";
@@ -32,67 +34,37 @@ export function FeedbackButton({ label = "Send feedback", variant = "ghost", siz
 
 /**
  * The dialog alone, for triggers that unmount when clicked (menu items): keep it mounted next to
- * the menu and control `open` from there. The browser returns focus to the opener on close.
+ * the menu and control `open` from there.
  */
 export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    else if (!open && dialog.open) dialog.close();
-  }, [open]);
-
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby={titleId}
-      onClose={onClose}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-      className="m-auto w-[min(28rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] rounded-xl border border-border bg-background p-0 text-foreground shadow-[0_24px_48px_-12px_var(--shadow-color)] backdrop:bg-black/40 backdrop:backdrop-blur-[2px] open:animate-fade-up"
-    >
-      {open && <FeedbackForm titleId={titleId} onClose={onClose} />}
-    </dialog>
+    <Dialog open={open} onClose={onClose} size="md">
+      <FeedbackForm onClose={onClose} />
+    </Dialog>
   );
 }
 
-function FeedbackForm({ titleId, onClose }: { titleId: string; onClose: () => void }) {
+function FeedbackForm({ onClose }: { onClose: () => void }) {
   const id = useId();
+  const counterId = `${id}-counter`;
+  const errorId = `${id}-error`;
   const [message, setMessage] = useState("");
   // Read once when the dialog opens, so it names the page the person was looking at.
   const [page, setPage] = useState(() => window.location.pathname.slice(0, FEEDBACK_PAGE_MAX));
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
-  const doneRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (done) doneRef.current?.focus();
-  }, [done]);
 
   if (done) {
-    return (
-      <div role="status" className="flex flex-col items-start gap-4 p-5">
-        <div className="flex items-center gap-2">
-          <CircleCheck aria-hidden strokeWidth={1.75} className="size-5 text-accent" />
-          <h2 id={titleId} className="text-heading font-semibold tracking-tight">
-            Thanks!
-          </h2>
-        </div>
-        <p className="text-sm text-muted">Your feedback goes straight to the forum team.</p>
-        <Button ref={doneRef} variant="secondary" size="md" onClick={onClose} className="self-end">
-          Done
-        </Button>
-      </div>
-    );
+    return <DialogSuccess title="Thanks for the feedback">It goes straight to the forum team.</DialogSuccess>;
   }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!message.trim()) {
+      setError("Please write a few words first.");
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const result = await sendFeedback({ message, page: page.trim() || null });
@@ -102,15 +74,11 @@ function FeedbackForm({ titleId, onClose }: { titleId: string; onClose: () => vo
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4 p-5">
-      <div className="flex flex-col gap-1">
-        <h2 id={titleId} className="text-heading font-semibold tracking-tight">
-          Send feedback
-        </h2>
-        <p className="text-meta text-muted">
-          Something confusing, broken or missing? Tell us. Only moderators read this.
-        </p>
-      </div>
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
+      <DialogHeader
+        title="Send feedback"
+        description="Something confusing, broken or missing? Tell us. Only moderators read this."
+      />
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={`${id}-message`}>Your feedback</Label>
@@ -118,14 +86,15 @@ function FeedbackForm({ titleId, onClose }: { titleId: string; onClose: () => vo
           id={`${id}-message`}
           value={message}
           required
-          autoFocus
           maxLength={FEEDBACK_MESSAGE_MAX}
           disabled={pending}
           onChange={(event) => setMessage(event.target.value)}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${id}-error` : undefined}
+          aria-describedby={`${counterId}${error ? ` ${errorId}` : ""}`}
+          placeholder="What happened, and what did you expect?"
           className="min-h-28"
         />
+        <CharCounter id={counterId} length={message.length} max={FEEDBACK_MESSAGE_MAX} className="self-end" />
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -140,17 +109,17 @@ function FeedbackForm({ titleId, onClose }: { titleId: string; onClose: () => vo
         />
       </div>
 
-      <FieldError id={`${id}-error`} message={error ?? undefined} />
+      <FieldError id={errorId} message={error ?? undefined} />
 
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button variant="ghost" size="md" onClick={onClose} disabled={pending}>
+      <DialogActions>
+        <Button variant="ghost" onClick={onClose} disabled={pending}>
           Cancel
         </Button>
-        <Button type="submit" size="md" disabled={pending}>
-          {pending ? <LoaderCircle className="motion-safe:animate-spin" aria-hidden /> : null}
+        <Button type="submit" disabled={pending}>
+          {pending ? <LoaderCircle className="motion-safe:animate-spin" strokeWidth={1.75} aria-hidden /> : null}
           {pending ? "Sending…" : "Send feedback"}
         </Button>
-      </div>
+      </DialogActions>
     </form>
   );
 }

@@ -46,12 +46,12 @@ export function threadModItems(
       onSelect: () => op(is_pinned ? "unpin" : "pin"),
     },
     isLive && {
-      label: is_outdated ? "Not outdated" : "Mark outdated",
+      label: is_outdated ? "Mark as current" : "Mark as outdated",
       icon: TriangleAlert,
       onSelect: () => op(is_outdated ? "current" : "outdated"),
     },
     status === "published" && {
-      label: "Mark as still accurate",
+      label: "Mark as verified",
       icon: ShieldCheck,
       onSelect: () => run(markThreadVerified, { threadId: id }),
     },

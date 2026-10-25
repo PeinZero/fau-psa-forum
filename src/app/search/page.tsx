@@ -1,26 +1,19 @@
-import { CircleCheck, MessageSquare, PenLine, Search, SearchX } from "lucide-react";
+import { PenLine, Search, SearchX } from "lucide-react";
 import type { Metadata } from "next";
 import Form from "next/form";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { Highlight } from "@/components/command/highlight";
 import { SEARCH_QUERY_MAX } from "@/components/command/types";
-import { CategoryGlyph } from "@/components/thread/category-icon";
-import { ThreadListSkeleton } from "@/components/thread/thread-list";
-import { Badge } from "@/components/ui/badge";
+import { ThreadListSkeleton, ThreadRow, ThreadRows, type ThreadRowData } from "@/components/thread/thread-list";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { EmptyState } from "@/components/ui/empty-state";
 import { fieldClasses } from "@/components/ui/field";
-import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { PAGE_SIZE, Pagination, parsePage } from "@/components/ui/pagination";
 import { SegmentedLinks } from "@/components/ui/segmented-control";
-import type { Enums } from "@/lib/supabase/database.types";
-import { cityLabels, countLabel, formatDate } from "@/lib/labels";
-import { relativeTime } from "@/lib/time";
 import { createClient } from "@/lib/supabase/server";
 
 import { SearchFilters } from "./search-filters";
@@ -89,22 +82,11 @@ const tips = (
 const dbSort = { relevance: "relevance", hot: "hot", top: "top", new: "newest" } as const;
 
 const resultSelect = `id, slug, title, body, city, created_at, score, comment_count, best_comment_id,
+  is_pinned, is_outdated, last_verified_at,
   category:categories!threads_category_id_fkey(slug, name),
-  author:profiles!threads_author_id_fkey(display_name)`;
+  author:profiles!threads_author_id_fkey(display_name, username)`;
 
-type ResultThread = {
-  id: number;
-  slug: string;
-  title: string;
-  body: string;
-  city: Enums<"city"> | null;
-  created_at: string;
-  score: number;
-  comment_count: number;
-  best_comment_id: number | null;
-  category: { slug: string; name: string } | null;
-  author: { display_name: string } | null;
-};
+type ResultThread = ThreadRowData & { body: string };
 
 async function Results({ searchParams }: { searchParams: SearchParams }) {
   const raw = await searchParams;
@@ -211,96 +193,21 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
             </ul>
           </EmptyState>
         ) : (
-          <ul className="-mx-3 flex flex-col divide-y divide-border sm:-mx-4">
-            {threads.map((thread, i) => (
-              <ResultRow key={thread.id} thread={thread} query={state.q} index={i} />
+          <ThreadRows>
+            {threads.map(({ body, ...thread }, i) => (
+              <ThreadRow
+                key={thread.id}
+                thread={thread}
+                index={i}
+                hideCategory={Boolean(category)}
+                highlight={state.q}
+                excerpt={bodySnippet(body, state.q)?.text}
+              />
             ))}
-          </ul>
+          </ThreadRows>
         )}
         <Pagination path="/search" params={searchParamsOf(state)} page={page} total={total} className="mt-3" />
       </section>
     </>
-  );
-}
-
-/** Server components render once per request, so reading the clock here cannot drift between renders. */
-function sinceNow(iso: string): string {
-  return relativeTime(iso, Date.now());
-}
-
-function Dot() {
-  return (
-    <span aria-hidden className="shrink-0 text-subtle">
-      ·
-    </span>
-  );
-}
-
-function ResultRow({ thread, query, index }: { thread: ResultThread; query: string; index: number }) {
-  const snippet = bodySnippet(thread.body, query);
-  const author = thread.author?.display_name ?? "Deleted user";
-  return (
-    <li
-      className={cn(
-        "animate-fade-up group relative flex gap-4 rounded-lg px-3 py-4 transition-colors duration-150 ease-out hover:bg-surface-hover sm:px-4",
-        "has-[.row-link:focus-visible]:outline-2 has-[.row-link:focus-visible]:-outline-offset-2 has-[.row-link:focus-visible]:outline-ring",
-      )}
-      style={stagger(index)}
-    >
-      <div className="min-w-0 flex-1">
-        <p className="flex min-w-0 items-center gap-1.5 overflow-hidden text-meta text-muted">
-          {thread.category && (
-            <>
-              <Link
-                href={`/c/${thread.category.slug}`}
-                className="relative z-10 inline-flex min-w-0 shrink-0 items-center gap-1.5 rounded-sm font-medium text-foreground/85 transition-colors hover:text-accent"
-              >
-                <CategoryGlyph slug={thread.category.slug} className="size-3.5" />
-                {thread.category.name}
-              </Link>
-              <Dot />
-            </>
-          )}
-          {thread.city && (
-            <span className="flex min-w-0 shrink items-center gap-1.5 max-[399px]:hidden">
-              <span className="truncate">{cityLabels[thread.city]}</span>
-              <Dot />
-            </span>
-          )}
-          <span className="min-w-0 truncate" title={author}>
-            {author}
-          </span>
-          <Dot />
-          <time dateTime={thread.created_at} title={formatDate(thread.created_at)} className="shrink-0 whitespace-nowrap">
-            {sinceNow(thread.created_at)}
-          </time>
-        </p>
-        <h3 className="mt-1 line-clamp-3 text-title font-semibold text-pretty break-words text-foreground sm:line-clamp-2">
-          <Link
-            href={`/t/${thread.slug}`}
-            className="row-link rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none"
-          >
-            <Highlight text={thread.title} query={query} />
-          </Link>
-        </h3>
-        {snippet && (
-          <p className="mt-1 line-clamp-2 text-body break-words text-muted">
-            <Highlight text={snippet.text} query={query} />
-          </p>
-        )}
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-meta text-muted">
-          <span className="inline-flex items-center gap-1.5 tabular-nums">
-            <MessageSquare aria-hidden strokeWidth={1.75} className="size-4 text-subtle" />
-            {countLabel(thread.comment_count, "comment")}
-          </span>
-          {thread.best_comment_id !== null && (
-            <Badge variant="accent">
-              <CircleCheck aria-hidden strokeWidth={1.75} />
-              Answered
-            </Badge>
-          )}
-        </div>
-      </div>
-    </li>
   );
 }

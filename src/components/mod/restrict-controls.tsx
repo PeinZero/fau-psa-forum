@@ -92,7 +92,7 @@ export function RestrictControls({ target, name, active, canRestrict, canBan }: 
                   <>
                     <span className="text-meta font-medium text-foreground">Restriction</span>
                     <input type="hidden" name="kind" value="mute" />
-                    <p className="flex min-h-9 items-center text-sm">Mute</p>
+                    <p className="flex min-h-9 items-center text-small">Mute</p>
                   </>
                 )}
               </div>

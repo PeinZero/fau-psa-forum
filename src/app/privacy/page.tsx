@@ -112,7 +112,7 @@ export default function PrivacyPage() {
             <li key={id} className="break-inside-avoid">
               <a
                 href={`#${id}`}
-                className="flex min-h-9 items-center gap-2 rounded-md text-sm text-foreground transition-colors duration-150 hover:text-accent pointer-coarse:min-h-11"
+                className="flex min-h-9 items-center gap-2 rounded-md text-small text-foreground transition-colors duration-150 hover:text-accent pointer-coarse:min-h-11"
               >
                 <span className="w-5 shrink-0 text-meta tabular-nums text-subtle">{i + 1}.</span>
                 {label}

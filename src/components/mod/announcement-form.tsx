@@ -127,7 +127,7 @@ export function AnnouncementForm({ announcement }: { announcement?: Announcement
 
       <div>
         <Button type="submit" variant="primary" disabled={pending}>
-          {pending ? (announcement ? "Saving..." : "Posting...") : announcement ? "Save changes" : "Post announcement"}
+          {pending ? (announcement ? "Saving…" : "Posting…") : announcement ? "Save changes" : "Post announcement"}
         </Button>
       </div>
       {!announcement && (

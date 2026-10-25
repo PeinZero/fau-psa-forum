@@ -1,4 +1,4 @@
-import { FileText, Plus, Search } from "lucide-react";
+import { FileText, PenLine, Search } from "lucide-react";
 import type { Metadata } from "next";
 import Form from "next/form";
 import Link from "next/link";
@@ -96,17 +96,8 @@ function SearchBox({ q, status }: { q: string; status: Status | null }) {
   );
 }
 
-async function Controls({ searchParams }: { searchParams: SearchParams }) {
-  const { q, status } = readFilters(await searchParams);
-  return (
-    <>
-      <SearchBox q={q} status={status} />
-      <StatusTabs q={q} current={status} />
-    </>
-  );
-}
-
-async function ThreadRows({ searchParams }: { searchParams: SearchParams }) {
+/** Signed-out visitors only get the sign-in prompt; search and tabs would have nothing to filter. */
+async function MyThreads({ searchParams }: { searchParams: SearchParams }) {
   const [params, userId] = await Promise.all([searchParams, getUserId()]);
   if (!userId) {
     return (
@@ -115,8 +106,19 @@ async function ThreadRows({ searchParams }: { searchParams: SearchParams }) {
       </SignInRequired>
     );
   }
+  const filters = readFilters(params);
+  return (
+    <>
+      <SearchBox q={filters.q} status={filters.status} />
+      <StatusTabs q={filters.q} current={filters.status} />
+      <Suspense fallback={<RowsSkeleton />}>
+        <ThreadRows userId={userId} filters={filters} />
+      </Suspense>
+    </>
+  );
+}
 
-  const { q, status, page } = readFilters(params);
+async function ThreadRows({ userId, filters: { q, status, page } }: { userId: string; filters: Filters }) {
   const supabase = await createClient();
   let query = supabase
     .from("threads")
@@ -143,7 +145,7 @@ async function ThreadRows({ searchParams }: { searchParams: SearchParams }) {
     return (
       <EmptyState
         icon={filtered ? <Search /> : <FileText />}
-        title={filtered ? "No threads match" : "You have not posted any threads yet"}
+        title={filtered ? "No threads match" : "No threads yet"}
         action={
           filtered ? (
             <Link href={PATH} className={buttonClasses({ variant: "secondary", size: "sm" })}>
@@ -151,8 +153,8 @@ async function ThreadRows({ searchParams }: { searchParams: SearchParams }) {
             </Link>
           ) : (
             <Link href="/new" className={buttonClasses({ variant: "secondary", size: "sm" })}>
-              <Plus aria-hidden strokeWidth={1.75} />
-              New thread
+              <PenLine aria-hidden strokeWidth={1.75} />
+              Ask a question
             </Link>
           )
         }
@@ -167,12 +169,17 @@ async function ThreadRows({ searchParams }: { searchParams: SearchParams }) {
       <ul className={listFrame}>
         {threads.map((t, index) => (
           <li key={t.id} className="animate-fade-up" style={stagger(index)}>
-            <Link href={`/t/${t.slug}`} className={cn(rowFrame, "transition-colors duration-150 ease-out hover:bg-surface-hover")}>
+            <Link
+              href={`/t/${t.slug}`}
+              className={cn(rowFrame, "transition-colors duration-150 ease-out hover:bg-surface-hover focus-visible:-outline-offset-2")}
+            >
               <span className="flex items-center gap-2 text-meta text-muted">
                 <Badge variant={statusVariant[t.status]}>{statusLabels[t.status]}</Badge>
-                <time dateTime={t.created_at}>{formatDate(t.created_at)}</time>
+                <time dateTime={t.created_at} className="tabular-nums">
+                  {formatDate(t.created_at)}
+                </time>
               </span>
-              <span className="mt-1.5 line-clamp-3 break-words text-title font-semibold text-pretty text-foreground sm:line-clamp-2">
+              <span className="mt-1 line-clamp-3 break-words text-title font-semibold text-pretty text-foreground sm:line-clamp-2">
                 {t.title}
               </span>
               {t.status === "rejected" && t.rejection_reason && (
@@ -194,7 +201,7 @@ function RowsSkeleton() {
       {[0, 1, 2, 3].map((i) => (
         <div key={i} className={rowFrame}>
           <Skeleton className="h-5 w-40" />
-          <Skeleton className={cn("mt-2.5 h-[1.125rem]", i % 2 ? "w-2/3" : "w-4/5")} />
+          <Skeleton className={cn("mt-2 h-[1.125rem]", i % 2 ? "w-2/3" : "w-4/5")} />
         </div>
       ))}
     </div>
@@ -207,26 +214,10 @@ export default function MyThreadsPage({ searchParams }: { searchParams: SearchPa
       <PageHeader
         title="My threads"
         description="Everything you posted, including threads waiting for review."
-        actions={
-          <Link href="/new" className={buttonClasses({ variant: "primary" })}>
-            <Plus aria-hidden strokeWidth={1.75} />
-            New thread
-          </Link>
-        }
       />
       <div className="flex flex-col gap-5">
-        <Suspense
-          fallback={
-            <>
-              <SearchBox q="" status={null} />
-              <StatusTabs q="" current={undefined} />
-            </>
-          }
-        >
-          <Controls searchParams={searchParams} />
-        </Suspense>
         <Suspense fallback={<RowsSkeleton />}>
-          <ThreadRows searchParams={searchParams} />
+          <MyThreads searchParams={searchParams} />
         </Suspense>
       </div>
     </div>

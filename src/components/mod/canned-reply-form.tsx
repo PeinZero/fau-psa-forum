@@ -69,7 +69,7 @@ export function CannedReplyForm({ reply }: { reply?: CannedReply }) {
       </div>
       <div>
         <Button type="submit" variant="primary" disabled={pending}>
-          {pending ? "Saving..." : reply ? "Save changes" : "Add reply"}
+          {pending ? "Saving…" : reply ? "Save changes" : "Add reply"}
         </Button>
       </div>
       {state && (

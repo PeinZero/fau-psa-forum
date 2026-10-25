@@ -29,9 +29,9 @@ export function cardClasses({ variant = "outline", interactive = false, padding,
     "block rounded-xl",
     variants[variant],
     pad === "md" && "p-4 sm:p-5",
+    // Cards step their fill on hover like rows do; no lift, no shadow.
     interactive &&
-      "transition-[background-color,border-color,translate,box-shadow] duration-200 ease-out " +
-        "hover:-translate-y-px hover:bg-surface-hover hover:shadow-[0_4px_16px_-6px_var(--shadow-color)] active:translate-y-0",
+      "transition-[background-color,border-color] duration-150 ease-out hover:bg-surface-hover active:bg-surface-hover/70",
     interactive && variant === "outline" && "hover:border-border-strong/50",
     className,
   );
