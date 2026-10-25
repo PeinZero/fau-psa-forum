@@ -70,7 +70,7 @@ What the PSA FAU Community Forum does. Live site: https://fau-psa-forum.vercel.a
 - Permissions enforced in the database (Row Level Security), not only in the UI.
 - Rate limits on posting, voting, reporting and feedback; link limits for new accounts.
 - Safe markdown (no raw HTML), redirect protection, security headers.
-- Data stays in the EU (database and website in London); only email and display name are stored.
+- Data stays in the UK and EU (database and website in London, backups in Amsterdam); only email and display name are stored.
 - Impressum and privacy policy pages (operator details still to fill in).
 
 ## Quality

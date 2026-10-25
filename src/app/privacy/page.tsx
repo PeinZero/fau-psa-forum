@@ -14,9 +14,25 @@ import {
  * Sources checked 2026-10-25 (update this page and `lastUpdated` when one of them changes):
  * - Vercel: vercel.com/legal/privacy-policy (updated 1 June 2026) states certification under the
  *   EU-US DPF, UK Extension and Swiss-US DPF; vercel.com/legal/dpa includes the 2021 SCCs and a UK
- *   addendum; address from DPA Schedule 5. The entry on dataprivacyframework.gov was NOT checked.
+ *   addendum; address from DPA Schedule 5.
  * - Supabase: supabase.com/privacy and supabase.com/legal/dpa (2021 SCCs, contracting party
  *   Supabase Pte. Ltd., Singapore). No DPF certification found, so only SCCs are named.
+ * - Backblaze: backblaze.com/company/policy/privacy (updated 30 April 2026) states compliance with
+ *   the EU-US and Swiss-US DPF; address from its "How to Contact Us". backblaze.com/company/dpa.html
+ *   (updated 20 September 2022) incorporates the SCCs (version not stated). EU Central = Amsterdam
+ *   per backblaze.com/docs/cloud-storage-data-regions.
+ * - Cloudflare: cloudflare.com/turnstile-privacy-policy (updated 18 June 2025) names the signals
+ *   (IP address, TLS fingerprint, user agent, sitekey and origin) and makes Cloudflare processor for
+ *   running Turnstile and controller for improving its bot detection;
+ *   developers.cloudflare.com/turnstile/frequently-asked-questions says it does not access form
+ *   entries. cloudflare.com/privacypolicy (effective 4 November 2025) states the EU-US DPF, UK
+ *   Extension and Swiss-US DPF; address from its sections 7 and 19.
+ *   cloudflare.com/cloudflare-customer-dpa (v6.4, effective 3 April 2026) includes the 2021 SCCs.
+ *   Cloudflare's cookie reference lists no Turnstile cookie, so the page claims none either way.
+ * - DPF: the list on dataprivacyframework.gov is a script-only app whose data API needs a login, so
+ *   Vercel's, Backblaze's and Cloudflare's entries were not confirmed there. The page therefore says
+ *   each provider "states" its certification; switch to "is certified" only after checking the list
+ *   in a browser.
  * - UK adequacy: the Commission renewed the GDPR adequacy decision for the UK on 19 December 2025,
  *   valid until 27 December 2031 (eucrim.eu, hunton.com; official Commission page not fetched).
  * - BayLDA: lda.bayern.de/de/kontakt.html (Promenade 18, 91522 Ansbach; Postfach 1349, 91504
@@ -173,6 +189,16 @@ export default function PrivacyPage() {
           </p>
         </LegalSubsection>
 
+        <LegalSubsection title="Bot check on the sign-in page">
+          <p>
+            When you open the sign-in page, your browser loads Cloudflare Turnstile, which checks that
+            you are a person and not a bot, usually without showing anything. For this Cloudflare
+            processes your IP address, technical details of your browser and connection (user agent and
+            TLS fingerprint) and which site the check is for. Turnstile does not see what you type into
+            the form. Our form only receives a token, which it sends along with your sign-in request.
+          </p>
+        </LegalSubsection>
+
         <LegalSubsection title="Your profile">
           <p>
             Your display name, your @username, the optional affiliation badge you choose (for example
@@ -232,7 +258,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Art. 6(1)(f) GDPR</strong> (legitimate interests): keeping the site secure and
-            available, preventing abuse and spam, rate limits, moderation, the server and sign-in logs,
+            available, preventing abuse and spam, the bot check on the sign-in page, rate limits,
+            moderation, the server and sign-in logs,
             and keeping public discussions readable after an account is deleted. Our interest is a safe,
             useful forum for the community.
           </li>
@@ -265,19 +292,43 @@ export default function PrivacyPage() {
           <p>
             Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, USA. Vercel runs our server code in
             London (region lhr1) and delivers pages through its global content delivery network, so a
-            request may be answered by the server nearest to you. Vercel is certified under the EU-US
-            Data Privacy Framework (Art. 45 GDPR); its data processing agreement also includes the EU
-            Standard Contractual Clauses.{" "}
+            request may be answered by the server nearest to you. Vercel states that it is certified
+            under the EU-US Data Privacy Framework (Art. 45 GDPR); its data processing agreement also
+            includes the EU Standard Contractual Clauses.{" "}
             <a href="https://vercel.com/legal/privacy-policy" className={legalLinkClass}>
               Vercel privacy policy
             </a>
             .
           </p>
         </LegalSubsection>
-        <LegalSubsection title="Cloudflare (backups)">
+        <LegalSubsection title="Cloudflare (bot check on the sign-in page)">
           <p>
-            Cloudflare, Inc. stores our encrypted database backups in a private R2 bucket in the EU. It
-            cannot read them, because they are encrypted before they are uploaded.
+            Cloudflare, Inc., 101 Townsend St., San Francisco, CA 94107, USA. Cloudflare runs the bot
+            check for us. It also uses the same data as its own controller to improve its bot detection,
+            and states that the purpose is not to identify, profile or target individuals. Cloudflare
+            states that it is certified under the EU-US Data Privacy Framework (Art. 45 GDPR); its data
+            processing agreement also includes the EU Standard Contractual Clauses.{" "}
+            <a href="https://www.cloudflare.com/privacypolicy/" className={legalLinkClass}>
+              Cloudflare privacy policy
+            </a>{" "}
+            and{" "}
+            <a href="https://www.cloudflare.com/turnstile-privacy-policy/" className={legalLinkClass}>
+              Turnstile privacy addendum
+            </a>
+            .
+          </p>
+        </LegalSubsection>
+        <LegalSubsection title="Backblaze (backups)">
+          <p>
+            Backblaze, Inc., 2261 Market Street STE 81006, San Francisco, CA 94114, USA. Backblaze stores
+            our encrypted database backups in a private bucket in Amsterdam, Netherlands (region EU
+            Central). It cannot read them, because they are encrypted before they are uploaded.
+            Backblaze states that it is certified under the EU-US Data Privacy Framework (Art. 45 GDPR);
+            its data processing agreement also includes the EU Standard Contractual Clauses.{" "}
+            <a href="https://www.backblaze.com/company/policy/privacy" className={legalLinkClass}>
+              Backblaze privacy policy
+            </a>
+            .
           </p>
         </LegalSubsection>
         <LegalSubsection title="Google (only if you choose “Continue with Google”)">
@@ -322,8 +373,9 @@ export default function PrivacyPage() {
       <LegalSection id="cookies" title="6. Cookies and local storage">
         <p>
           We only store what the forum needs to work or what you chose yourself. There are no analytics,
-          tracking or advertising cookies, and no third-party scripts. That is why there is no cookie
-          banner: storage that is strictly necessary for a service you asked for needs no consent
+          tracking or advertising cookies. The only third-party script is Cloudflare’s bot check on the
+          sign-in page (section 5), which protects sign-in. That is why there is no cookie banner:
+          storage and access that are strictly necessary for a service you asked for need no consent
           (§ 25(2) no. 2 TDDDG). The font is served from our own domain.
         </p>
         <ul className="divide-y divide-border rounded-xl border border-border">
@@ -359,7 +411,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Backups</strong>: we keep nightly encrypted copies of the database in a private
-            Cloudflare R2 bucket in the EU, 7 daily and 4 weekly copies. Data you delete can therefore
+            Backblaze bucket in Amsterdam, 7 daily and 4 weekly copies. Data you delete can therefore
             remain in these backups for up to 4 weeks, until the copy holding it is replaced.
           </li>
           <li>

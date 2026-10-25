@@ -9,12 +9,12 @@ Everything about getting from today to a public launch. What the product does: [
 | Missing | Why | Issue |
 |---|---|---|
 | Operator name and address for the Impressum and privacy policy | German law. The pages exist but show placeholders (`src/lib/legal.ts`). Contact: psa.community.forum@gmail.com | #18 |
-| Database backups | The free Supabase plan has none. The nightly workflow is built; the owner still has to create the R2 bucket, key and secrets ([deployment.md](deployment.md#backups)) | #69 |
+| Database backups | The free Supabase plan has none. The nightly workflow is built; the owner still has to create the Backblaze bucket, key and secrets ([deployment.md](deployment.md#backups)) | #69 |
 | Own domain | Trust, and a stable link in WhatsApp | #19 |
 | Bot protection on email sign-in (Cloudflare Turnstile) | Stops fake sign-ups and sign-in email abuse | #74 |
 | Error monitoring (Sentry, EU, no personal data) | Otherwise we only hear about breakage from users | #47 |
 
-Not blocking the launch, do soon after: Google findability, sitemap and robots (#46); images in threads and comments (#72) with R2 storage (#71).
+Not blocking the launch, do soon after: Google findability, sitemap and robots (#46); images in threads (#72), stored in Backblaze B2 behind a Cloudflare Worker (#71).
 
 ## Launch steps
 
@@ -52,13 +52,15 @@ At 1,500 users the free plans cover traffic and storage: 500 MB holds tens of th
 | Sentry free plan | 0 | Before public launch |
 | Cloudflare Turnstile | 0 | Before public launch |
 | Backups | 0 with our own nightly dump (#69), or Supabase Pro 25 USD per month | Before public launch |
-| Cloudflare R2 for images | 0 up to 10 GB | When images are built |
+| Backblaze B2 (backups and images) | 0 up to 10 GB stored in total; no payment card on the account, so it cannot bill | Backups before public launch, images when built |
+| Cloudflare Worker for images | 0 up to 100,000 requests a day; no card | When images are built |
 
 ### What would push us to a paid plan
 
 - **Supabase Pro (25 USD per month):** when losing a day of data is not acceptable, or the database nears 400 MB. A nightly dump to private storage is the free route and enough for a friends-and-community forum.
 - **Resend (free plan, 3,000 emails per month):** only if we add email notifications and Gmail's daily limit starts to block sign-in emails. Roughly when more than 300 people want emails on the same day.
 - **Vercel Pro (20 USD per month):** only if the site becomes commercial (sponsors, ads) or traffic passes the free limit. Neither is expected at 1,500 users.
+- **Backblaze pay-as-you-go:** only if images near the 8 GB upload stop (#72). Add a card and set Backblaze's daily spending caps first, so storage still cannot run up a bill.
 
 ### Budget options for year one
 
@@ -81,7 +83,7 @@ Routes, best first:
 ## Legal checklist (Germany)
 
 - **Impressum:** name and postal address of whoever runs the site (#18). The decided operator is a named maintainer as a private person; PSA as an association would be better if it agrees.
-- **Privacy policy:** what we store (email, display name, posts), where (Supabase London, Vercel London, Gmail for sign-in emails), how long, how to delete it. Update it whenever a service changes (domain registrar, R2, Sentry).
+- **Privacy policy:** what we store (email, display name, posts), where (Supabase London, Vercel London, Gmail for sign-in emails, Cloudflare for the sign-in bot check, Backblaze Amsterdam for backups), how long, how to delete it. Update it whenever a service changes (domain registrar, Backblaze, the Cloudflare image Worker, Sentry).
 - **Delete account and download data:** done.
 - **Illegal content:** remove it quickly once reported (report button, moderators).
 
