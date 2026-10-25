@@ -1,21 +1,24 @@
-import { BookOpen, PenLine } from "lucide-react";
-import Link from "next/link";
 import { Suspense } from "react";
 
-import { HomeFeed, HomeFeedSkeleton, MobilePinnedAnnouncement } from "@/components/home/home-feed";
-import { DeletedNotice } from "@/components/notice/deleted-notice";
+import { ClosingCta } from "@/components/landing/closing-cta";
+import { CommunityStripSkeleton } from "@/components/landing/community-strip";
+import { Hero } from "@/components/landing/hero";
+import { IntroVideo } from "@/components/landing/intro-video";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { PopularQuestionsSkeleton } from "@/components/landing/popular-questions";
 import {
-  AnnouncementsCard,
-  CategoriesCard,
-  GuidesCard,
-  SidebarCardSkeleton,
-  SidebarLinks,
-} from "@/components/sidebar/cards";
-import { FeedLayout, SidebarSticky } from "@/components/sidebar/feed-layout";
-import { WelcomeCard, WelcomeCardSkeleton } from "@/components/sidebar/welcome-card";
-import { buttonClasses } from "@/components/ui/button";
+  CommunityStrip,
+  LatestAnnouncement,
+  PopularQuestions,
+  StartHere,
+  Topics,
+} from "@/components/landing/sections";
+import { StartHereSkeleton } from "@/components/landing/start-here";
+import { TopicsSkeleton } from "@/components/landing/topics";
+import { DeletedNotice } from "@/components/notice/deleted-notice";
 
-export default function Home({ searchParams }: PageProps<"/">) {
+/** A landing page for newcomers; the feed itself lives on /browse. */
+export default function Home() {
   return (
     <>
       <div className="mb-6 empty:hidden">
@@ -23,62 +26,27 @@ export default function Home({ searchParams }: PageProps<"/">) {
           <DeletedNotice />
         </Suspense>
       </div>
-      <FeedLayout sidebar={<HomeSidebar />}>
-        <Welcome />
+      <Hero />
+      <IntroVideo />
+      <div className="mx-auto mt-20 flex w-full max-w-5xl flex-col gap-16 pb-6 sm:mt-28 sm:gap-24 lg:mt-32 lg:gap-28">
+        <Suspense fallback={<StartHereSkeleton />}>
+          <StartHere />
+        </Suspense>
+        <Suspense fallback={<TopicsSkeleton />}>
+          <Topics />
+        </Suspense>
+        <Suspense fallback={<PopularQuestionsSkeleton />}>
+          <PopularQuestions />
+        </Suspense>
+        <HowItWorks />
         <Suspense fallback={null}>
-          <MobilePinnedAnnouncement />
+          <LatestAnnouncement />
         </Suspense>
-        <Suspense fallback={<HomeFeedSkeleton />}>
-          <HomeFeed searchParams={searchParams} />
+        <Suspense fallback={<CommunityStripSkeleton />}>
+          <CommunityStrip />
         </Suspense>
-      </FeedLayout>
-    </>
-  );
-}
-
-function Welcome() {
-  return (
-    <header className="mb-8">
-      <p className="text-meta font-medium text-accent">Pakistan Student Association · FAU Erlangen-Nürnberg</p>
-      <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-foreground">
-        Answers for Pakistani students in Erlangen&nbsp;&amp;&nbsp;Nuremberg
-      </h1>
-      <p className="mt-2 max-w-2xl text-body text-muted">
-        Residence permits, courses, housing and first steps, curated by moderators from the PSA community.
-      </p>
-      {/* From lg up the same actions sit in the sidebar. */}
-      <div className="mt-5 flex flex-wrap gap-2 lg:hidden">
-        <Link href="/new" className={buttonClasses()}>
-          <PenLine strokeWidth={1.75} />
-          Ask a question
-        </Link>
-        <Link href="/guides" className={buttonClasses({ variant: "secondary" })}>
-          <BookOpen strokeWidth={1.75} className="text-muted" />
-          Guides for newcomers
-        </Link>
+        <ClosingCta />
       </div>
-    </header>
-  );
-}
-
-function HomeSidebar() {
-  return (
-    <>
-      <Suspense fallback={<WelcomeCardSkeleton className="max-lg:hidden" />}>
-        <WelcomeCard className="max-lg:hidden" />
-      </Suspense>
-      <Suspense fallback={<SidebarCardSkeleton rows={3} tall className="max-lg:hidden" />}>
-        <AnnouncementsCard className="max-lg:hidden" />
-      </Suspense>
-      <Suspense fallback={<SidebarCardSkeleton rows={4} tall />}>
-        <GuidesCard />
-      </Suspense>
-      <SidebarSticky>
-        <Suspense fallback={<SidebarCardSkeleton rows={6} />}>
-          <CategoriesCard />
-        </Suspense>
-        <SidebarLinks />
-      </SidebarSticky>
     </>
   );
 }
