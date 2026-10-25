@@ -40,7 +40,7 @@ function Player({ video }: { video: IntroVideoConfig }) {
   );
 }
 
-/** Reserved slot under the hero. Renders nothing at all until a video is configured. */
+/** Sits after "How it works"; the hero links down to it. Renders nothing while no video is configured. */
 export function IntroVideo({ video = introVideo }: { video?: IntroVideoConfig | null }) {
   const [playing, setPlaying] = useState(false);
   if (!video) return null;
@@ -49,7 +49,7 @@ export function IntroVideo({ video = introVideo }: { video?: IntroVideoConfig | 
     <section
       id={INTRO_VIDEO_ID}
       aria-label="Intro video"
-      className="mx-auto mt-14 w-full max-w-[960px] scroll-mt-20 sm:mt-20"
+      className="mx-auto w-full max-w-[960px] scroll-mt-20"
     >
       <div className="relative aspect-video overflow-hidden rounded-xl border border-border bg-surface shadow-[0_1px_2px_var(--shadow-color),0_12px_32px_-12px_var(--shadow-color)] sm:rounded-2xl">
         {playing ? (

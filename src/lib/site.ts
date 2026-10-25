@@ -9,11 +9,11 @@ export type IntroVideo = {
   source: { kind: "file"; mp4: string; webm?: string } | { kind: "youtube"; id: string };
 };
 
-/**
- * The landing page's intro video. Leave `null` until the video exists: nothing is rendered then.
- * To publish it, put the files under /public (poster, captions .vtt, mp4/webm) and set e.g.
- * `{ title: "Welcome to the forum", durationLabel: "1:30", poster: "/intro/poster.jpg",
- *    captions: "/intro/captions.vtt", source: { kind: "file", mp4: "/intro/intro.mp4" } }`,
- * or use `source: { kind: "youtube", id: "<video id>" }`.
- */
-export const introVideo: IntroVideo | null = null;
+/** The intro film on Home (see video/README.md). `null` hides the section and the hero link. */
+export const introVideo: IntroVideo | null = {
+  title: "How the PSA FAU Community Forum works",
+  durationLabel: "1:28",
+  poster: "/video/poster.webp",
+  captions: "/video/intro.en.vtt",
+  source: { kind: "file", mp4: "/video/intro.mp4", webm: "/video/intro.webm" },
+};

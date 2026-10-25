@@ -164,8 +164,9 @@ a primary "Sign in to comment".
 
 ## Intro video
 
-Home reserves a slot for an intro video directly under the hero, driven by `introVideo` in
-`src/lib/site.ts` (`null` renders nothing, including the hero's "Watch the intro" link). A 16:9
+Home shows the intro film after "How it works", so on phones it doesn't push the content below
+the hero; the hero's "Watch the intro" link scrolls down to it. Driven by `introVideo` in
+`src/lib/site.ts` (`null` renders nothing, including that link). A 16:9
 poster frame with a play button; the player (native `<video>` with captions, or a
 youtube-nocookie iframe) mounts only after the click, so nothing third-party loads before it.
 Labelled "AI-generated video". The film itself is built in code with Remotion in `video/`
