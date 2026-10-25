@@ -27,6 +27,7 @@
   --danger: #c42b2b;
   --warning: #9a4708;
   --glow: rgb(16 185 129 / 0.12);
+  --grid-line: rgb(15 16 17 / 0.05);
   --shadow-color: rgb(15 16 17 / 0.06);
   --shimmer: rgb(0 0 0 / 0.04);
 }
@@ -50,6 +51,7 @@
   --danger: #f87171;
   --warning: #fbbf24;
   --glow: rgb(16 185 129 / 0.16);
+  --grid-line: rgb(255 255 255 / 0.05);
   --shadow-color: rgb(0 0 0 / 0.4);
   --shimmer: rgb(255 255 255 / 0.04);
 }
@@ -177,6 +179,33 @@
     z-index: -1;
     pointer-events: none;
     background: radial-gradient(50% 50% at 50% 40%, var(--glow), transparent 70%);
+  }
+}
+
+/* Home's hero: the emerald glow over a faint grid that fades out before the edges. */
+@utility hero-spotlight {
+  position: relative;
+  isolation: isolate;
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -7rem 0 auto;
+    z-index: -1;
+    pointer-events: none;
+  }
+  &::before {
+    height: 40rem;
+    background: radial-gradient(42% 48% at 50% 38%, var(--glow), transparent 72%);
+  }
+  &::after {
+    height: 36rem;
+    background-image:
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    background-position: center top;
+    mask-image: radial-gradient(ellipse 55% 60% at 50% 32%, #000 15%, transparent 72%);
   }
 }
 
