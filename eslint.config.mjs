@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Agent worktrees are full copies of the repo.
     ".claude/**",
+    // The intro film is its own Remotion package with its own checks.
+    "video/**",
   ]),
 ]);
 

@@ -34,7 +34,8 @@ function Player({ video }: { video: IntroVideoConfig }) {
     >
       {source.webm ? <source src={source.webm} type="video/webm" /> : null}
       <source src={source.mp4} type="video/mp4" />
-      {video.captions ? <track kind="captions" srcLang="en" label="English" src={video.captions} default /> : null}
+      {/* Off by default: the film's story lines are already in the picture; the track describes the sound. */}
+      {video.captions ? <track kind="captions" srcLang="en" label="English" src={video.captions} /> : null}
     </video>
   );
 }
