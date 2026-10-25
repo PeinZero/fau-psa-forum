@@ -62,6 +62,6 @@ Labels describe the area: `launch`, `infra`, `design`, `moderation`, `search`, `
 2. Assign yourself and move it to **In progress** when you start. One person per ticket.
 3. Open a PR that says `Closes #<number>` (or `Part of #<number>` for partial work).
 4. **Done means merged.** The ticket moves to Done when its PR is merged and deployed, not when the
-   code is written. If a database migration is involved, run `npx supabase db push` right after
-   merging (see CONTRIBUTING.md).
+   code is written. If a database migration is involved, push it right after merging
+   ([deployment.md](deployment.md)).
 5. Not needed anymore? Close it with one sentence explaining why, or delete it if it was noise.

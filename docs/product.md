@@ -1,60 +1,33 @@
 # Product rules
 
-Agreed with the owner. Read before building any user-facing feature.
+Decisions agreed with the owner. Read before any user-facing feature. What exists: [features.md](features.md). Data rules: [schema.md](schema.md).
 
+## Naming
+- Product name: "PSA FAU Community Forum". Organisation: "Pakistan Student Association". Never "FAU PSA Forum" or "PSA Forum".
+- The city is always "Nuremberg", never "Nürnberg" or "Nuernberg". The university keeps its official name "FAU Erlangen-Nürnberg".
 - English only.
-- The forum is an independent student project, not affiliated with FAU; the site footer and the About page carry this disclaimer. The city is always spelled "Nuremberg"; the university keeps its official name "FAU Erlangen-Nürnberg".
-- Anyone can read without an account. Commenting (and later voice notes) requires sign-in.
-- Sign-in: email magic link + Google. Any email address; no `@fau.de` restriction, no identity verification.
-- Any signed-in user can submit a thread; it only becomes public after a moderator approves it.
-  Moderators' and superadmins' own threads are published immediately (no review, no pending cap).
-- Any signed-in user can apply to become a moderator; moderators or superadmins approve/reject.
-- Moderators manage threads: approve/reject, mark outdated (banner, still open), archive (read-only,
-  hidden from lists, still linkable), pin, pick one best answer, hide comments, create categories.
-  The founders (Mahad Khalid Tarar, GitHub PeinZero, Founder; Abdul Moeez, GitHub abdulmoeez1225, Co-founder) are superadmins; only superadmins change roles, and the last superadmin cannot be demoted.
-- Threads carry a category and an optional city (Erlangen / Nuremberg / both).
-- Authors can edit their threads after approval; edits go live and appear on the moderator dashboard.
-- Moderators may edit any thread's title, body, category and city to keep information current;
-  every edit by someone other than the author is kept as a revision. Moderators hide comments but
-  never rewrite them; a hidden comment can no longer be edited by its author.
-- Approving a thread moves it to the top of the lists, like new activity.
-- Users may pick an unverified affiliation badge (student / graduate / postgrad / resident).
-- Moderators post announcements (markdown, optionally pinned) on `/announcements`; everyone is
-  notified and the newest pinned one shows as a dismissible banner on the home page.
-- Signed-in users can report a public thread or comment (reason + optional note); moderators
-  resolve or dismiss reports.
-- Signed-in users upvote or downvote comments and threads, one vote each, never their own.
-  Scores are public, who voted is private, votes send no notifications. Archived threads and
-  hidden comments take no votes. Comments sort by Top (score, default) or Newest; the best
-  answer stays pinned above both.
-- Users can delete their account; their threads and comments stay, shown as "Deleted user".
-- Shared thread links must render rich previews in WhatsApp, so thread pages are server-rendered
-  with per-thread `generateMetadata` (OpenGraph).
-- Voice notes are postponed. When added: record in the browser with MediaRecorder, pick a
-  supported mimeType (Safari/iOS records `audio/mp4`, not WebM), cap the length, store in Cloudflare R2.
+- Independent student project, not affiliated with FAU. The footer and the About page carry this disclaimer.
+- Founders: Mahad Khalid Tarar (GitHub PeinZero, Founder) and Abdul Moeez (GitHub abdulmoeez1225, Co-founder). Both are superadmins.
 
-The schema is agreed in [schema.md](schema.md); change it only with the owner.
-Authorization belongs in Postgres Row Level Security, not only in the UI.
+## Roles
+- Anyone can read without an account; everything else needs sign-in (Google or email link, any address, no `@fau.de` restriction, no identity verification).
+- Member: posts, comments, votes, reports, bookmarks, follows; can apply to become a moderator.
+- Moderator: approves threads, curates content, hides comments, creates categories, posts announcements and guides, reviews applications, mutes members.
+- Superadmin: also changes roles, deletes categories, bans. The last superadmin cannot be demoted or delete their account.
+- Affiliation badge (student, graduate, postgrad, resident) is self-chosen and unverified.
 
-## Replies, handles, mentions, notifications (database built, UI in progress; see schema.md)
+## Posting and approval
+- A member's thread is public only after a moderator approves it; rejections carry a reason. Moderators' and superadmins' own threads publish at once with no pending cap.
+- Threads have a category and an optional city (Erlangen, Nuremberg, both).
+- Authors may edit after approval; edits go live and show in the moderators' edit review. Moderators may edit any thread's title, body, category and city to keep it current; non-author edits are kept as revisions. Moderators hide comments but never rewrite them, and a hidden comment can no longer be edited by its author.
+- Outdated: banner, thread stays open. Archived: read-only, hidden from lists, still linkable. One best answer per thread, chosen by a moderator, always pinned above the comment sort.
+- Verified: moderators mark a thread still accurate; members can request an update; threads unverified for 6+ months get a soft hint.
+- Votes: one per user, never on own content; scores are public, voters private; no vote notifications. Reputation: +1 upvote, -1 downvote, +15 best answer.
+- Mutes and bans are visible to the member with reason and end date.
+- Account deletion keeps threads and comments as "Deleted user".
 
-- One level of replies on comments; replying to a reply attaches to the top-level comment.
-- Every user has a unique @handle, generated from their name and editable in /account.
-  Public profile pages `/u/[username]` are planned.
-- `@handle` mentions in threads and comments notify the mentioned user once the content is public.
-- Notifications for replies, mentions, comments on your thread, moderation results and the
-  moderator queue (new threads, applications, reports): in-app bell with live updates now,
-  email later.
-
-## Wave 4 (database built, UI in progress; see schema.md)
-
-- Verified date: moderators mark a thread "still accurate" (badge "Verified Oct 2026"); members flag "needs an update" with a short note (one open per thread, max 5 open), handled in a `/mod` queue; threads unverified for 6+ months show a soft hint.
-- Bookmarks on `/saved` and thread follows: authors and commenters follow automatically, followers get notified about new comments and best answers, unfollow anytime.
-- Notification preferences on `/account/notifications`: mute in-app types and choose an email frequency (stored now, emails once SMTP exists).
-- Guides: moderator-curated step-by-step checklists linking threads; members tick steps off privately (local storage when signed out); featured guides on the home page.
-- Advanced search: filters (category, city, best answer, verified), sort by relevance/newest/top, typo tolerance.
-- Reputation: +1 per received upvote, −1 per downvote (comments and threads), +15 per best answer, never from self-votes; shown on profiles and as monthly Top helpers.
-
-## Launch UI (database built; see schema.md)
-
-- Thread lists sort by Hot (default), New, Top (week / month / year / all) or Active, paged 20 at a time; rows show score, comment count and an Answered mark. Pinned threads are shown in their own block on category pages, not lifted in the sorted list.
+## Other decisions
+- Announcements are written by moderators in markdown; everyone is notified; the newest pinned one shows as a dismissible home banner.
+- Shared thread links must render rich previews in WhatsApp, so thread pages are server-rendered with per-thread metadata.
+- Voice notes are postponed. When built: browser MediaRecorder with a supported mimeType (Safari/iOS records `audio/mp4`), stored in Cloudflare R2.
+- Communities and sub-communities (other groups or universities) are on hold.
