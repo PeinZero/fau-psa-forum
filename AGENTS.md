@@ -25,3 +25,4 @@ Next.js 16 App Router + TypeScript + Tailwind v4, Supabase via `@supabase/ssr`, 
 - [docs/deployment.md](docs/deployment.md): hosting, env, migration push. Read before deploying or applying migrations.
 - [docs/delegation.md](docs/delegation.md): subagent split and review lenses. Read before multi-step work or reviews.
 - [docs/content/README.md](docs/content/README.md): starter threads and guides. Read before editing content.
+- [video/README.md](video/README.md): the intro film on Home (its own Remotion package). Read before changing the film or its files in `public/video/`.

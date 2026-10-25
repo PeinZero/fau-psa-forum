@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+/* Tokens copied from src/app/globals.css so the film's screens match the live site. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --background: #ffffff;
+  --surface: #f7f8f8;
+  --surface-hover: #f0f1f2;
+  --raised: #ffffff;
+  --foreground: #0f1011;
+  --muted: #53575e;
+  --subtle: #65696f;
+  --border: rgb(0 0 0 / 0.08);
+  --border-strong: #8a8f98;
+  --accent: #047857;
+  --accent-hover: #065f46;
+  --accent-foreground: #ffffff;
+  --accent-soft: rgb(4 120 87 / 0.08);
+  --ring: #059669;
+  --danger: #c42b2b;
+  --warning: #9a4708;
+  --glow: rgb(16 185 129 / 0.12);
+  --grid-line: rgb(15 16 17 / 0.05);
+  --shadow-color: rgb(15 16 17 / 0.06);
+  --shimmer: rgb(0 0 0 / 0.04);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #08090a;
+  --surface: #0f1012;
+  --surface-hover: #16171a;
+  --raised: #1a1b1e;
+  --foreground: #f7f8f8;
+  --muted: #9a9fa8;
+  --subtle: #7e838c;
+  --border: rgb(255 255 255 / 0.08);
+  --border-strong: #5c6168;
+  --accent: #10b981;
+  --accent-hover: #34d399;
+  --accent-foreground: #04130d;
+  --accent-soft: rgb(16 185 129 / 0.12);
+  --ring: #34d399;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --glow: rgb(16 185 129 / 0.16);
+  --grid-line: rgb(255 255 255 / 0.05);
+  --shadow-color: rgb(0 0 0 / 0.4);
+  --shimmer: rgb(255 255 255 / 0.04);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-raised: var(--raised);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-ring: var(--ring);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+
+  /* Emoji come from Noto so no platform's emoji set shows up in the film. */
+  --font-sans: "Reddit Sans", "Noto Color Emoji", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+@theme static {
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.25rem;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.375rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5rem;
+  --text-reading: 1rem;
+  --text-reading--line-height: 1.7;
+  --text-title: 1.0625rem;
+  --text-title--line-height: 1.4;
+  --text-heading: 1.125rem;
+  --text-heading--line-height: 1.625rem;
+  --text-display: 1.875rem;
+  --text-display--line-height: 2.375rem;
+
+  --text-xl: 1.125rem;
+  --text-xl--line-height: 1.625rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.375rem;
+
+  --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The phone in the montage reads at phone sizes, like the site below 640px. */
+.phone-type {
+  --text-body: 1rem;
+  --text-body--line-height: 1.625rem;
+  --text-display: 1.625rem;
+  --text-display--line-height: 2rem;
+}
+
+@utility hero-glow {
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -8rem 0 auto;
+    height: 24rem;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(50% 50% at 50% 40%, var(--glow), transparent 70%);
+  }
+}
+
+@utility hero-spotlight {
+  position: relative;
+  isolation: isolate;
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -7rem 0 auto;
+    z-index: -1;
+    pointer-events: none;
+  }
+  &::before {
+    height: 40rem;
+    background: radial-gradient(42% 48% at 50% 38%, var(--glow), transparent 72%);
+  }
+  &::after {
+    height: 36rem;
+    background-image:
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    background-position: center top;
+    mask-image: radial-gradient(ellipse 55% 60% at 50% 32%, #000 15%, transparent 72%);
+  }
+}
+
+@layer base {
+  html,
+  body {
+    background-color: #08090a;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .site {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  time,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}

@@ -1,0 +1,5 @@
+node_modules
+out
+.remotion
+# Rendered by `npm run score` (deterministic); render and studio regenerate it first.
+public/audio/

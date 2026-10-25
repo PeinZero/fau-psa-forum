@@ -168,7 +168,8 @@ Home reserves a slot for an intro video directly under the hero, driven by `intr
 `src/lib/site.ts` (`null` renders nothing, including the hero's "Watch the intro" link). A 16:9
 poster frame with a play button; the player (native `<video>` with captions, or a
 youtube-nocookie iframe) mounts only after the click, so nothing third-party loads before it.
-Labelled "AI-generated video".
+Labelled "AI-generated video". The film itself is built in code with Remotion in `video/`
+(see `video/README.md`) and rendered to `public/video/`.
 
 ## Accessibility
 

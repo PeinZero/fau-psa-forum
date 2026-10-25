@@ -30,7 +30,7 @@ describe("IntroVideo", () => {
     expect(container.querySelector("video, iframe")).toBeNull();
   });
 
-  it("swaps in a native video with a default captions track for file sources", () => {
+  it("swaps in a native video with an opt-in captions track for file sources", () => {
     const { container } = render(<IntroVideo video={file} />);
     fireEvent.click(screen.getByRole("button", { name: "Play intro video: Welcome to the forum" }));
     const video = container.querySelector("video");
@@ -41,7 +41,7 @@ describe("IntroVideo", () => {
     expect(track).toHaveAttribute("kind", "captions");
     expect(track).toHaveAttribute("srclang", "en");
     expect(track).toHaveAttribute("src", "/intro/captions.vtt");
-    expect(track).toHaveAttribute("default");
+    expect(track).not.toHaveAttribute("default");
     expect(video?.querySelector("source[type='video/mp4']")).toHaveAttribute("src", "/intro/intro.mp4");
     expect(video?.querySelector("source[type='video/webm']")).toHaveAttribute("src", "/intro/intro.webm");
     expect(screen.queryByRole("button")).toBeNull();
