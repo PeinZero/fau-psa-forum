@@ -250,16 +250,16 @@ export default function ContributorsPage() {
         <p className="mb-4 text-body text-muted">{FOUNDERS_STORY}</p>
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {founders.map((f, i) => (
-            <li key={f.githubHandle} className="animate-fade-up" style={stagger(i)}>
+            <li key={f.name} className="animate-fade-up" style={stagger(i)}>
               <a
-                href={f.github}
+                href={f.link.href}
                 className={cardClasses({ variant: "quiet", interactive: true, padding: "none", className: "flex items-center gap-4 p-4" })}
               >
                 <Avatar name={f.name} size="lg" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-title font-semibold text-foreground">{f.name}</span>
                   <span className="block text-meta text-muted">{f.role}</span>
-                  <span className="block truncate text-meta text-subtle">github.com/{f.githubHandle}</span>
+                  <span className="block truncate text-meta text-subtle">{f.link.label}</span>
                 </span>
                 <ExternalLink aria-hidden className="size-4 shrink-0 text-subtle" strokeWidth={1.75} />
               </a>

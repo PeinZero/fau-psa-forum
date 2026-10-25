@@ -1,7 +1,7 @@
 "use client";
 
 import { Play } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useLayoutEffect, useState } from "react";
 
 import { cn } from "@/components/ui/cn";
 import { buttonClasses } from "@/components/ui/button";
@@ -43,6 +43,9 @@ function Player({ video }: { video: IntroVideoConfig }) {
 /** Sits after "How it works"; the hero links down to it. Renders nothing while no video is configured. */
 export function IntroVideo({ video = introVideo }: { video?: IntroVideoConfig | null }) {
   const [playing, setPlaying] = useState(false);
+  // Next keeps pages you navigate away from mounted but hidden, so a playing film would keep
+  // playing in the background. The cleanup runs when the page is hidden and drops the player.
+  useLayoutEffect(() => () => setPlaying(false), []);
   if (!video) return null;
 
   return (
