@@ -135,6 +135,8 @@ async function storeImages(
   }
   const results = await Promise.allSettled(images.map((image) => storage.put(image.key, image.bytes, image.contentType)));
   if (results.every((result) => result.status === "fulfilled")) return null;
+  const reasons = results.flatMap((result) => (result.status === "rejected" ? [String(result.reason)] : []));
+  console.error("Image upload failed:", reasons);
   await removeStoredImages(images.filter((_, i) => results[i].status === "fulfilled").map((image) => image.key));
   return UPLOAD_FAILED;
 }

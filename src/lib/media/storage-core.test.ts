@@ -28,6 +28,27 @@ describe("put", () => {
     expect(new Uint8Array(await req.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]));
   });
 
+  it("signs the real payload hash instead of UNSIGNED-PAYLOAD", async () => {
+    const { storage, calls } = setup();
+    await storage.put(KEY, new Uint8Array([1, 2, 3]), "image/webp");
+    // sha256 of the bytes 01 02 03
+    expect(calls[0].headers.get("X-Amz-Content-Sha256")).toBe(
+      "039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81",
+    );
+    expect(calls[0].headers.get("Authorization")).toContain("x-amz-content-sha256");
+  });
+
+  it("names Backblaze's error code in the message", async () => {
+    const fetchImpl = (async () =>
+      new Response("<Error><Code>AccessDenied</Code><Message>not entitled</Message></Error>", {
+        status: 403,
+      })) as unknown as typeof fetch;
+    const error = await createMediaStorage(config, fetchImpl)
+      .put(KEY, new Uint8Array([1]), "image/webp")
+      .catch((e) => e);
+    expect(error.message).toBe("Storage upload failed with status 403 (AccessDenied).");
+  });
+
   it("maps failures to MediaStorageError without secrets", async () => {
     const { storage } = setup(403);
     const error = await storage.put(KEY, new Uint8Array([1]), "image/webp").catch((e) => e);

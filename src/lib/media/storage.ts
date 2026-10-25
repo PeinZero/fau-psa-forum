@@ -11,7 +11,8 @@ const VARIABLES = {
 export function mediaStorage(): MediaStorage {
   const config = {} as Record<keyof typeof VARIABLES, string>;
   for (const [field, name] of Object.entries(VARIABLES) as [keyof typeof VARIABLES, string][]) {
-    const value = process.env[name];
+    // Pasted dashboard values often carry a stray space or newline, which breaks the signature.
+    const value = process.env[name]?.trim();
     if (!value) throw new Error(`Image storage is not configured: ${name} is missing.`);
     config[field] = value;
   }
