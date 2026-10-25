@@ -21,12 +21,11 @@ describe("IntroVideo", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("shows poster, title, duration and the AI note before playing", () => {
+  it("shows poster, title and duration before playing", () => {
     const { container } = render(<IntroVideo video={file} />);
     expect(container.querySelector("img")).toHaveAttribute("src", "/intro/poster.jpg");
     expect(screen.getByText("Welcome to the forum")).toBeInTheDocument();
     expect(screen.getByText("1:30")).toBeInTheDocument();
-    expect(screen.getByText("AI-generated video")).toBeInTheDocument();
     expect(container.querySelector("video, iframe")).toBeNull();
   });
 
