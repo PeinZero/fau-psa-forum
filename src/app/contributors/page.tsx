@@ -253,6 +253,8 @@ export default function ContributorsPage() {
             <li key={f.name} className="animate-fade-up" style={stagger(i)}>
               <a
                 href={f.link.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className={cardClasses({ variant: "quiet", interactive: true, padding: "none", className: "flex items-center gap-4 p-4" })}
               >
                 <Avatar name={f.name} size="lg" />
