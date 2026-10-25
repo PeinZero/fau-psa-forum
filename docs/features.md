@@ -7,7 +7,7 @@ What the PSA FAU Community Forum does. Live site: https://fau-psa-forum.vercel.a
 - `/browse` lists all threads with tabs Hot, New, Top (week, month, year, all time) and Active; filter by category and city, search inside the results, paginate.
 - Hot ranks by votes, comments, a best answer and recent activity (formula in [schema.md](schema.md)).
 - Category pages with a city filter (Erlangen, Nuremberg, both), sort tabs, search and a block of pinned threads. RP & Visa shows a "not legal advice" note.
-- Thread pages: formatted text, best answer pinned on top, comments with one level of replies, votes on the thread.
+- Thread pages: formatted text, up to 3 images in a gallery under it (tap for full size), best answer pinned on top, comments with one level of replies, votes on the thread.
 - Thread banners and badges: Waiting for review, Rejected (with reason), Outdated, Archived, Verified (month and year).
 - Guides: step-by-step checklists (for example "First weeks in Erlangen") with progress saved per member and in the browser when signed out.
 - Announcements: list with search and pagination, a page per announcement, a home banner for the latest pinned one, unread count on the header icon.
@@ -20,7 +20,7 @@ What the PSA FAU Community Forum does. Live site: https://fau-psa-forum.vercel.a
 - Quick search with Ctrl/Cmd+K shows results while typing.
 
 ## Posting & discussion
-- Ask form with title, category, city, markdown text and preview; similar existing threads appear while typing the title.
+- Ask form with title, category, city, markdown text and preview; similar existing threads appear while typing the title. Up to 3 images, shrunk in the browser before upload; the author adds or removes them when editing.
 - Members' threads wait for moderator approval (at most 3 waiting); moderators' and superadmins' own threads publish at once.
 - Comments and one level of replies; replying to a reply mentions that person.
 - `@username` mentions with a picker.
@@ -34,7 +34,7 @@ What the PSA FAU Community Forum does. Live site: https://fau-psa-forum.vercel.a
 
 ## Notifications
 - Bell with a live unread count (no reload) and a notifications page with pagination.
-- Types: replies, mentions, comments on your thread, activity on followed threads, thread approved or rejected, best answer, moderator application decided, announcements, account muted, banned or restored.
+- Types: replies, mentions, comments on your thread, activity on followed threads, thread approved, rejected or deleted, best answer, moderator application decided, announcements, account muted, banned or restored.
 - Per-type switches in notification settings.
 
 ## Accounts & profiles
@@ -48,10 +48,10 @@ What the PSA FAU Community Forum does. Live site: https://fau-psa-forum.vercel.a
 
 ## Moderation
 - Queues with counts: pending threads (with possible duplicates), reports, update requests, recent edits, feedback, moderator applications.
-- Thread actions: approve or reject with a reason, pin, mark outdated, verify, archive, choose best answer, hide comments.
+- Thread actions: approve or reject with a reason, pin, mark outdated, verify, archive, move to another category or city, delete with a reason, choose best answer, hide comments. Moderators never change what other members wrote.
 - Ready-made rejection reasons that can be edited before sending.
 - Manage categories, announcements and guides; superadmins also manage user roles.
-- Mute a user for 1, 7 or 30 days or permanently; ban (superadmin only). Muted users can read but not post, vote or report, and see the reason and end date.
+- Mute a user for 1, 7 or 30 days or permanently; ban (superadmin only). Moderators can't be muted or banned, only removed from the role. Muted users can read but not post, vote or report, and see the reason and end date.
 - Recent sign-ups list for spotting spam accounts.
 - Moderation log of every moderator action, filterable.
 - "View as member" preview.

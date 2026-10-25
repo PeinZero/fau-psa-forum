@@ -30,6 +30,7 @@ export const LOG_ACTION_GROUPS: ReadonlyArray<{ label: string; actions: Partial<
       thread_verified: "Thread verified",
       thread_outdated: "Outdated flag changed",
       revision_reviewed: "Edit reviewed",
+      thread_deleted: "Thread deleted",
     },
   },
   {
@@ -193,6 +194,8 @@ export function describeLogEntry(entry: LogEntry): LogPart[] {
       return [who, " deleted the guide ", quoted(detailText(details, "title"))];
     case "revision_reviewed":
       return [who, " reviewed an edit of ", threadPart, ...(target ? [" by ", subject] : [])];
+    case "thread_deleted":
+      return [who, " deleted ", threadPart, ...(target ? [" by ", subject] : [])];
     case "user_muted":
     case "user_banned": {
       const expires = detailText(details, "expires_at");

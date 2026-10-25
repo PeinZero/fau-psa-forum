@@ -11,6 +11,7 @@ export const getThread = cache(async (slug: string) => {
       `*,
        category:categories!threads_category_id_fkey(slug, name),
        author:profiles!threads_author_id_fkey(display_name, username, affiliation, role),
+       images:thread_images!thread_images_thread_id_fkey(id, storage_key, width, height, alt_text),
        comments:comments!comments_thread_id_fkey(
          id, parent_id, body, created_at, edited_at, hidden_at, author_id, score,
          author:profiles!comments_author_id_fkey(display_name, username, affiliation, role)

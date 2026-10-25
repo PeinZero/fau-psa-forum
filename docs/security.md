@@ -19,6 +19,12 @@ Read before touching auth, redirects, headers, user-generated content or RLS. La
 - **Headers (`next.config.ts`):** minimal CSP (`frame-ancestors`, `base-uri`, `object-src`,
   `form-action`), `nosniff`, referrer policy, permissions policy, HSTS. No `script-src` because a
   nonce CSP forces dynamic rendering and defeats `cacheComponents`.
+- **Image uploads:** files go through a server action, never straight from the browser to storage.
+  The server sniffs the real format from the bytes (WebP or JPEG only), checks size, dimensions and
+  count, and stores each under a random `threads/<uuid>` key with the upload key that only it holds.
+  The database enforces per-thread, daily and total-storage limits. The media Worker
+  (`workers/media/`) reads with a separate read-only key, answers only GET/HEAD for that key pattern,
+  sets the content type from the extension with `nosniff`, and caches for a day.
 - **Secrets:** only `NEXT_PUBLIC_SUPABASE_URL` and the publishable key reach the browser. Never
   expose a service-role key or prefix it `NEXT_PUBLIC_`.
 - **Authorization:** Postgres RLS, not client code. Matrix in [schema.md](schema.md).

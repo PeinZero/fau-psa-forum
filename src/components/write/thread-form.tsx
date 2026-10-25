@@ -17,6 +17,7 @@ import type { FormState } from "./actions";
 import { CategoryPicker, type CategoryOption } from "./category-picker";
 import { CharCounter } from "./char-counter";
 import { ChoiceGroup } from "./choice-group";
+import { carriesFiles, type ExistingImage, ImagePicker, type ImagePickerHandle, type PickedImage } from "./images";
 import { MarkdownHint } from "./markdown-hint";
 import { SubmitHint } from "./submit-hint";
 
@@ -37,6 +38,8 @@ type Props = {
   /** Shown beside the submit button, e.g. what happens after submitting. */
   footnote?: ReactNode;
   cancelHref?: string;
+  /** Omitted when image storage isn't configured, which hides the picker. */
+  images?: { existing: ExistingImage[] };
   action: (formData: FormData) => Promise<FormState>;
 };
 
@@ -72,6 +75,7 @@ export function ThreadForm({
   suggestSimilar = false,
   footnote,
   cancelHref,
+  images,
   action,
 }: Props) {
   const id = useId();
@@ -82,9 +86,13 @@ export function ThreadForm({
   const [categoryId, setCategoryId] = useSyncedState(initial.categoryId?.toString() ?? "");
   const [city, setCity] = useSyncedState<string>(initial.city ?? "");
   const [preview, setPreview] = useState(false);
+  const [picked, setPicked] = useState<PickedImage[]>([]);
+  const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
+  const [preparingImages, setPreparingImages] = useState(false);
   const [state, setState] = useState<FormState>({});
   const [pending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+  const imagePickerRef = useRef<ImagePickerHandle>(null);
   const focusInvalidRef = useRef(false);
   const leftAfterSubmitRef = useResetAfterRedirect(() => {
     setTitle(initial.title);
@@ -92,13 +100,21 @@ export function ThreadForm({
     setCategoryId(initial.categoryId?.toString() ?? "");
     setCity(initial.city ?? "");
     setPreview(false);
+    setPicked([]);
+    setRemovedImageIds([]);
     setState({});
   });
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending) return;
+    // Submitting now would post the thread without the photos that are still being shrunk.
+    if (pending || preparingImages) return;
     const formData = new FormData(event.currentTarget);
+    for (const image of picked) {
+      formData.append("images", image.file);
+      formData.append("imageAlts", image.alt);
+    }
+    for (const imageId of removedImageIds) formData.append("removeImageIds", String(imageId));
     setState({});
     leftAfterSubmitRef.current = true;
     startTransition(async () => {
@@ -111,6 +127,14 @@ export function ThreadForm({
         focusInvalidRef.current = true;
       }
     });
+  }
+
+  // A photo dropped on the title or text would otherwise open in the tab and lose the draft.
+  function onFileDrag(event: React.DragEvent<HTMLFormElement>) {
+    if (!carriesFiles(event.dataTransfer)) return;
+    event.preventDefault();
+    if (imagePickerRef.current) imagePickerRef.current.handleDrag(event);
+    else event.dataTransfer.dropEffect = "none";
   }
 
   // Runs once the fields are enabled again, since a disabled control can't take focus.
@@ -131,7 +155,18 @@ export function ThreadForm({
   const errorId = (field: string) => `${id}-${field}-error`;
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-7" noValidate>
+    <form
+      ref={formRef}
+      onSubmit={onSubmit}
+      // A screenshot pasted while writing the title or text lands in the images.
+      onPaste={(event) => imagePickerRef.current?.handlePaste(event)}
+      onDragEnter={onFileDrag}
+      onDragOver={onFileDrag}
+      onDragLeave={onFileDrag}
+      onDrop={onFileDrag}
+      className="flex flex-col gap-7"
+      noValidate
+    >
       {state.error ? (
         <p
           role="alert"
@@ -142,6 +177,9 @@ export function ThreadForm({
         </p>
       ) : null}
 
+      {/* A moderator may move the thread while this form is open; saving keeps their move unless the author picked something else. */}
+      <input type="hidden" name="initialCategoryId" value={initial.categoryId?.toString() ?? ""} />
+      <input type="hidden" name="initialCity" value={initial.city ?? ""} />
       <fieldset disabled={pending} className="contents">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={`${id}-title`}>Title</Label>
@@ -255,6 +293,20 @@ export function ThreadForm({
           </div>
           <FieldError id={errorId("body")} message={fe.body} />
         </div>
+
+        {images ? (
+          <ImagePicker
+            ref={imagePickerRef}
+            id={`${id}-images`}
+            existing={images.existing}
+            removedIds={removedImageIds}
+            picked={picked}
+            onRemovedIdsChange={setRemovedImageIds}
+            onPickedChange={setPicked}
+            onPreparingChange={setPreparingImages}
+            disabled={pending}
+          />
+        ) : null}
       </fieldset>
 
       <div className="flex flex-col-reverse gap-4 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
@@ -266,9 +318,9 @@ export function ThreadForm({
               Cancel
             </Link>
           ) : null}
-          <Button type="submit" disabled={pending} className="flex-1 sm:flex-none">
-            {pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
-            {pending ? pendingLabel : submitLabel}
+          <Button type="submit" disabled={pending || preparingImages} className="flex-1 sm:flex-none">
+            {pending || preparingImages ? <Loader2 aria-hidden className="animate-spin" /> : null}
+            {pending ? pendingLabel : preparingImages ? "Preparing images…" : submitLabel}
           </Button>
         </div>
       </div>

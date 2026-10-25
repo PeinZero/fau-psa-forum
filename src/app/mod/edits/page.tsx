@@ -7,12 +7,14 @@ import { Author } from "@/components/author";
 import { ActionButton } from "@/components/mod/action-button";
 import { Diff } from "@/components/mod/diff";
 import { markAllRevisionsReviewed, setRevisionsReviewed } from "@/components/mod/edit-review-actions";
+import { type ImageChange, imageChange, imagesAfter } from "@/components/mod/image-changes";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { stagger } from "@/components/ui/motion";
 import { SegmentedLinks } from "@/components/ui/segmented-control";
 import { formatDate } from "@/lib/labels";
+import { imagesEnabled, mediaUrl } from "@/lib/media/keys";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Recent edits" };
@@ -23,10 +25,11 @@ type Snapshot = { title: string; body: string };
 const QUEUE_LIMIT = 200;
 const REVIEWED_LIMIT = 50;
 
-const REVISION_FIELDS = `id, thread_id, title, body, created_at, edited_by, reviewed_at,
+const REVISION_FIELDS = `id, thread_id, title, body, image_keys, created_at, edited_by, reviewed_at,
   editor:profiles!thread_revisions_edited_by_fkey(display_name, affiliation, role),
   reviewer:profiles!thread_revisions_reviewed_by_fkey(display_name, affiliation, role),
-  thread:threads!thread_revisions_thread_id_fkey(slug, title, body)`;
+  thread:threads!thread_revisions_thread_id_fkey(slug, title, body,
+    images:thread_images!thread_images_thread_id_fkey(storage_key, alt_text))`;
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -46,7 +49,7 @@ export default async function RecentEditsPage({ searchParams }: Props) {
   const { data: later, error: laterError } = threadIds.length
     ? await supabase
         .from("thread_revisions")
-        .select("id, thread_id, title, body")
+        .select("id, thread_id, title, body, image_keys")
         .in("thread_id", threadIds)
         .gt("id", oldestId)
         .order("id", { ascending: true })
@@ -74,6 +77,12 @@ export default async function RecentEditsPage({ searchParams }: Props) {
   type Revision = (typeof revisions)[number];
   const textAfter = (revision: Revision): Snapshot | null =>
     later.find((next) => next.thread_id === revision.thread_id && next.id > revision.id) ?? revision.thread;
+  // An image revision stores the gallery before the change; text-only revisions store none.
+  const galleryChange = (oldest: Revision, newest: Revision): ImageChange | null => {
+    const first = [oldest, newest].find((revision) => revision.image_keys) ?? null;
+    const live = newest.thread?.images ?? null;
+    return imageChange(first?.image_keys ?? null, imagesAfter(newest, later, live), live ?? []);
+  };
 
   if (!revisions.length) {
     return (
@@ -103,6 +112,7 @@ export default async function RecentEditsPage({ searchParams }: Props) {
                 revision={revision}
                 before={revision}
                 after={textAfter(revision)}
+                images={galleryChange(revision, revision)}
                 meta={
                   <>
                     <MetaLine label="Edited by" profiles={[revision.editor]} date={revision.created_at} />
@@ -148,12 +158,14 @@ export default async function RecentEditsPage({ searchParams }: Props) {
           const newest = group[0];
           const oldest = group[group.length - 1];
           const editors = [...new Map(group.map((revision) => [revision.edited_by, revision.editor])).values()];
+          const firstImageEdit = [...group].reverse().find((revision) => revision.image_keys) ?? oldest;
           return (
             <li key={newest.thread_id} style={stagger(index)} className="animate-fade-up">
               <EditCard
                 revision={newest}
                 before={oldest}
                 after={textAfter(newest)}
+                images={galleryChange(firstImageEdit, newest)}
                 meta={
                   <MetaLine
                     label={group.length > 1 ? `${group.length} edits by` : "Edited by"}
@@ -196,12 +208,14 @@ function EditCard({
   revision,
   before,
   after,
+  images,
   meta,
   action,
 }: {
   revision: { title: string; thread: { slug: string; title: string } | null };
   before: Snapshot;
   after: Snapshot | null;
+  images: ImageChange | null;
   meta: ReactNode;
   action: ReactNode;
 }) {
@@ -237,7 +251,8 @@ function EditCard({
           </div>
         </details>
       )}
-      {after && !titleChanged && !bodyChanged && (
+      {images && <ImageChanges change={images} />}
+      {after && !titleChanged && !bodyChanged && !images && (
         <p className="text-meta text-muted">The text is back to its earlier version.</p>
       )}
       <div className="flex flex-wrap items-start gap-2 border-t border-border pt-4">
@@ -250,5 +265,46 @@ function EditCard({
         )}
       </div>
     </Card>
+  );
+}
+
+function ImageChanges({ change }: { change: ImageChange }) {
+  const added = change.added.length + change.addedSinceRemoved;
+  const summary = [added > 0 && `${added} added`, change.removed > 0 && `${change.removed} removed`]
+    .filter(Boolean)
+    .join(" · ");
+  const shown = imagesEnabled() ? change.added : [];
+  return (
+    <div>
+      <p className="mb-1.5 text-meta font-medium text-muted">Images</p>
+      <p className="text-meta text-foreground">{summary}</p>
+      {shown.length > 0 && (
+        <ul className="mt-2 flex flex-wrap gap-2">
+          {shown.map((image) => (
+            <li key={image.storage_key}>
+              <a
+                href={mediaUrl(image.storage_key)}
+                target="_blank"
+                rel="noopener"
+                className="block size-20 overflow-hidden rounded-md bg-surface ring-1 ring-border pointer-coarse:size-24"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- uploads arrive compressed, and Vercel Hobby caps image optimisation at 5,000 a month */}
+                <img
+                  src={mediaUrl(image.storage_key)}
+                  alt={image.alt_text ?? "Added image"}
+                  loading="lazy"
+                  decoding="async"
+                  className="size-full object-cover"
+                />
+                <span className="sr-only"> (opens full size in a new tab)</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {change.removed > 0 && (
+        <p className="mt-1.5 text-meta text-subtle">Removed images are deleted right away, so they can&apos;t be shown here.</p>
+      )}
+    </div>
   );
 }

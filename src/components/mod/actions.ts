@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { ANNOUNCEMENT_BODY_MAX, ANNOUNCEMENT_TITLE_MAX, ANNOUNCEMENT_TITLE_MIN } from "@/components/announcements/limits";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
 import { CANNED_BODY_MAX, CANNED_LABEL_MAX, RESTRICTION_DURATIONS, type RestrictionDuration } from "@/lib/restrictions";
 import { firstIssue, friendlyError, SIGN_IN_REQUIRED } from "@/lib/supabase/errors";
+import { mediaStorage } from "@/lib/media/storage";
 import { createClient } from "@/lib/supabase/server";
 
 export type ActionState = { ok: boolean; message: string } | null;
@@ -19,16 +21,20 @@ const MOD_ERRORS = {
     ["best answer must be", "The best answer must be a visible comment of this thread."],
     ["comments are only possible", "The thread must be published for this to work."],
     ["you cannot restrict yourself", "You can't restrict your own account."],
-    ["the superadmin cannot be restricted", "The superadmin can't be restricted."],
-    ["only the superadmin can restrict moderators", "Only the superadmin can restrict moderators."],
+    ["only the superadmin can restrict moderators", "Only the superadmin can change a moderator's restriction."],
     ["only the superadmin can ban", "Only the superadmin can ban accounts."],
     ["only the superadmin can lift a ban", "Only the superadmin can lift a ban."],
     ["this user is already muted", "This member is already muted. Lift the mute first to change it."],
     ["this user is already banned", "This member is already banned. Lift the ban first to change it."],
+    ["moderators cannot be muted or banned", "Moderators can't be muted or banned. Remove the moderator role first."],
+    ["lift the mute or ban before making", "Lift this member's mute or ban before making them a moderator."],
     ["already lifted", "This restriction was already lifted."],
     ["already ended", "This restriction has already ended."],
     ["categories_slug_key", "Another category already uses this slug."],
     ["categories_name_key", "Another category already uses this name."],
+    ["only moderators can delete threads", "Only moderators can delete threads."],
+    ["a reason is required to delete a thread", "Please give a reason for deleting the thread."],
+    ["thread not found", "Thread not found. It may already be deleted."],
   ],
   codes: { "23503": "This category still has threads. Move or delete them first." },
 } as const;
@@ -93,6 +99,67 @@ export async function moderateThread(_prev: ActionState, formData: FormData): Pr
     unpin: "Thread unpinned.",
   };
   return done(messages[op]);
+}
+
+const deleteThreadSchema = z.object({
+  threadId: id,
+  reason: z.string().trim().min(1, "Please give a reason for deleting the thread.").max(1000, "The reason can be at most 1000 characters."),
+});
+
+/** Deletes a thread for good; its image files go with it, but a storage hiccup must not undo the deletion. */
+export async function deleteThread(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = deleteThreadSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(firstIssue(parsed));
+
+  const denied = await requireRole("moderator");
+  if (denied) return fail(denied);
+
+  const supabase = await createClient();
+  const { data: keys, error } = await supabase.rpc("delete_thread", {
+    p_thread_id: parsed.data.threadId,
+    p_reason: parsed.data.reason,
+  });
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+
+  if (keys?.length) {
+    try {
+      const failed = await mediaStorage().removeMany(keys);
+      if (failed.length) console.error("Thread deleted, but some image files remain in storage:", failed);
+    } catch (storageError) {
+      console.error("Thread deleted, but its image files could not be removed:", storageError);
+    }
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/");
+}
+
+const moveThreadSchema = z.object({
+  threadId: id,
+  categoryId: id,
+  city: z.enum(["", "erlangen", "nuremberg", "both"]),
+});
+
+/** Moderators can only file someone else's thread elsewhere; title, text and images stay the author's. */
+export async function moveThread(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = moveThreadSchema.safeParse({ ...Object.fromEntries(formData), city: formData.get("city") ?? "" });
+  if (!parsed.success) return fail("Please choose a category.");
+  const { threadId, categoryId, city } = parsed.data;
+
+  const denied = await requireRole("moderator");
+  if (denied) return fail(denied);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("threads")
+    .update({ category_id: categoryId, city: city || null })
+    .eq("id", threadId)
+    .select("slug");
+  if (error) return fail(friendlyError(error, MOD_ERRORS));
+  if (!data?.length) return fail("Thread not found, or you don't have permission.");
+
+  revalidatePath("/", "layout");
+  redirect(`/t/${data[0].slug}`);
 }
 
 const commentSchema = z.object({

@@ -23,6 +23,7 @@ import {
   type ThreadDetail,
 } from "@/components/thread/thread-data";
 import { metaFrame, metaItem, metaLine } from "@/components/thread/meta";
+import { ThreadImages } from "@/components/thread/thread-images";
 import { ThreadMenu } from "@/components/thread/thread-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/cn";
@@ -131,6 +132,7 @@ async function ThreadContent({ params, searchParams }: { params: Params; searchP
 
         <div className="mt-6 border-t border-border pt-6 sm:pt-8">
           <Markdown size="reading">{thread.body}</Markdown>
+          <ThreadImages images={[...thread.images].sort((a, b) => a.id - b.id)} />
         </div>
 
         <div className="mt-12 sm:mt-14">
@@ -372,7 +374,8 @@ async function ViewerThreadMenu({ thread }: { thread: ThreadDetail }) {
       thread={modFields(thread)}
       slug={thread.slug}
       saved={saved}
-      canEdit={isMod || isAuthor}
+      canEdit={isAuthor}
+      canMove={isMod && !isAuthor}
       canReport={viewer !== null && !isMod && !isAuthor && isPublic}
       canRequestUpdate={viewer !== null && !isMod && thread.status === "published"}
       isMod={isMod}

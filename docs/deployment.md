@@ -62,5 +62,35 @@ scripts/restore-backup.sh psa-forum-<date>.sql.gz.age psa-backup.key
 
 The script refuses any database that is not on this machine, replaces exactly the tables in the dump in one transaction (a failure changes nothing) and prints the restored users, threads and comments. Loading a backup into production is a deliberate manual step: check it locally first.
 
+## Thread images
+Images live in private Backblaze B2 buckets (the account from Backups, region EU Central) and reach browsers through the Cloudflare Worker in `workers/media/`, which signs each read with a read-only key. Downloads from Backblaze to Cloudflare are free; the free Workers plan stops at 100,000 requests a day instead of billing, and the account has no payment method. The server uploads after checking the bytes; the database enforces 3 images per thread, 6 per member and 300 site-wide per day, and stops uploads at 8 GB of the free 10 GB, which backups share.
+
+Without `NEXT_PUBLIC_MEDIA_URL` the picker is hidden, so CI and most local work need nothing.
+
+One-time setup (owner):
+1. Buckets, both **Private**, Object Lock off: the live one with Lifecycle Settings → "Keep only the last version of the file" (otherwise a deleted image stays as a hidden version), and the same name plus `-dev` for localhost and previews with a custom rule: empty prefix, hidden after 6 days, deleted 1 day after hiding.
+2. Application keys, each limited to one bucket, straight into Bitwarden: an upload key (**Read and Write**) and a Worker key (**Read Only**) per bucket.
+3. Worker: fill `B2_REGION` and `B2_BUCKET` in `workers/media/wrangler.jsonc` (top level = live, `env.dev` = dev), then in `workers/media/`:
+
+   ```sh
+   npm install
+   npx wrangler login
+   npx wrangler secret put B2_KEY_ID --env dev           # dev Worker key
+   npx wrangler secret put B2_APPLICATION_KEY --env dev
+   npm run deploy:dev
+   npx wrangler secret put B2_KEY_ID --env=""          # live Worker key
+   npx wrangler secret put B2_APPLICATION_KEY --env=""
+   npm run deploy
+   ```
+
+   Each deploy prints the Worker's `workers.dev` address. Once the domain exists (#19), add the route `media.<domain>` to the live Worker with the request-limit failure mode set to fail closed.
+4. Vercel env: `NEXT_PUBLIC_MEDIA_URL` (the Worker address) and `MEDIA_B2_REGION`, `MEDIA_B2_BUCKET`, `MEDIA_B2_KEY_ID`, `MEDIA_B2_APPLICATION_KEY` (the upload key). Production gets the live values; Preview and your `.env.local` get the dev values.
+5. Push the `thread_images` migration ([Migrations](#migrations)), redeploy, post a thread with an image on a preview and check it loads from the Worker.
+
+### Cleanup of deleted images
+Deleting a `thread_images` row by any path (the app, a cascade, a member calling the API directly) makes a database trigger queue the file in `public.media_deletions`; clients can't touch that table. The app usually deletes the file at once, but not always. A queued file still counts toward the upload limits, so `.github/workflows/media-cleanup.yml` drains the queue every night at 03:30 UTC (or by hand: Actions → Media cleanup → Run workflow). `scripts/media-cleanup.sh` takes up to 1000 keys uploaded more than a day ago (younger ones still count toward the member's daily limit), deletes only keys shaped like `threads/<uuid>.webp|jpg` from the live bucket, and removes the queue row after the file is gone. It keeps going after a failure and then fails the run, so GitHub emails the watchers.
+
+One-time setup (owner): GitHub → Settings → Environments → `media-cleanup`, limited to the `main` branch, with the secrets `SUPABASE_DB_URL` (the session-pooler URI as for backups), `MEDIA_B2_REGION`, `MEDIA_B2_BUCKET`, `MEDIA_B2_KEY_ID`, `MEDIA_B2_APPLICATION_KEY` (the **live bucket's upload key**). Then run the workflow once by hand.
+
 ## Legal pages
 `/impressum` and `/privacy` are linked from the footer. Operator name and postal address still have to be filled in `src/lib/legal.ts`; until then both pages show a notice ([launch.md](launch.md)).

@@ -11,6 +11,7 @@ Next.js 16 App Router + TypeScript + Tailwind v4, Supabase via `@supabase/ssr`, 
 - `main` is protected: work on a branch and open a PR. Commit or push only when asked. Git identity and credentials are repo-local (PeinZero); don't change them.
 - Comments: domain reasons only, no mechanical explanations or ticket numbers.
 - Never read `.env.local` or other real env files; use `.env.example` for names.
+- Image storage (Backblaze buckets, keys, the media Worker in `workers/media/`): never use production keys; only the owner changes buckets, keys and Worker secrets. Tests mock storage.
 
 ## Read when needed
 

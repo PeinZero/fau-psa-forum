@@ -92,6 +92,15 @@ describe("describeLogEntry", () => {
   it("describes reviewed edits", () => {
     expect(text({ action: "revision_reviewed" })).toBe("Ali reviewed an edit of “RP in Erlangen” by Bilal");
   });
+
+  it("describes deleted threads by the title kept in the log", () => {
+    expect(text({ action: "thread_deleted", thread: null, details: { title: "RP in Erlangen" } })).toBe(
+      "Ali deleted “RP in Erlangen” by Bilal",
+    );
+    expect(text({ action: "thread_deleted", thread: null, target: null, details: { title: "RP in Erlangen" } })).toBe(
+      "Ali deleted “RP in Erlangen”",
+    );
+  });
 });
 
 describe("isModAction", () => {

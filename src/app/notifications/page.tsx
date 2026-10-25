@@ -15,6 +15,7 @@ import {
   Reply,
   ShieldCheck,
   ShieldX,
+  Trash2,
   UserPlus,
   Volume2,
   VolumeX,
@@ -26,6 +27,8 @@ import { Suspense, type ReactNode } from "react";
 import { announcementHref } from "@/components/announcements/data";
 import { Avatar } from "@/components/author";
 import { SignInRequired } from "@/components/auth/sign-in-required";
+import { Quoted } from "@/components/notifications/quoted";
+import { ThreadDeletedSentence } from "@/components/notifications/thread-deleted";
 import { EmptyState } from "@/components/ui/empty-state";
 import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
@@ -47,7 +50,7 @@ type SearchParams = Promise<{ page?: string | string[] }>;
 type NotificationType = Enums<"notification_type">;
 
 const notificationSelect = `
-  id, type, created_at, read_at, thread_id, comment_id, actor_id,
+  id, type, created_at, read_at, thread_id, comment_id, actor_id, details,
   actor:profiles!notifications_actor_id_fkey(display_name),
   comment:comments!notifications_comment_id_fkey(author_id),
   thread:threads!notifications_thread_id_fkey(slug, title),
@@ -77,6 +80,7 @@ const icons: Record<NotificationType, LucideIcon> = {
   thread_comment: MessageSquare,
   thread_approved: CircleCheck,
   thread_rejected: CircleX,
+  thread_deleted: Trash2,
   best_answer: Award,
   application_approved: ShieldCheck,
   application_rejected: ShieldX,
@@ -96,6 +100,7 @@ const icons: Record<NotificationType, LucideIcon> = {
 const systemTypes: ReadonlySet<NotificationType> = new Set([
   "thread_approved",
   "thread_rejected",
+  "thread_deleted",
   "best_answer",
   "application_approved",
   "application_rejected",
@@ -117,10 +122,6 @@ function excerpt(text: string): string {
   return flat.length > FEEDBACK_EXCERPT_LENGTH ? `${flat.slice(0, FEEDBACK_EXCERPT_LENGTH).trimEnd()}…` : flat;
 }
 
-function Quoted({ children }: { children: ReactNode }) {
-  return <span className="font-medium text-foreground">“{children}”</span>;
-}
-
 function sentence(n: NotificationRow): ReactNode {
   const actor = <span className="font-medium text-foreground">{n.actor?.display_name ?? "Someone"}</span>;
   const title = <Quoted>{n.thread?.title ?? "a thread"}</Quoted>;
@@ -135,6 +136,8 @@ function sentence(n: NotificationRow): ReactNode {
       return <>Your thread {title} was approved and is now public</>;
     case "thread_rejected":
       return <>Your thread {title} was not approved</>;
+    case "thread_deleted":
+      return <ThreadDeletedSentence details={n.details} />;
     case "best_answer":
       return <>Your comment in {title} was marked as the best answer</>;
     case "application_approved":
@@ -186,8 +189,11 @@ function sentence(n: NotificationRow): ReactNode {
   }
 }
 
-function target(n: NotificationRow): string {
+/** A deleted thread leaves nothing to open. */
+function target(n: NotificationRow): string | undefined {
   switch (n.type) {
+    case "thread_deleted":
+      return undefined;
     case "mod_new_thread":
       return "/mod/threads";
     case "mod_new_application":

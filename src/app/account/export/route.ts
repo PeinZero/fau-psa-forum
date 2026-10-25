@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 
 import { assembleExport, exportFilename, SECTION_KEYS, type SectionKey } from "@/lib/export/assemble";
 import { EXPORT_COOKIE, EXPORT_INTERVAL_MS, exportWaitMs, signExportCookie } from "@/lib/export/rate-limit";
+import { mediaUrl } from "@/lib/media/keys";
 import { createClient } from "@/lib/supabase/server";
 
 const NOTIFICATION_LIMIT = 500;
@@ -32,6 +33,16 @@ export async function GET() {
 
   const queries: Record<SectionKey, PromiseLike<{ data: unknown; error: unknown }>> = {
     threads: supabase.from("threads").select("*").eq("author_id", userId).order("created_at"),
+    // The files themselves stay in storage; each row links to where it can be downloaded.
+    images: supabase
+      .from("thread_images")
+      .select("id, thread_id, storage_key, content_type, width, height, size_bytes, alt_text, created_at")
+      .eq("owner_id", userId)
+      .order("created_at")
+      .then(({ data, error }) => ({
+        data: data?.map(({ storage_key, ...image }) => ({ ...image, url: mediaUrl(storage_key) })),
+        error,
+      })),
     comments: supabase.from("comments").select("*").eq("author_id", userId).order("created_at"),
     votes: supabase.from("comment_votes").select("comment_id, value").eq("user_id", userId),
     bookmarks: supabase.from("bookmarks").select("*").eq("user_id", userId),

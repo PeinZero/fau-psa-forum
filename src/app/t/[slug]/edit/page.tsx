@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { MoveThreadForm } from "@/components/mod/move-thread-form";
 import { SignInCard } from "@/components/sign-in-prompt";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
+import { imagesEnabled, mediaUrl } from "@/lib/media/keys";
 import { createClient } from "@/lib/supabase/server";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,6 +20,18 @@ import { getOwnRestriction } from "@/components/restrictions/data";
 import { RestrictionBanner } from "@/components/restrictions/restriction-banner";
 
 export const metadata = { title: "Edit thread" };
+
+/** The heading follows what the viewer may do here: authors edit, other moderators only move. */
+async function EditHeading({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const [{ data: thread }, viewer] = await Promise.all([
+    supabase.from("threads").select("author_id").eq("slug", slug).maybeSingle(),
+    getViewer(),
+  ]);
+  const moving = thread && viewer && thread.author_id !== viewer.userId && isModerator(viewer.role);
+  return <PageHeader className="mb-4" title={moving ? "Move thread" : "Edit thread"} />;
+}
 
 async function EditThread({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -35,7 +49,7 @@ async function EditThread({ params }: { params: Promise<{ slug: string }> }) {
       <SignInCard
         next={`/t/${slug}/edit`}
         title="Sign in to edit this thread"
-        description="Only the author and moderators can edit a thread."
+        description="Only the author can edit a thread; moderators can move it."
       />
     );
   }
@@ -53,14 +67,35 @@ async function EditThread({ params }: { params: Promise<{ slug: string }> }) {
           </Link>
         }
       >
-        <span role="alert">Only the author and moderators can edit it.</span>
+        <span role="alert">Only the author can edit it.</span>
       </EmptyState>
     );
   }
 
-  const [{ data: categories }, restriction] = await Promise.all([
+  if (!isAuthor) {
+    const { data: categories } = await supabase.from("categories").select("id, slug, name, description").order("sort_order");
+    return (
+      <div className="animate-fade-up">
+        <MoveThreadForm
+          threadId={thread.id}
+          title={thread.title}
+          categories={categories ?? []}
+          categoryId={thread.category_id}
+          city={thread.city}
+          cancelHref={`/t/${slug}`}
+        />
+      </div>
+    );
+  }
+
+  const [{ data: categories }, restriction, { data: images }] = await Promise.all([
     supabase.from("categories").select("id, slug, name, description").order("sort_order"),
     getOwnRestriction(viewer.userId),
+    supabase
+      .from("thread_images")
+      .select("id, storage_key, alt_text, width, height")
+      .eq("thread_id", thread.id)
+      .order("id"),
   ]);
 
   const note =
@@ -86,6 +121,19 @@ async function EditThread({ params }: { params: Promise<{ slug: string }> }) {
           submitLabel="Save changes"
           pendingLabel="Saving…"
           cancelHref={`/t/${slug}`}
+          images={
+            imagesEnabled()
+              ? {
+                  existing: (images ?? []).map((image) => ({
+                    id: image.id,
+                    url: mediaUrl(image.storage_key),
+                    alt: image.alt_text,
+                    width: image.width,
+                    height: image.height,
+                  })),
+                }
+              : undefined
+          }
           action={updateThreadAction.bind(null, thread.id)}
         />
       </div>
@@ -96,7 +144,9 @@ async function EditThread({ params }: { params: Promise<{ slug: string }> }) {
 export default function EditThreadPage({ params }: { params: Promise<{ slug: string }> }) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-      <PageHeader className="mb-4" title="Edit thread" />
+      <Suspense fallback={<PageHeader className="mb-4" title="Edit thread" />}>
+        <EditHeading params={params} />
+      </Suspense>
       <Suspense fallback={<ThreadFormSkeleton />}>
         <EditThread params={params} />
       </Suspense>

@@ -3,9 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FormState } from "./actions";
+import { compressImage } from "./images/compress";
 import { firstInvalidControl, ThreadForm, type ThreadFormValues } from "./thread-form";
 
 vi.mock("@/components/duplicates/similar-threads", () => ({ SimilarThreads: () => null }));
+vi.mock("./images/compress", () => ({ compressImage: vi.fn(), ImageError: class extends Error {} }));
 
 const categories = [
   { id: 1, slug: "housing", name: "Housing", description: "Flats" },
@@ -246,5 +248,193 @@ describe("ThreadForm chrome", () => {
     setup();
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "x".repeat(19000) } });
     expect(screen.getByText("1,000 characters left")).toBeInTheDocument();
+  });
+});
+
+describe("ThreadForm images", () => {
+  const compressMock = vi.mocked(compressImage);
+  const screenshot = () => new File(["png"], "image.png", { type: "image/png" });
+  const paste = (target: Element, files: File[], text = "") =>
+    fireEvent.paste(target, {
+      clipboardData: { files, types: ["Files"], getData: (format: string) => (format === "text/plain" ? text : "") },
+    });
+
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => "blob:preview");
+    URL.revokeObjectURL = vi.fn();
+    compressMock.mockReset();
+    compressMock.mockResolvedValue({
+      file: new File(["c"], "image.webp", { type: "image/webp" }),
+      width: 800,
+      height: 600,
+    });
+  });
+
+  it("hides the picker when image storage is off", () => {
+    setup();
+    expect(screen.queryByRole("group", { name: "Images" })).not.toBeInTheDocument();
+  });
+
+  it("adds a screenshot pasted into the title and submits it with its description", async () => {
+    const { action } = setup({ images: { existing: [] } });
+    await fillValid();
+    expect(paste(screen.getByLabelText("Title"), [screenshot()])).toBe(false);
+    expect(await screen.findByRole("button", { name: "Remove image 1" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Title")).toHaveValue("How do I register?");
+    await userEvent.type(screen.getByLabelText("Describe image 1 (optional)"), "Bürgeramt form");
+    await userEvent.click(screen.getByRole("button", { name: "Post thread" }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+    const data = action.mock.calls[0][0] as FormData;
+    expect(data.getAll("images")).toHaveLength(1);
+    expect((data.get("images") as File).type).toBe("image/webp");
+    expect(data.getAll("imageAlts")).toEqual(["Bürgeramt form"]);
+  });
+
+  it("keeps a plain text paste in the body", async () => {
+    setup({ images: { existing: [] } });
+    await userEvent.click(screen.getByLabelText("Details"));
+    await userEvent.paste("Termin at the Ausländerbehörde");
+    expect(screen.getByLabelText("Details")).toHaveValue("Termin at the Ausländerbehörde");
+    expect(compressMock).not.toHaveBeenCalled();
+  });
+
+  it("pastes the text when a spreadsheet also puts a picture of it on the clipboard", () => {
+    setup({ images: { existing: [] } });
+    expect(paste(screen.getByLabelText("Details"), [screenshot()], "Miete\t450")).toBe(true);
+    expect(compressMock).not.toHaveBeenCalled();
+  });
+
+  it("ignores pasted images without the picker", () => {
+    setup();
+    expect(paste(screen.getByLabelText("Details"), [screenshot()])).toBe(true);
+    expect(compressMock).not.toHaveBeenCalled();
+  });
+
+  const fileDrag = (files: File[] = []) => ({ dataTransfer: { files, types: ["Files"], dropEffect: "copy" } });
+  const textDrag = () => ({ dataTransfer: { files: [], types: ["text/plain"], dropEffect: "move" } });
+
+  it("adds a photo dropped on the body instead of letting the browser open it", async () => {
+    setup({ images: { existing: [] } });
+    const body = screen.getByLabelText("Details");
+    const drag = fileDrag();
+    fireEvent.dragEnter(body, drag);
+    expect(screen.getByRole("button", { name: "Drop to add images" })).toBeInTheDocument();
+    expect(fireEvent.dragOver(body, drag)).toBe(false);
+    expect(drag.dataTransfer.dropEffect).toBe("copy");
+    expect(fireEvent.drop(body, fileDrag([screenshot()]))).toBe(false);
+    expect(await screen.findByRole("button", { name: "Remove image 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add images" })).toBeInTheDocument();
+  });
+
+  it("ends the drop state when the drag leaves the form", () => {
+    setup({ images: { existing: [] } });
+    const title = screen.getByLabelText("Title");
+    fireEvent.dragEnter(title, fileDrag());
+    expect(screen.getByRole("button", { name: "Drop to add images" })).toBeInTheDocument();
+    fireEvent.dragLeave(title, fileDrag());
+    expect(screen.getByRole("button", { name: "Add images" })).toBeInTheDocument();
+  });
+
+  it("leaves text drags between fields to the browser", () => {
+    setup({ images: { existing: [] } });
+    const body = screen.getByLabelText("Details");
+    const drag = textDrag();
+    fireEvent.dragEnter(body, drag);
+    expect(screen.queryByRole("button", { name: "Drop to add images" })).not.toBeInTheDocument();
+    expect(fireEvent.dragOver(body, drag)).toBe(true);
+    expect(drag.dataTransfer.dropEffect).toBe("move");
+    expect(fireEvent.drop(body, textDrag())).toBe(true);
+    expect(compressMock).not.toHaveBeenCalled();
+  });
+
+  it("still keeps a dropped file from replacing the form without the picker", () => {
+    setup();
+    const body = screen.getByLabelText("Details");
+    const drag = fileDrag();
+    expect(fireEvent.dragOver(body, drag)).toBe(false);
+    expect(drag.dataTransfer.dropEffect).toBe("none");
+    expect(fireEvent.drop(body, fileDrag([screenshot()]))).toBe(false);
+    expect(compressMock).not.toHaveBeenCalled();
+  });
+
+  it("submits the ids of removed existing images", async () => {
+    const existing = [{ id: 41, url: "https://img.example.test/41.webp", alt: null, width: 800, height: 600 }];
+    const { action } = setup({ images: { existing } });
+    await fillValid();
+    await userEvent.click(screen.getByRole("button", { name: "Remove image 1" }));
+    await userEvent.click(screen.getByRole("button", { name: "Post thread" }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+    expect((action.mock.calls[0][0] as FormData).getAll("removeImageIds")).toEqual(["41"]);
+  });
+});
+
+describe("ThreadForm while images are prepared", () => {
+  const compressMock = vi.mocked(compressImage);
+  let finish: (value: { file: File; width: number; height: number }) => void;
+
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => "blob:preview");
+    URL.revokeObjectURL = vi.fn();
+    compressMock.mockReset();
+    compressMock.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+  });
+
+  async function startPreparing() {
+    const { action } = setup({ images: { existing: [] } });
+    await fillValid();
+    fireEvent.paste(screen.getByLabelText("Title"), {
+      clipboardData: {
+        files: [new File(["png"], "image.png", { type: "image/png" })],
+        types: ["Files"],
+        getData: () => "",
+      },
+    });
+    await screen.findByRole("button", { name: "Preparing images…" });
+    return action;
+  }
+
+  it("disables submit and ignores every way of submitting until the photos are ready", async () => {
+    const action = await startPreparing();
+    expect(screen.getByRole("button", { name: "Preparing images…" })).toBeDisabled();
+
+    await userEvent.type(screen.getByLabelText("Details"), "{Control>}{Enter}{/Control}");
+    await userEvent.type(screen.getByLabelText("Details"), "{Meta>}{Enter}{/Meta}");
+    fireEvent.submit(screen.getByLabelText("Title").closest("form")!);
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it("submits normally once the photos are ready", async () => {
+    const action = await startPreparing();
+    await act(async () => {
+      finish({ file: new File(["c"], "image.webp", { type: "image/webp" }), width: 800, height: 600 });
+    });
+    const submit = await screen.findByRole("button", { name: "Post thread" });
+    expect(submit).toBeEnabled();
+    await userEvent.type(screen.getByLabelText("Details"), "{Control>}{Enter}{/Control}");
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+    expect((action.mock.calls[0][0] as FormData).getAll("images")).toHaveLength(1);
+  });
+});
+
+describe("ThreadForm placement fields", () => {
+  it("carries the values the form started with, for the edit action to compare", async () => {
+    const { action } = setup({ initial: { title: "Where to find a flat?", body: "Details here", categoryId: 2, city: "both" } });
+    await userEvent.click(screen.getByRole("radio", { name: /Housing/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Post thread" }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+    const data = action.mock.calls[0][0] as FormData;
+    expect(data.get("initialCategoryId")).toBe("2");
+    expect(data.get("initialCity")).toBe("both");
+    expect(data.get("categoryId")).toBe("1");
+  });
+
+  it("sends empty initial values for a new thread", async () => {
+    const { action } = setup();
+    await fillValid();
+    await userEvent.click(screen.getByRole("button", { name: "Post thread" }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+    const data = action.mock.calls[0][0] as FormData;
+    expect(data.get("initialCategoryId")).toBe("");
+    expect(data.get("initialCity")).toBe("");
   });
 });
