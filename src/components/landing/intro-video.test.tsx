@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { Activity } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { IntroVideo as IntroVideoConfig } from "@/lib/site";
@@ -50,6 +51,24 @@ describe("IntroVideo", () => {
     const { container } = render(<IntroVideo video={{ ...file, captions: undefined }} />);
     fireEvent.click(screen.getByRole("button"));
     expect(container.querySelector("track")).toBeNull();
+  });
+
+  it("stops playback when its page is hidden and shows the poster on return", () => {
+    const page = (mode: "visible" | "hidden") => (
+      <Activity mode={mode}>
+        <IntroVideo video={file} />
+      </Activity>
+    );
+    const { container, rerender } = render(page("visible"));
+    fireEvent.click(screen.getByRole("button", { name: /play intro video/i }));
+    expect(container.querySelector("video")).not.toBeNull();
+
+    rerender(page("hidden"));
+    expect(container.querySelector("video")).toBeNull();
+
+    rerender(page("visible"));
+    expect(container.querySelector("video")).toBeNull();
+    expect(screen.getByRole("button", { name: /play intro video/i })).toBeInTheDocument();
   });
 
   it("loads a youtube-nocookie iframe only after the click", () => {

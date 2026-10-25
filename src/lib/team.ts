@@ -1,8 +1,8 @@
 export type TeamMember = {
   name: string;
   role: string;
-  github: string;
-  githubHandle: string;
+  /** Where the card on /contributors leads: a personal site or GitHub profile. */
+  link: { href: string; label: string };
   line?: string;
 };
 
@@ -12,14 +12,12 @@ export const founders: readonly TeamMember[] = [
   {
     name: "Mahad Khalid Tarar",
     role: "Founder",
-    github: "https://github.com/PeinZero",
-    githubHandle: "PeinZero",
+    link: { href: "https://mahadkhalidtarar.com", label: "mahadkhalidtarar.com" },
   },
   {
     name: "Abdul Moeez",
     role: "Co-founder",
-    github: "https://github.com/abdulmoeez1225",
-    githubHandle: "abdulmoeez1225",
+    link: { href: "https://github.com/abdulmoeez1225", label: "github.com/abdulmoeez1225" },
   },
 ];
 
