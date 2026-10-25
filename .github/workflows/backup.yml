@@ -1,0 +1,94 @@
+name: Nightly backup
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The secrets live in this GitHub environment, not at repository level.
+    environment: nightly backup
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      # R2 rejects some of the checksum headers newer AWS CLI versions send by default.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      PGSSLMODE: require
+    steps:
+      - name: Check the secrets
+        run: |
+          missing=""
+          for name in SUPABASE_DB_URL AGE_RECIPIENT R2_ACCOUNT_ID R2_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secrets in the 'nightly backup' environment:$missing (AWS_* come from R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY; see docs/deployment.md)."
+            exit 1
+          fi
+
+      - name: Install pg_dump 17 and age
+        run: |
+          set -euo pipefail
+          # pg_dump must match the server's major version (Postgres 17).
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17 age
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
+      - name: Dump, check and encrypt
+        id: dump
+        run: |
+          set -euo pipefail
+          umask 077
+          plain="$RUNNER_TEMP/backup.sql"
+          name="psa-forum-$(date -u +%Y-%m-%dT%H%MZ).sql.gz.age"
+          # Data only: the schema comes from supabase/migrations, and schema_migrations records
+          # which migrations (with their SQL) production had. Auth sessions and tokens are left out;
+          # users and identities are enough to keep every account. The warning about circular
+          # foreign keys is expected: the restore loads with triggers and FK checks off.
+          /usr/lib/postgresql/17/bin/pg_dump --dbname="$SUPABASE_DB_URL" --data-only --file="$plain" \
+            --table='public.*' --table=auth.users --table=auth.identities \
+            --table=supabase_migrations.schema_migrations
+
+          rows() { awk -v t="COPY $1 " 'index($0, t) == 1 { f = 1; next } $0 == "\\." { f = 0 } f' "$plain" | wc -l; }
+          size=$(stat -c %s "$plain")
+          users=$(rows auth.users)
+          threads=$(rows public.threads)
+          echo "Dump: $size bytes, $users users, $threads threads."
+          if [ "$size" -lt 20000 ] || [ "$users" -lt 1 ] || [ "$threads" -lt 1 ]; then
+            echo "::error::The dump looks too small ($size bytes, $users users, $threads threads); nothing was uploaded."
+            exit 1
+          fi
+
+          gzip -9 --stdout "$plain" | age --encrypt --recipient "$AGE_RECIPIENT" --output "$RUNNER_TEMP/$name"
+          rm -f "$plain"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to R2
+        env:
+          NAME: ${{ steps.dump.outputs.name }}
+        run: |
+          set -euo pipefail
+          endpoint="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+          # Lifecycle rules in R2 delete daily/ after 7 days and weekly/ after 28 days.
+          aws s3 cp "$RUNNER_TEMP/$NAME" "s3://$R2_BUCKET/daily/$NAME" --endpoint-url "$endpoint" --no-progress
+          if [ "$(date -u +%u)" = 7 ]; then
+            aws s3 cp "$RUNNER_TEMP/$NAME" "s3://$R2_BUCKET/weekly/$NAME" --endpoint-url "$endpoint" --no-progress
+          fi
+          echo "Uploaded $NAME."
