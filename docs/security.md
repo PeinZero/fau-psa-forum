@@ -8,6 +8,11 @@ Read before touching auth, redirects, headers, user-generated content or RLS. La
   and forwards Supabase's cache headers so a CDN never serves one user's cookie to another. It never
   redirects; reading is public.
 - **Sign-in:** Google OAuth and magic link, PKCE code exchange in `/auth/callback`.
+- **Bot protection:** the email form renders a Cloudflare Turnstile widget (`src/components/auth/turnstile.tsx`)
+  and passes its token as `captchaToken`. Supabase verifies it, so a direct call to its endpoint without
+  a token is rejected once captcha is on. The CSP has no `script-src` or `frame-src`, so
+  `challenges.cloudflare.com` needs no allowance; add it if those directives are ever introduced.
+  Deploy the widget before enabling captcha in Supabase, otherwise email sign-in breaks for everyone.
 - **Redirects:** every `next` value goes through `safeNextPath` (`src/lib/safe-next.ts`), which
   parses against a dummy origin and falls back to `/`. Never redirect to a raw query param.
 - **Sign-out:** `POST /auth/signout` rejects a mismatched `Origin` with 403.
