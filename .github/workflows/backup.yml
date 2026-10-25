@@ -34,7 +34,10 @@ jobs:
         run: |
           missing=""
           for name in SUPABASE_DB_URL AGE_RECIPIENT B2_REGION B2_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
-            [ -n "${!name}" ] || missing="$missing $name"
+            # Secrets pasted into the GitHub form often keep a trailing newline; none of these values
+            # contains whitespace, so later steps get them stripped.
+            value=$(printf '%s' "${!name}" | tr -d '[:space:]')
+            if [ -n "$value" ]; then echo "$name=$value" >> "$GITHUB_ENV"; else missing="$missing $name"; fi
           done
           if [ -n "$missing" ]; then
             echo "::error::Missing secrets in the 'psa-forum-nightly-backup' environment:$missing (AWS_* come from B2_KEY_ID and B2_APPLICATION_KEY; see docs/deployment.md)."
