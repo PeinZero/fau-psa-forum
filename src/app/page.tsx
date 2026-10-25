@@ -21,12 +21,12 @@ export default function Home() {
         </Suspense>
       </div>
       <Hero />
-      <IntroVideo />
       <div className="mx-auto mt-20 flex w-full max-w-5xl flex-col gap-16 pb-6 sm:mt-28 sm:gap-24 lg:mt-32 lg:gap-28">
         <StartHere />
         <Topics />
         <PopularQuestions />
         <HowItWorks />
+        <IntroVideo />
         <CommunityStrip />
         <ClosingCta />
       </div>
