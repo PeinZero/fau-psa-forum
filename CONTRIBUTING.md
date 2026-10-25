@@ -41,7 +41,7 @@ npm run build
 
 `npm run build` needs the three env names from `.env.example`; your `.env.local` is enough.
 
-The end-to-end suite is paused on PRs because it slows down merging. A maintainer runs it manually from GitHub: Actions → CI → Run workflow. You can run it locally with Docker (README, Path B), then follow [docs/testing.md](docs/testing.md).
+The Playwright end-to-end suite does not run on PRs. A maintainer starts it manually: Actions → CI → Run workflow. To run it locally (Docker, README Path B), follow [docs/testing.md](docs/testing.md).
 
 ### PR checklist
 
@@ -56,7 +56,7 @@ The end-to-end suite is paused on PRs because it slows down merging. A maintaine
 - Every database change is a new file in `supabase/migrations/`, named `<timestamp>_<name>.sql` like the existing ones.
 - Never edit a migration that is already merged. Write a new one that fixes it.
 - Every table has RLS enabled and policies. Add tests in `supabase/tests` (see `rls.test.ts`) and update the matrix in [docs/schema.md](docs/schema.md).
-- Whoever merges a PR with a migration must run `npx supabase db push` against the live project right after merging. If nobody does, the live site breaks because the code expects tables or columns that do not exist yet. Mention the migration in the PR description so the merger knows.
+- Whoever merges a PR with a migration must push it to the live project right after merging, or the live site breaks. Mention the migration in the PR description. Commands: [docs/deployment.md](docs/deployment.md).
 
 ## Code style
 

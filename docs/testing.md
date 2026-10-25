@@ -2,11 +2,11 @@
 
 Read before adding tests or touching CI.
 
-**Current policy (2026-10-25):** write thorough Vitest unit tests for new and changed logic and
-components (pure helpers, formatting, ranking/sorting, validation, error mapping, client component
-behaviour) and keep `npm test` green; CI runs it. End-to-end (Playwright) stays paused until UAT:
-don't add or update e2e specs; the `e2e` CI job runs only when started manually. Keep
-`npm run test:db` green.
+**Policy:** write thorough Vitest unit tests for new and changed logic and components (pure
+helpers, formatting, ranking/sorting, validation, error mapping, client component behaviour); CI
+runs them with `npm run test:db`, so keep both green. End-to-end (Playwright) is paused: don't add
+or update e2e specs. The `e2e` CI job runs only from a manual `workflow_dispatch` (Actions → CI →
+Run workflow), for example once before launch.
 
 | Command | What | Needs |
 |---|---|---|
@@ -51,14 +51,12 @@ hydrated page renders, or retry the action inside `expect(...).toPass()`); visit
 mounted but hidden, so match text with `.filter({ visible: true })` after client navigation;
 fuzzy search matches similar `uid()`s, so assert on your own title.
 
-`mobile.spec.ts` checks for horizontal overflow at 390px under the desktop project.
+`mobile.spec.ts` checks for horizontal overflow at 390px under the desktop project (`npm run test:e2e` itself also has a 390px mobile project).
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every PR: lint, typecheck, `npm test`, `npm run test:db`, build,
-then the full desktop e2e suite (about 3 minutes) against a throwaway `supabase start` stack that
-includes Realtime. Failures upload the Playwright report, traces, and screenshots.
+`.github/workflows/ci.yml`, job `checks` on every PR and push to `main`: lint, typecheck, `npm test`,
+`npm run test:db`, build.
 
-## Not done yet
-
-Email notifications (no SMTP yet) and a Lighthouse CI budget for the home and thread pages.
+Job `e2e` (manual only): builds against a throwaway `supabase start` stack, runs the desktop
+Playwright project (about 3 minutes) and uploads the report, traces and screenshots on failure.
