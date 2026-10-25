@@ -27,7 +27,10 @@ export function FeedLayout({
   );
 }
 
-/** The last group of sidebar cards stays in view while the feed scrolls (the header is 3.5rem). */
+/**
+ * The last group of sidebar cards stays in view while the feed scrolls (the header is 3.5rem).
+ * On short screens the group would be taller than the window and its end unreachable, so it scrolls normally.
+ */
 export function SidebarSticky({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-4 lg:sticky lg:top-20">{children}</div>;
+  return <div className="flex flex-col gap-4 lg:[@media(min-height:48rem)]:sticky lg:[@media(min-height:48rem)]:top-20">{children}</div>;
 }

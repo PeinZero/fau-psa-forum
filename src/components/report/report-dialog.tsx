@@ -4,7 +4,9 @@ import { CircleCheck, LoaderCircle } from "lucide-react";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
 import { FieldError, Label, Textarea } from "@/components/ui/field";
+import { CharCounter } from "@/components/write/char-counter";
 
 import { type ReportInput, reportContent } from "./actions";
 
@@ -100,7 +102,7 @@ function ReportForm({
             Thanks for reporting
           </h2>
         </div>
-        <p className="text-sm text-muted">Moderators will review it.</p>
+        <p className="text-meta text-muted">A moderator will review it.</p>
         <Button ref={doneRef} variant="secondary" size="md" onClick={onClose} className="self-end">
           Done
         </Button>
@@ -126,32 +128,42 @@ function ReportForm({
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4 p-5">
-      <h2 id={titleId} className="text-base font-semibold tracking-tight">
-        Report this {subject}
-      </h2>
-      <fieldset disabled={pending} aria-describedby={reasonMissing ? errorId : undefined} className="flex flex-col gap-1">
-        <legend className="mb-1 text-meta font-medium text-foreground">Why are you reporting this?</legend>
-        {REASONS.map((option, index) => (
-          <label
-            key={option.value}
-            className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 text-sm text-foreground hover:bg-surface-hover"
-          >
-            <input
-              type="radio"
-              name={groupName}
-              value={option.value}
-              checked={reason === option.value}
-              autoFocus={index === 0}
-              onChange={() => {
-                setReason(option.value);
-                setReasonMissing(false);
-              }}
-              className="size-4 shrink-0 accent-accent"
-            />
-            {option.label}
-          </label>
-        ))}
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5 p-5">
+      <div className="flex flex-col gap-1">
+        <h2 id={titleId} className="text-base font-semibold tracking-tight">
+          Report this {subject}
+        </h2>
+        <p className="text-meta text-muted">Only moderators see reports. Pick the reason that fits best.</p>
+      </div>
+      <fieldset disabled={pending} aria-describedby={reasonMissing ? errorId : undefined} className="flex flex-col">
+        <legend className="mb-2 text-meta font-medium text-foreground">Reason</legend>
+        <div
+          className={cn(
+            "flex flex-col divide-y divide-border overflow-hidden rounded-lg border",
+            reasonMissing ? "border-danger/50" : "border-border",
+          )}
+        >
+          {REASONS.map((option, index) => (
+            <label
+              key={option.value}
+              className="flex min-h-10 cursor-pointer items-center gap-3 px-3 text-sm text-foreground transition-colors duration-150 ease-out hover:bg-surface-hover has-checked:bg-accent-soft pointer-coarse:min-h-11"
+            >
+              <input
+                type="radio"
+                name={groupName}
+                value={option.value}
+                checked={reason === option.value}
+                autoFocus={index === 0}
+                onChange={() => {
+                  setReason(option.value);
+                  setReasonMissing(false);
+                }}
+                className="size-4 shrink-0 accent-accent"
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
       </fieldset>
 
       <div className="flex flex-col gap-1.5">
@@ -163,11 +175,10 @@ function ReportForm({
           disabled={pending}
           onChange={(event) => setDetails(event.target.value)}
           aria-describedby={counterId}
+          placeholder="Anything that helps a moderator, e.g. what is wrong and what is right."
           className="min-h-20"
         />
-        <span id={counterId} className="self-end text-meta tabular-nums text-subtle">
-          {details.length}/{DETAILS_MAX}
-        </span>
+        <CharCounter id={counterId} length={details.length} max={DETAILS_MAX} className="self-end" />
       </div>
 
       <FieldError id={errorId} message={error ?? undefined} />

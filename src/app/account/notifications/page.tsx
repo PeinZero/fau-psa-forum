@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { Suspense } from "react";
 
 import { NotificationSettings } from "@/components/notification-settings/notification-settings";
 import { EMAIL_FREQUENCIES, type EmailFrequency } from "@/components/notification-settings/types";
-import { Card } from "@/components/ui/card";
+import { SignInRequired } from "@/components/auth/sign-in-required";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getViewer, isModerator } from "@/lib/auth/viewer";
@@ -15,15 +14,9 @@ async function Content() {
   const viewer = await getViewer();
   if (!viewer) {
     return (
-      <Card className="text-sm">
-        <Link
-          href="/login?next=/account/notifications"
-          className="font-medium text-accent underline underline-offset-2"
-        >
-          Sign in
-        </Link>{" "}
-        to manage your notifications.
-      </Card>
+      <SignInRequired next="/account/notifications" title="Sign in to manage notifications">
+        Choose which replies, mentions and updates you hear about.
+      </SignInRequired>
     );
   }
 
@@ -35,7 +28,7 @@ async function Content() {
     .maybeSingle();
   if (error) {
     return (
-      <p role="alert" className="text-sm text-danger">
+      <p role="alert" className="text-body text-danger">
         Could not load your notification settings.
       </p>
     );
@@ -55,12 +48,12 @@ async function Content() {
 
 export default function NotificationSettingsPage() {
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto w-full max-w-[45rem]">
       <PageHeader
         title="Notification settings"
         description="Choose which notifications you receive. Changes save automatically."
       />
-      <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
         <Content />
       </Suspense>
     </div>

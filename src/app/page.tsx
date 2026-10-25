@@ -5,7 +5,6 @@ import { Suspense } from "react";
 import { HomeFeed, HomeFeedSkeleton, MobilePinnedAnnouncement } from "@/components/home/home-feed";
 import { DeletedNotice } from "@/components/notice/deleted-notice";
 import {
-  AboutCard,
   AnnouncementsCard,
   CategoriesCard,
   GuidesCard,
@@ -13,6 +12,7 @@ import {
   SidebarLinks,
 } from "@/components/sidebar/cards";
 import { FeedLayout, SidebarSticky } from "@/components/sidebar/feed-layout";
+import { WelcomeCard, WelcomeCardSkeleton } from "@/components/sidebar/welcome-card";
 import { buttonClasses } from "@/components/ui/button";
 
 export default function Home({ searchParams }: PageProps<"/">) {
@@ -64,7 +64,9 @@ function Welcome() {
 function HomeSidebar() {
   return (
     <>
-      <AboutCard className="max-lg:hidden" />
+      <Suspense fallback={<WelcomeCardSkeleton className="max-lg:hidden" />}>
+        <WelcomeCard className="max-lg:hidden" />
+      </Suspense>
       <Suspense fallback={<SidebarCardSkeleton rows={3} tall className="max-lg:hidden" />}>
         <AnnouncementsCard className="max-lg:hidden" />
       </Suspense>

@@ -35,10 +35,17 @@ export function SiteHeader() {
         </Suspense>
         <Link
           href="/"
-          className="-ml-1 mr-2 inline-flex min-h-11 items-center justify-center gap-2.5 pointer-coarse:min-w-11 rounded-md px-1 text-sm font-semibold tracking-tight text-foreground"
+          aria-label="PSA FAU Community Forum, home"
+          className="-ml-1 mr-2 inline-flex min-h-11 shrink-0 items-center justify-center gap-2.5 rounded-md px-1 text-sm font-semibold tracking-tight text-foreground transition-opacity duration-150 ease-out hover:opacity-80 pointer-coarse:min-w-11"
         >
           <LogoMark />
-          <span className="max-[399px]:sr-only">PSA FAU Community Forum</span>
+          {/* The full name crowds the icon row on phones, where the short name still says where you are. */}
+          <span aria-hidden className="max-[399px]:hidden sm:hidden">
+            PSA FAU
+          </span>
+          <span aria-hidden className="max-sm:hidden">
+            PSA FAU Community Forum
+          </span>
         </Link>
         <Suspense fallback={<NavLinkList pathname={null} />}>
           <NavLinks />

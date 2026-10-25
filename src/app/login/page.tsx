@@ -25,7 +25,7 @@ async function LoginContent({ searchParams }: LoginPageProps) {
 
 export default function LoginPage(props: LoginPageProps) {
   return (
-    <div className="mx-auto flex w-full max-w-sm flex-col px-4 py-8 sm:py-16">
+    <div className="mx-auto flex w-full max-w-sm flex-col pt-2 sm:pt-10">
       <Suspense>
         <LoginContent {...props} />
       </Suspense>

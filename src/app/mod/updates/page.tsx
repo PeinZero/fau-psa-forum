@@ -38,8 +38,8 @@ export default async function UpdateRequestsPage() {
 
   if (!requests.length) {
     return (
-      <EmptyState icon={<CheckCircle2 />} title="No open update requests">
-        When members spot details that may have changed, their requests show up here.
+      <EmptyState icon={<CheckCircle2 />} title="All caught up">
+        No update requests are open. When members spot details that may have changed, they show up here.
       </EmptyState>
     );
   }

@@ -40,17 +40,17 @@ export function HeaderSearch({ canModerate }: { canModerate: boolean }) {
         aria-haspopup="dialog"
         aria-keyshortcuts="Meta+K Control+K /"
         className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-md text-muted",
-          "transition-[background-color,border-color,color,box-shadow] duration-150 ease-out",
-          "size-9 hover:bg-surface-hover hover:text-foreground pointer-coarse:size-11",
-          "md:h-8 md:w-60 md:justify-start md:gap-2 md:border md:border-border-strong md:bg-surface md:pl-2.5 md:pr-1.5 md:text-meta md:text-subtle lg:w-52",
-          "md:hover:border-muted md:hover:bg-surface md:hover:text-muted md:pointer-coarse:h-11 md:pointer-coarse:w-60 lg:pointer-coarse:w-52",
+          "group inline-flex shrink-0 items-center justify-center rounded-md text-muted",
+          "transition-[background-color,border-color,color] duration-150 ease-out",
+          "size-9 hover:bg-surface-hover hover:text-foreground active:bg-surface-hover pointer-coarse:size-11",
+          "md:h-8 md:w-56 md:justify-start md:gap-2 md:border md:border-border md:bg-surface md:pl-2.5 md:pr-1.5 md:text-meta md:text-subtle",
+          "md:hover:bg-surface-hover md:hover:text-muted md:pointer-coarse:h-11",
         )}
       >
         <Search aria-hidden strokeWidth={1.75} className="size-4 shrink-0" />
         <span className="max-md:sr-only">Search threads…</span>
         {apple !== null ? (
-          <span aria-hidden className="ml-auto hidden gap-0.5 md:flex">
+          <span aria-hidden className="ml-auto hidden gap-0.5 opacity-80 transition-opacity duration-150 ease-out group-hover:opacity-100 md:flex">
             <Kbd>{apple ? "⌘" : "Ctrl"}</Kbd>
             <Kbd>K</Kbd>
           </span>

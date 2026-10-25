@@ -74,10 +74,12 @@ async function RelatedThreads({
               className="-mx-2 block rounded-lg px-2 py-2 transition-colors duration-150 ease-out hover:bg-surface-hover active:bg-surface-hover/70 focus-visible:-outline-offset-2"
             >
               <span className="line-clamp-2 text-body font-medium break-words text-foreground">{thread.title}</span>
-              <span className="mt-0.5 flex items-center gap-1.5 text-meta tabular-nums text-muted">
-                <MessageSquare aria-hidden strokeWidth={1.75} className="size-3.5" />
-                {countLabel(thread.comment_count, "comment")}
-              </span>
+              {thread.comment_count > 0 && (
+                <span className="mt-0.5 flex items-center gap-1.5 text-meta tabular-nums text-muted">
+                  <MessageSquare aria-hidden strokeWidth={1.75} className="size-3.5 text-subtle" />
+                  {countLabel(thread.comment_count, "comment")}
+                </span>
+              )}
             </Link>
           </li>
         ))}

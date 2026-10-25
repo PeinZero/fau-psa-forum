@@ -1,143 +1,69 @@
 "use client";
 
-import {
-  ArrowRight,
-  Info,
-  Megaphone,
-  Loader2,
-  MessageSquare,
-  MessageSquareText,
-  Plus,
-  Search,
-  ShieldCheck,
-  Users,
-} from "lucide-react";
-import Link from "next/link";
+import { Loader2, MessageSquare, RotateCw, Search, SearchX, WifiOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent, type ReactNode, type RefObject, useEffect, useId, useRef, useState } from "react";
 
-import { CategoryIcon } from "@/components/thread/category-icon";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Kbd } from "@/components/ui/kbd";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cityLabels } from "@/lib/labels";
+import { buildGroups, type Item, searchHref } from "./groups";
 import { Highlight } from "./highlight";
 import { useIsApple } from "./platform";
-import { SEARCH_QUERY_MAX, type SearchCategory, type SearchThread } from "./types";
+import { SEARCH_QUERY_MAX, type SearchThread } from "./types";
 import { useThreadSearch } from "./use-thread-search";
 
-type Item = {
-  key: string;
-  href: string;
-  label: string;
-  icon: ReactNode;
-  thread?: SearchThread;
-};
-
-type Group = { heading: string; items: Item[] };
-
-const iconClass = "size-4 shrink-0 text-muted";
-
-const actions: (Item & { moderatorOnly?: boolean })[] = [
-  { key: "action:new", href: "/new", label: "New thread", icon: <Plus className={iconClass} strokeWidth={1.75} /> },
-  {
-    key: "action:announcements",
-    href: "/announcements",
-    label: "Announcements",
-    icon: <Megaphone className={iconClass} strokeWidth={1.75} />,
-  },
-  { key: "action:about", href: "/about", label: "About", icon: <Info className={iconClass} strokeWidth={1.75} /> },
-  {
-    key: "action:contributors",
-    href: "/contributors",
-    label: "Contributors",
-    icon: <Users className={iconClass} strokeWidth={1.75} />,
-  },
-  {
-    key: "action:mod",
-    href: "/mod",
-    label: "Moderation",
-    icon: <ShieldCheck className={iconClass} strokeWidth={1.75} />,
-    moderatorOnly: true,
-  },
-];
-
-function searchHref(query: string): string {
-  return `/search?q=${encodeURIComponent(query.trim())}`;
-}
-
-function categorySearchItem(category: SearchCategory, query: string): Item {
-  return {
-    key: `search-in:${category.slug}`,
-    href: `/search?q=${encodeURIComponent(query.trim())}&category=${encodeURIComponent(category.slug)}`,
-    label: `Search in ${category.name}`,
-    icon: <Search className={iconClass} strokeWidth={1.75} />,
-  };
-}
-
-function threadItem(thread: SearchThread): Item {
-  return {
-    key: `thread:${thread.slug}`,
-    href: `/t/${thread.slug}`,
-    label: thread.title,
-    icon: <MessageSquareText className={iconClass} strokeWidth={1.75} />,
-    thread,
-  };
-}
-
-function categoryItem(category: SearchCategory): Item {
-  return {
-    key: `category:${category.slug}`,
-    href: `/c/${category.slug}`,
-    label: category.name,
-    icon: <CategoryIcon slug={category.slug} className="size-4! rounded-none! border-0! bg-transparent! [&_svg]:size-4" />,
-  };
-}
-
-function buildGroups(
-  query: string,
-  results: SearchThread[] | null,
-  recent: SearchThread[],
-  categories: SearchCategory[],
-  canModerate: boolean,
-): Group[] {
-  const visibleActions = actions.filter((action) => canModerate || !action.moderatorOnly);
-  const needle = query.trim().toLowerCase();
-
-  if (!needle) {
-    return [
-      { heading: "Recent threads", items: recent.map(threadItem) },
-      { heading: "Quick actions", items: visibleActions },
-      { heading: "Browse categories", items: categories.map(categoryItem) },
-      { heading: "Search in a category", items: categories.map((category) => categorySearchItem(category, "")) },
-    ].filter((group) => group.items.length > 0);
-  }
-
-  const matches = (label: string) => label.toLowerCase().includes(needle);
-  return [
-    { heading: "Threads", items: (results ?? []).map(threadItem) },
-    {
-      heading: "Jump to",
-      items: [...categories.filter((category) => matches(category.name)).map(categoryItem), ...visibleActions.filter((action) => matches(action.label))],
-    },
-    {
-      heading: "Search",
-      items: [
-        {
-          key: "search:all",
-          href: searchHref(query),
-          label: `Search all results for “${query.trim()}”`,
-          icon: <Search className={iconClass} strokeWidth={1.75} />,
-        },
-        ...categories.filter((category) => matches(category.name)).map((category) => categorySearchItem(category, query)),
-      ],
-    },
-  ].filter((group) => group.items.length > 0);
-}
-
-function ThreadMeta({ thread }: { thread: SearchThread }) {
+function threadMeta(thread: SearchThread): string | undefined {
   const parts = [thread.category?.name, thread.city ? cityLabels[thread.city] : null].filter(Boolean);
-  if (parts.length === 0) return null;
-  return <span className="block truncate text-meta text-muted">{parts.join(" · ")}</span>;
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+function GroupHeading({ id, children }: { id?: string; children: ReactNode }) {
+  return (
+    <div id={id} className="px-3 pb-1 pt-3 text-meta font-medium text-muted first:pt-1">
+      {children}
+    </div>
+  );
+}
+
+const tileClass =
+  "flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted [&_svg]:size-4";
+
+/** Mirrors a thread row (tile, title, meta line) so results replace it without a jump. */
+function SkeletonRows({ heading, count }: { heading: string; count: number }) {
+  const widths = ["w-4/5", "w-3/5", "w-2/3", "w-1/2", "w-3/4"];
+  return (
+    <div aria-hidden className="pb-1">
+      <GroupHeading>{heading}</GroupHeading>
+      {Array.from({ length: count }, (_, index) => (
+        <div key={index} className="flex items-center gap-3 px-3 py-2">
+          <Skeleton className="size-8" />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex h-6 items-center">
+              <Skeleton className={cn("h-3.5", widths[index % widths.length])} />
+            </div>
+            <div className="flex h-5 items-center">
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StateBlock({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center px-6 pb-4 pt-8 text-center">
+      <div aria-hidden className={cn(tileClass, "mb-3 size-10 rounded-lg [&_svg]:size-5")}>
+        {icon}
+      </div>
+      <p className="text-body font-medium text-foreground">{title}</p>
+      <div className="mt-1 max-w-sm text-meta text-muted">{children}</div>
+    </div>
+  );
 }
 
 /** Dispatch (cancelable) on `window` to open the palette from anywhere; a handled event is canceled. */
@@ -182,14 +108,33 @@ export function CommandPalette({ open, onClose, canModerate, triggerRef }: Comma
     }
   }
 
-  const { results, suggestions, loading, failed } = useThreadSearch(query, isOpen);
+  const { results, suggestions, loading, failed, retry } = useThreadSearch(query, isOpen);
   const trimmed = query.trim();
-  const groups = buildGroups(query, results, suggestions?.recent ?? [], suggestions?.categories ?? [], canModerate);
+  const noThreads = trimmed !== "" && !loading && !failed && results?.length === 0;
+  const groups = buildGroups({
+    query,
+    threads: failed ? [] : (results ?? []),
+    recent: suggestions?.recent ?? [],
+    categories: suggestions?.categories ?? [],
+    canModerate,
+    noThreads,
+  });
   const items = groups.flatMap((group) => group.items);
   const activeIndex = active < items.length ? active : -1;
   const activeItem = activeIndex >= 0 ? items[activeIndex] : undefined;
   const optionId = (index: number) => `${id}-option-${index}`;
-  const noThreads = trimmed !== "" && !loading && !failed && results?.length === 0;
+  const skeleton =
+    failed || !loading
+      ? null
+      : trimmed
+        ? results === null && { heading: "Threads", count: 3 }
+        : suggestions === null && { heading: "Recent threads", count: 5 };
+
+  let announcement = "";
+  if (failed) announcement = "Search didn’t load.";
+  else if (trimmed && !loading && results) {
+    announcement = results.length === 0 ? "No threads found" : `${results.length} ${results.length === 1 ? "thread" : "threads"} found`;
+  }
 
   useEffect(() => {
     const onRequest = (event: Event) => {
@@ -258,21 +203,21 @@ export function CommandPalette({ open, onClose, canModerate, triggerRef }: Comma
         if (backdropPress.current && event.target === event.currentTarget) event.currentTarget.close();
       }}
       className={cn(
-        "m-0 mx-auto mt-[12vh] flex w-[calc(100vw-2rem)] max-w-[640px] flex-col overflow-hidden p-0 not-open:hidden",
-        "max-h-[min(560px,76vh)] rounded-xl border border-border bg-background text-foreground dark:bg-surface",
-        "shadow-[0_24px_64px_-12px_rgb(0_0_0/0.35),0_0_0_1px_var(--border)]",
-        "max-md:mt-0 max-md:max-h-[85dvh] max-md:w-full max-md:max-w-none max-md:rounded-t-none max-md:border-x-0 max-md:border-t-0",
+        // A fixed height keeps the frame still while results, skeletons and empty states swap inside it.
+        "m-0 mx-auto mt-[12vh] flex h-[min(30rem,76vh)] w-[calc(100vw-2rem)] max-w-[640px] flex-col overflow-hidden p-0 not-open:hidden",
+        "rounded-xl border border-border bg-background text-foreground shadow-[0_24px_48px_-12px_var(--shadow-color)]",
+        "max-md:mt-0 max-md:h-[85dvh] max-md:w-full max-md:max-w-none max-md:rounded-t-none max-md:border-x-0 max-md:border-t-0",
         "transition-[opacity,scale,translate] duration-150 ease-entrance",
         "starting:open:scale-[0.98] starting:open:opacity-0 max-md:starting:open:-translate-y-2 max-md:starting:open:scale-100",
-        "backdrop:bg-black/30 backdrop:backdrop-blur-[3px] dark:backdrop:bg-black/60",
+        "backdrop:bg-black/40 backdrop:backdrop-blur-[2px]",
         "backdrop:transition-opacity backdrop:duration-150 starting:open:backdrop:opacity-0",
       )}
     >
-      <div className="flex items-center gap-2.5 border-b border-border px-4">
+      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
         {loading && trimmed ? (
-          <Loader2 aria-hidden className="size-4 shrink-0 animate-spin text-muted" strokeWidth={1.75} />
+          <Loader2 aria-hidden className="size-4 shrink-0 animate-spin text-subtle" strokeWidth={1.75} />
         ) : (
-          <Search aria-hidden className="size-4 shrink-0 text-muted" strokeWidth={1.75} />
+          <Search aria-hidden className="size-4 shrink-0 text-subtle" strokeWidth={1.75} />
         )}
         <input
           ref={inputRef}
@@ -295,97 +240,56 @@ export function CommandPalette({ open, onClose, canModerate, triggerRef }: Comma
             setActive(-1);
           }}
           onKeyDown={onKeyDown}
-          className="h-14 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-subtle md:text-[15px]"
+          className="h-full min-w-0 flex-1 bg-transparent text-body text-foreground outline-none placeholder:text-subtle"
         />
         <button
           type="button"
           onClick={() => dialogRef.current?.close()}
-          className="-mr-2 inline-flex min-h-11 items-center rounded-md px-2 text-meta font-medium text-muted hover:text-foreground md:hidden"
+          className="-mr-2 hidden min-h-11 items-center rounded-md px-2 text-meta font-medium text-muted transition-colors duration-150 ease-out hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:inline-flex"
         >
           Cancel
         </button>
-        <Kbd aria-hidden className="max-md:hidden">
-          esc
+        <Kbd aria-hidden className="pointer-coarse:hidden">
+          Esc
         </Kbd>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
+      <div className="min-h-0 flex-1 scroll-py-2 overflow-y-auto overscroll-contain p-2">
         {failed ? (
-          <p className="px-3 py-6 text-center text-meta text-muted">Search is unavailable right now. Please try again.</p>
+          <StateBlock icon={<WifiOff />} title="Search didn’t load">
+            <p>Check your connection and try again.</p>
+            <Button variant="secondary" size="sm" onClick={retry} className="mt-3">
+              <RotateCw strokeWidth={1.75} />
+              Try again
+            </Button>
+          </StateBlock>
         ) : null}
         {noThreads ? (
-          <p className="px-3 pb-1 pt-4 text-meta text-muted">
-            No threads found —{" "}
-            <Link
-              href={searchHref(query)}
-              onClick={() => dialogRef.current?.close()}
-              className="font-medium text-accent underline-offset-2 hover:underline"
-            >
-              search all results
-            </Link>
-          </p>
+          <StateBlock icon={<SearchX />} title={`No threads match “${trimmed}”`}>
+            Try fewer words or the German term, like “Anmeldung”.
+          </StateBlock>
         ) : null}
-        {loading && items.length === 0 ? (
-          <p className="flex items-center justify-center gap-2 px-3 py-6 text-meta text-muted">
-            <Loader2 aria-hidden className="size-4 animate-spin" strokeWidth={1.75} />
-            Loading…
-          </p>
-        ) : null}
+        {skeleton ? <SkeletonRows {...skeleton} /> : null}
 
-        <div role="listbox" id={listboxId} aria-label="Search results">
+        <div role="listbox" id={listboxId} aria-label="Search results" aria-busy={loading}>
           {groups.map((group) => {
             const headingId = `${id}-${group.heading.replace(/\s+/g, "-").toLowerCase()}`;
             return (
               <div key={group.heading} role="group" aria-labelledby={headingId} className="pb-1">
-                <div id={headingId} className="px-3 pb-1 pt-2.5 text-xs font-medium text-subtle">
-                  {group.heading}
-                </div>
+                <GroupHeading id={headingId}>{group.heading}</GroupHeading>
                 {group.items.map((item) => {
                   const index = items.indexOf(item);
-                  const selected = index === activeIndex;
-                  const enterTarget = !activeItem && trimmed !== "" && item.key === "search:all";
                   return (
-                    <div
+                    <Option
                       key={item.key}
                       id={optionId(index)}
-                      role="option"
-                      aria-selected={selected}
-                      onMouseMove={() => {
-                        if (!selected) setActive(index);
-                      }}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => go(item.href)}
-                      className={cn(
-                        "flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm pointer-coarse:min-h-11",
-                        selected ? "bg-surface-hover text-foreground" : "text-foreground/90",
-                      )}
-                    >
-                      {item.icon}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">
-                          {item.thread ? <Highlight text={item.label} query={query} /> : item.label}
-                        </span>
-                        {item.thread ? <ThreadMeta thread={item.thread} /> : null}
-                      </span>
-                      {item.thread && item.thread.commentCount > 0 ? (
-                        <span className="flex shrink-0 items-center gap-1 text-xs tabular-nums text-subtle">
-                          <MessageSquare aria-hidden className="size-3.5" strokeWidth={1.75} />
-                          {item.thread.commentCount}
-                          <span className="sr-only">comments</span>
-                        </span>
-                      ) : null}
-                      {enterTarget ? (
-                        <Kbd aria-hidden className="max-md:hidden">
-                          ↵
-                        </Kbd>
-                      ) : (
-                        <ArrowRight
-                          aria-hidden
-                          className={cn("size-4 shrink-0 text-subtle", selected ? "opacity-100" : "opacity-0")}
-                          strokeWidth={1.75}
-                        />
-                      )}
-                    </div>
+                      item={item}
+                      query={query}
+                      selected={index === activeIndex}
+                      enterHint={index === activeIndex || (!activeItem && trimmed !== "" && item.key === "search:all")}
+                      onHover={() => setActive(index)}
+                      onPick={() => go(item.href)}
+                    />
                   );
                 })}
               </div>
@@ -396,33 +300,93 @@ export function CommandPalette({ open, onClose, canModerate, triggerRef }: Comma
 
       <div
         aria-hidden
-        className="flex items-center gap-4 border-t border-border px-4 py-2 text-xs text-subtle max-md:hidden"
+        className="hidden h-10 shrink-0 items-center gap-4 border-t border-border px-4 text-meta text-muted pointer-fine:flex"
       >
         <span className="flex items-center gap-1.5">
-          <Kbd>↑</Kbd>
-          <Kbd>↓</Kbd>
-          navigate
+          <span className="flex gap-0.5">
+            <Kbd>↑</Kbd>
+            <Kbd>↓</Kbd>
+          </span>
+          Navigate
         </span>
         <span className="flex items-center gap-1.5">
           <Kbd>↵</Kbd>
-          {activeItem || !trimmed ? "open" : "all results"}
+          {activeItem || !trimmed ? "Open" : "All results"}
         </span>
-        {apple !== null && activeItem ? (
-          <span className="flex items-center gap-1.5">
-            <Kbd>{apple ? "⌘" : "Ctrl"}</Kbd>
-            <Kbd>↵</Kbd>
-            all results
+        {apple !== null && activeItem && trimmed ? (
+          <span className="flex items-center gap-1.5 max-sm:hidden">
+            <span className="flex gap-0.5">
+              <Kbd>{apple ? "⌘" : "Ctrl"}</Kbd>
+              <Kbd>↵</Kbd>
+            </span>
+            All results
           </span>
         ) : null}
         <span className="ml-auto flex items-center gap-1.5">
-          <Kbd>esc</Kbd>
-          close
+          <Kbd>Esc</Kbd>
+          Close
         </span>
       </div>
 
       <p aria-live="polite" className="sr-only">
-        {trimmed && !loading && results ? `${results.length} ${results.length === 1 ? "thread" : "threads"} found` : ""}
+        {announcement}
       </p>
     </dialog>
+  );
+}
+
+type OptionProps = {
+  id: string;
+  item: Item;
+  query: string;
+  selected: boolean;
+  /** Shows ↵ where Enter would go; the hint keeps its width when hidden so titles never re-truncate. */
+  enterHint: boolean;
+  onHover: () => void;
+  onPick: () => void;
+};
+
+function Option({ id, item, query, selected, enterHint, onHover, onPick }: OptionProps) {
+  const meta = item.thread ? threadMeta(item.thread) : item.meta;
+  const comments = item.thread?.commentCount ?? 0;
+  return (
+    <div
+      id={id}
+      role="option"
+      aria-selected={selected}
+      onMouseMove={() => {
+        if (!selected) onHover();
+      }}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={onPick}
+      className={cn(
+        "relative flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 py-2",
+        "before:absolute before:inset-y-3 before:left-0 before:w-0.5 before:rounded-full before:bg-accent before:opacity-0",
+        selected && "bg-surface-hover before:opacity-100",
+      )}
+    >
+      <span aria-hidden className={cn(tileClass, selected && "text-foreground")}>
+        {item.icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span
+          title={item.label}
+          className="block truncate text-body text-foreground max-sm:line-clamp-2 max-sm:whitespace-normal"
+        >
+          {item.thread ? <Highlight text={item.label} query={query} /> : item.label}
+        </span>
+        {meta ? <span className="block truncate text-meta text-muted">{meta}</span> : null}
+      </span>
+      {comments > 0 ? (
+        <span className="flex shrink-0 items-center gap-1 text-meta tabular-nums text-subtle">
+          <MessageSquare aria-hidden className="size-3.5" strokeWidth={1.75} />
+          {comments}
+          <span className="sr-only"> {comments === 1 ? "comment" : "comments"}</span>
+        </span>
+      ) : null}
+      <Kbd aria-hidden className={cn("pointer-coarse:hidden", !enterHint && "invisible")}>
+        ↵
+      </Kbd>
+    </div>
   );
 }

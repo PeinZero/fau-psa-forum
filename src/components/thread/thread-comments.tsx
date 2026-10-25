@@ -1,4 +1,4 @@
-import { CircleCheck, EyeOff, LogIn, MessageSquare } from "lucide-react";
+import { CircleCheck, EyeOff, LogIn } from "lucide-react";
 import Link from "next/link";
 
 import { Author, Avatar } from "@/components/author";
@@ -22,6 +22,7 @@ import { cn } from "@/components/ui/cn";
 import { stagger } from "@/components/ui/motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CommentAnchor, ReplyList } from "@/components/thread/reply-list";
+import { metaFrame, metaItem, metaLine, metaPlainItem } from "@/components/thread/meta";
 import { ReplyButton, ReplyColumn, ReplyScope } from "@/components/thread/reply-scope";
 import { VoteControl } from "@/components/votes/vote-control";
 import { CommentEditor, CommentEditScope } from "@/components/write/comment-editor";
@@ -78,30 +79,28 @@ function Comments({
   const count = comments.length;
 
   return (
-    <section aria-labelledby="comments-heading" className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="comments-heading" className="flex items-center gap-2 text-base font-semibold tracking-tight">
-          <MessageSquare aria-hidden strokeWidth={1.75} className="size-4 text-muted" />
-          {count} {count === 1 ? "comment" : "comments"}
+    <section aria-labelledby="comments-heading" className="flex scroll-mt-24 flex-col gap-4">
+      <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
+        <h2 id="comments-heading" className="flex items-baseline gap-2 text-heading font-semibold text-foreground">
+          Comments
+          {count > 0 && <span className="text-body font-medium tabular-nums text-muted">{count}</span>}
         </h2>
         {groups.length > 1 && <CommentSortControl slug={thread.slug} value={sort} />}
       </div>
 
       {best && (
-        <div className="overflow-hidden rounded-xl border border-accent/40 bg-accent-soft shadow-[0_0_0_3px_var(--accent-soft)]">
-          <div className="flex items-center gap-1.5 border-b border-accent/20 px-4 py-2 text-meta font-medium text-accent sm:px-5">
+        <div className="rounded-xl bg-accent-soft px-4 pt-3 ring-1 ring-accent/20 ring-inset sm:px-5">
+          <div className="flex items-center gap-1.5 text-meta font-medium text-accent">
             <CircleCheck aria-hidden strokeWidth={2} className="size-4" />
             Best answer
             <a
               href={`#comment-${best.id}`}
-              className="-my-1 ml-auto inline-flex items-center rounded-sm text-accent/80 transition-colors hover:text-accent pointer-coarse:min-h-11"
+              className="ml-auto inline-flex items-center rounded-sm text-accent/80 underline-offset-2 transition-colors duration-150 hover:text-accent hover:underline pointer-coarse:min-h-11"
             >
               View in thread
             </a>
           </div>
-          <div className="bg-background/60 px-4 sm:px-5">
-            <CommentItem comment={best} ctx={{ ...ctx, canReply: false }} variant="best" />
-          </div>
+          <CommentItem comment={best} ctx={{ ...ctx, canReply: false }} variant="best" />
         </div>
       )}
 
@@ -116,25 +115,25 @@ function Comments({
       )}
 
       {count === 0 && canComment && (
-        <p className="text-meta text-muted">No answers yet. Share what you know.</p>
+        <p className="text-body text-muted">No comments yet. If you know something that helps, share it here.</p>
       )}
 
       {canComment &&
         (restriction ? (
           <RestrictionBanner restriction={restriction} />
         ) : viewer ? (
-          <div className={cardClasses()}>
+          <div className={cn(count > 0 && "border-t border-border pt-5")}>
             <CommentForm threadId={thread.id} />
           </div>
         ) : (
-          <div className={cardClasses({ className: "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" })}>
+          <div className={cardClasses({ variant: "quiet", className: "mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" })}>
             <div>
-              <p className="text-sm font-medium text-foreground">Know the answer?</p>
-              <p className="text-meta text-muted">Sign in to comment and help the next student.</p>
+              <p className="text-body font-semibold text-foreground">Know the answer?</p>
+              <p className="mt-0.5 text-meta text-muted">Sign in to comment and help the next student.</p>
             </div>
             <Link
               href={`/login?next=/t/${thread.slug}`}
-              className={buttonClasses({ variant: "secondary", size: "sm", className: "self-start sm:self-auto" })}
+              className={buttonClasses({ size: "sm", className: "self-start sm:self-auto" })}
             >
               <LogIn strokeWidth={1.75} />
               Sign in to comment
@@ -205,33 +204,40 @@ function CommentItem({
   const canEdit = isOwn && !isHidden && thread.status === "published" && !isBestCopy;
 
   const item = (
-    <div className={cn("flex", isReply ? "gap-2.5 py-3" : "gap-3 py-5")}>
+    <div className={cn("flex", isReply ? "gap-2.5 py-3" : isBestCopy ? "gap-3 pt-3 pb-4" : "gap-3 py-5")}>
       <Avatar
         name={comment.author?.display_name ?? null}
         className={isReply ? "mt-px size-6 text-[10px]" : "mt-px size-7 text-[11px]"}
       />
       <div className={cn("flex min-w-0 flex-1 flex-col gap-2", isHidden && "opacity-60")}>
         <div className="flex items-start gap-2">
-          <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-meta text-muted">
-            <Author profile={comment.author} avatar={false} />
-            <span className="inline-flex items-center gap-2 whitespace-nowrap">
-              <span aria-hidden className="text-subtle">·</span>
-              <time dateTime={comment.created_at}>{formatDate(comment.created_at)}</time>
-              {comment.edited_at && <span className="text-subtle">edited</span>}
-            </span>
-            {isBest && !isBestCopy && (
-              <Badge variant="accent">
-                <CircleCheck aria-hidden strokeWidth={1.75} />
-                Best answer
-              </Badge>
-            )}
-            {isHidden && (
-              <Badge>
-                <EyeOff aria-hidden strokeWidth={1.75} />
-                Hidden by a moderator
-              </Badge>
-            )}
-          </p>
+          <div className={cn(metaFrame, "flex-1 text-meta text-muted")}>
+            <p className={metaLine}>
+              <span className="inline-flex min-w-0 pl-4">
+                <Author profile={comment.author} avatar={false} />
+              </span>
+              <span className={cn(metaItem, "gap-1.5 whitespace-nowrap")}>
+                <time dateTime={comment.created_at}>{formatDate(comment.created_at)}</time>
+                {comment.edited_at && <span className="text-subtle">edited</span>}
+              </span>
+              {isBest && !isBestCopy && (
+                <span className={metaPlainItem}>
+                  <Badge variant="accent">
+                    <CircleCheck aria-hidden strokeWidth={1.75} />
+                    Best answer
+                  </Badge>
+                </span>
+              )}
+              {isHidden && (
+                <span className={metaPlainItem}>
+                  <Badge>
+                    <EyeOff aria-hidden strokeWidth={1.75} />
+                    Hidden by a moderator
+                  </Badge>
+                </span>
+              )}
+            </p>
+          </div>
           {!isBestCopy && (
             <CommentMenu
               threadId={thread.id}
@@ -270,8 +276,10 @@ function mutableAuthor(comment: CommentDetail) {
 
 export function CommentsSkeleton() {
   return (
-    <div aria-hidden className="flex flex-col gap-5">
-      <Skeleton className="h-5 w-28" />
+    <div aria-hidden className="flex flex-col gap-4">
+      <div className="flex min-h-9 items-center">
+        <Skeleton className="h-5 w-28" />
+      </div>
       <div className="flex flex-col divide-y divide-border">
         {[0, 1].map((i) => (
           <div key={i} className="flex gap-3 py-5">

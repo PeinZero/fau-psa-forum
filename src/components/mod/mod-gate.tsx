@@ -40,11 +40,11 @@ export async function ModGate({ children }: { children: ReactNode }) {
     { href: "/mod/edits", label: "Recent edits", icon: "edits", count: counts.edits },
     { href: "/mod/signups", label: "Recent sign-ups", icon: "signups" },
     { href: "/mod/applications", label: "Applications", icon: "applications", count: counts.applications },
-    { href: "/mod/announcements", label: "Announcements", icon: "announcements" },
+    { href: "/mod/announcements", label: "Announcements", icon: "announcements", groupStart: true },
     { ...GUIDES_MOD_NAV_ITEM, icon: "guides" },
     { href: "/mod/categories", label: "Categories", icon: "categories" },
     { href: "/mod/replies", label: "Canned replies", icon: "replies" },
-    { href: "/mod/users", label: "Users", icon: "users" },
+    { href: "/mod/users", label: "Users", icon: "users", groupStart: true },
     { ...FEEDBACK_MOD_NAV_ITEM, icon: "feedback", count: counts.feedback },
     { href: "/mod/log", label: "Log", icon: "log" },
   ];

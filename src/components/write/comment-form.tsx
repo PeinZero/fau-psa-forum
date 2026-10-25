@@ -1,15 +1,22 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { CornerDownRight, Loader2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 
 import { MentionTextarea } from "@/components/mentions/mention-textarea";
 import { Button } from "@/components/ui/button";
 import { FieldError, Label } from "@/components/ui/field";
-import { Kbd } from "@/components/ui/kbd";
+import { useIsApple } from "@/components/command/platform";
 import { createCommentAction } from "./actions";
+import { CharCounter } from "./char-counter";
+import { SubmitHint } from "./submit-hint";
 
-const MAX = 5000;
+export const COMMENT_MAX = 5000;
+
+/** The handle a reply was opened for, from its "@handle " prefill. */
+export function replyTarget(prefill: string): string | null {
+  return /^@([A-Za-z0-9_]{3,20})\s*$/.exec(prefill)?.[1] ?? null;
+}
 
 type Props = {
   threadId: number;
@@ -29,7 +36,9 @@ export function CommentForm({ threadId, parentId, initialValue = "", onDone, aut
   const [posted, setPosted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const isApple = useIsApple();
   const isReply = parentId !== undefined;
+  const replyingTo = isReply ? replyTarget(initialValue) : null;
   // A reply that is only the pre-filled @handle says nothing yet.
   const empty = body.trim().length === 0 || (isReply && body.trim() === initialValue.trim());
 
@@ -67,9 +76,18 @@ export function CommentForm({ threadId, parentId, initialValue = "", onDone, aut
       className="flex flex-col gap-2"
       noValidate
     >
-      <Label htmlFor={`${id}-body`} className={isReply ? "sr-only" : undefined}>
-        {isReply ? "Write a reply" : "Add a comment"}
-      </Label>
+      {replyingTo ? (
+        <Label htmlFor={`${id}-body`} className="flex items-center gap-1.5 font-normal text-muted">
+          <CornerDownRight aria-hidden strokeWidth={1.75} className="size-4 text-subtle" />
+          <span>
+            Replying to <span className="font-medium text-foreground">@{replyingTo}</span>
+          </span>
+        </Label>
+      ) : (
+        <Label htmlFor={`${id}-body`} className={isReply ? "sr-only" : undefined}>
+          {isReply ? "Write a reply" : "Add a comment"}
+        </Label>
+      )}
       <MentionTextarea
         ref={textareaRef}
         id={`${id}-body`}
@@ -82,28 +100,25 @@ export function CommentForm({ threadId, parentId, initialValue = "", onDone, aut
           } else if (e.key === "Escape" && onDone && !pending) onDone();
         }}
         required
-        maxLength={MAX}
+        readOnly={pending}
+        maxLength={COMMENT_MAX}
         rows={isReply ? 2 : 3}
+        placeholder={isReply ? undefined : "Share what you know or ask a follow-up…"}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${errorId} ${id}-hint` : `${id}-hint`}
         className={isReply ? "min-h-16 [field-sizing:content] max-h-64" : "min-h-20 [field-sizing:content] max-h-80"}
       />
       <FieldError id={errorId} message={error ?? undefined} />
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p id={`${id}-hint`} className="text-meta text-muted">
-          {isReply ? "Markdown and @mentions supported." : "Markdown supported. Type @ to mention someone."}{" "}
-          <span className="tabular-nums text-subtle">
-            {body.length.toLocaleString("en")}/{MAX.toLocaleString("en")}
-          </span>
+        <p id={`${id}-hint`} className="flex items-center gap-3 text-meta text-muted">
+          <span>Markdown and @mentions work here.</span>
+          <CharCounter length={body.length} max={COMMENT_MAX} />
         </p>
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <p role="status" className="text-meta text-accent">
-            {posted ? "Comment posted" : ""}
+            {posted ? <span className="animate-fade-in">Comment posted</span> : null}
           </p>
-          <span className="hidden items-center gap-1 text-meta text-subtle pointer-fine:inline-flex" aria-hidden>
-            <Kbd>⌘</Kbd>
-            <Kbd>Enter</Kbd>
-          </span>
+          <SubmitHint isApple={isApple} />
           {onDone && (
             <Button size={isReply ? "sm" : "md"} variant="ghost" disabled={pending} onClick={onDone}>
               Cancel

@@ -17,3 +17,11 @@ describe("countLabel", () => {
     expect(countLabel(3, "reply", "replies")).toBe("3 replies");
   });
 });
+
+describe("formatDate", () => {
+  it("formats in Berlin time", async () => {
+    const { formatDate } = await import("./labels");
+    expect(formatDate("2026-10-25T12:00:00Z")).toBe("25 Oct 2026");
+    expect(formatDate("2026-12-31T23:30:00Z")).toBe("1 Jan 2027");
+  });
+});

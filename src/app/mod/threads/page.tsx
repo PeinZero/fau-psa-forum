@@ -30,7 +30,7 @@ export default async function PendingThreadsPage() {
 
   if (error) return <p role="alert" className="text-danger">Could not load threads. Please reload.</p>;
   if (!threads.length) {
-    return <EmptyState icon={<CheckCircle2 />} title="All caught up">No threads are waiting for review.</EmptyState>;
+    return <EmptyState icon={<CheckCircle2 />} title="All caught up">Every thread has been reviewed. New questions show up here.</EmptyState>;
   }
 
   const [duplicates, presets] = await Promise.all([
@@ -44,7 +44,7 @@ export default async function PendingThreadsPage() {
         <li key={thread.id} style={stagger(index)} className="animate-fade-up">
           <Card className="grid gap-4">
             <div className="min-w-0">
-              <h2 className="break-words text-base font-semibold tracking-tight">
+              <h2 className="break-words text-title tracking-tight">
                 <Link href={`/t/${thread.slug}`} className="hover:underline">
                   {thread.title}
                 </Link>

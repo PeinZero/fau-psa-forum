@@ -12,7 +12,7 @@ export function Highlight({ text, query }: { text: string; query: string }) {
   const pattern = new RegExp(`(${words.sort((a, b) => b.length - a.length).join("|")})`, "gi");
   return text.split(pattern).map((part, index) =>
     index % 2 === 1 ? (
-      <mark key={index} className="rounded-[3px] bg-accent-soft px-px text-accent">
+      <mark key={index} className="rounded-sm bg-accent-soft text-accent">
         {part}
       </mark>
     ) : (

@@ -4,10 +4,10 @@ import Form from "next/form";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { SignInPrompt } from "@/components/sign-in-prompt";
+import { SignInRequired } from "@/components/auth/sign-in-required";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
-import { Card, cardClasses } from "@/components/ui/card";
+import { cn } from "@/components/ui/cn";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/field";
 import { stagger } from "@/components/ui/motion";
@@ -27,6 +27,10 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 const PATH = "/me/threads";
 const QUERY_MAX = 100;
+
+// Same frame as the feed rows so the hover fill lines up with the page text.
+const listFrame = "-mx-3 flex flex-col divide-y divide-border sm:-mx-4";
+const rowFrame = "flex flex-col rounded-lg px-3 py-4 sm:px-4";
 
 const statuses: readonly Status[] = ["published", "pending", "rejected", "archived"];
 
@@ -106,9 +110,9 @@ async function ThreadRows({ searchParams }: { searchParams: SearchParams }) {
   const [params, userId] = await Promise.all([searchParams, getUserId()]);
   if (!userId) {
     return (
-      <Card className="text-sm">
-        <SignInPrompt next={PATH} purpose="to see the threads you posted." />
-      </Card>
+      <SignInRequired next={PATH} title="Sign in to see your threads">
+        Questions you ask show up here with their review status.
+      </SignInRequired>
     );
   }
 
@@ -127,7 +131,7 @@ async function ThreadRows({ searchParams }: { searchParams: SearchParams }) {
 
   if (error) {
     return (
-      <p role="alert" className="text-sm text-danger">
+      <p role="alert" className="text-body text-danger">
         Could not load your threads. Please try again later.
       </p>
     );
@@ -160,22 +164,17 @@ async function ThreadRows({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <>
-      <ul className={cardClasses({ padding: "none", className: "divide-y divide-border overflow-hidden" })}>
+      <ul className={listFrame}>
         {threads.map((t, index) => (
           <li key={t.id} className="animate-fade-up" style={stagger(index)}>
-            <Link
-              href={`/t/${t.slug}`}
-              className="block px-4 py-3 transition-colors duration-150 hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-5"
-            >
-              <span className="flex items-start justify-between gap-3">
-                <span className="min-w-0 break-words text-sm font-medium text-foreground">{t.title}</span>
-                <Badge variant={statusVariant[t.status]} className="mt-0.5 shrink-0">
-                  {statusLabels[t.status]}
-                </Badge>
+            <Link href={`/t/${t.slug}`} className={cn(rowFrame, "transition-colors duration-150 ease-out hover:bg-surface-hover")}>
+              <span className="flex items-center gap-2 text-meta text-muted">
+                <Badge variant={statusVariant[t.status]}>{statusLabels[t.status]}</Badge>
+                <time dateTime={t.created_at}>{formatDate(t.created_at)}</time>
               </span>
-              <time dateTime={t.created_at} className="mt-0.5 block text-meta text-muted">
-                {formatDate(t.created_at)}
-              </time>
+              <span className="mt-1.5 line-clamp-3 break-words text-title font-semibold text-pretty text-foreground sm:line-clamp-2">
+                {t.title}
+              </span>
               {t.status === "rejected" && t.rejection_reason && (
                 <span className="mt-1 block break-words text-meta text-danger">Reason: {t.rejection_reason}</span>
               )}
@@ -190,12 +189,12 @@ async function ThreadRows({ searchParams }: { searchParams: SearchParams }) {
 
 function RowsSkeleton() {
   return (
-    <div role="status" aria-busy="true" className={cardClasses({ padding: "none", className: "divide-y divide-border" })}>
+    <div role="status" aria-busy="true" className={listFrame}>
       <span className="sr-only">Loading your threads…</span>
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="px-4 py-3 sm:px-5">
-          <Skeleton className={i % 2 ? "h-4 w-2/3" : "h-4 w-4/5"} />
-          <Skeleton className="mt-2 h-3 w-24" />
+        <div key={i} className={rowFrame}>
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className={cn("mt-2.5 h-[1.125rem]", i % 2 ? "w-2/3" : "w-4/5")} />
         </div>
       ))}
     </div>
@@ -215,7 +214,7 @@ export default function MyThreadsPage({ searchParams }: { searchParams: SearchPa
           </Link>
         }
       />
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-5">
         <Suspense
           fallback={
             <>

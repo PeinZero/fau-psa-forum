@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const announcementSelect = `
   id, title, body, is_pinned, created_at, updated_at,
-  author:profiles!announcements_author_id_fkey(display_name, affiliation, role)
+  author:profiles!announcements_author_id_fkey(display_name, username, affiliation, role)
 `;
 
 /** Pinned first, then newest first. Reads cookies, so render inside <Suspense>. */

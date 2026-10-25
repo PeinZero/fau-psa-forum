@@ -25,19 +25,20 @@ import { Suspense, type ReactNode } from "react";
 
 import { announcementHref } from "@/components/announcements/data";
 import { Avatar } from "@/components/author";
-import { SignInPrompt } from "@/components/sign-in-prompt";
-import { Card, cardClasses } from "@/components/ui/card";
+import { SignInRequired } from "@/components/auth/sign-in-required";
 import { EmptyState } from "@/components/ui/empty-state";
 import { stagger } from "@/components/ui/motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { PAGE_SIZE, Pagination, parsePage } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getViewer } from "@/lib/auth/viewer";
+import { formatDate } from "@/lib/labels";
 import { formatUntil } from "@/lib/restrictions";
 import type { Enums } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
-import { berlinDay, relativeTime } from "@/lib/time";
+import { relativeTime } from "@/lib/time";
 import { MarkAllReadButton, NotificationLink } from "./controls";
+import { groupByDay } from "./group";
 
 export const metadata: Metadata = { title: "Notifications" };
 
@@ -222,7 +223,7 @@ function NotificationItem({ n, index, now }: { n: NotificationRow; index: number
         id={n.id}
         href={target(n)}
         unread={unread}
-        className="group flex items-start gap-3 px-4 py-3.5 transition-colors duration-150 ease-out hover:bg-surface-hover focus-visible:-outline-offset-2 data-unread:bg-accent-soft/40 data-unread:hover:bg-surface-hover sm:px-5"
+        className="group flex items-start gap-3 rounded-lg px-3 py-3.5 transition-colors duration-150 ease-out hover:bg-surface-hover focus-visible:-outline-offset-2 data-unread:bg-accent-soft/40 data-unread:hover:bg-surface-hover sm:px-4"
       >
         <span className="relative mt-0.5 shrink-0">
           {system ? (
@@ -245,10 +246,10 @@ function NotificationItem({ n, index, now }: { n: NotificationRow; index: number
           )}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block break-words text-sm leading-snug text-muted group-data-unread:text-foreground">
+          <span className="block break-words text-body text-muted group-data-unread:text-foreground">
             {sentence(n)}
           </span>
-          <time dateTime={n.created_at} className="mt-1 block text-meta text-subtle">
+          <time dateTime={n.created_at} title={formatDate(n.created_at)} className="block text-meta text-muted">
             {relativeTime(n.created_at, now)}
           </time>
         </span>
@@ -272,14 +273,13 @@ function Group({
   offset: number;
   now: number;
 }) {
-  if (items.length === 0) return null;
-  const id = `notifications-${title.toLowerCase()}`;
+  const id = `notifications-${title.toLowerCase().replace(/\W+/g, "-")}`;
   return (
-    <section aria-labelledby={id} className="space-y-2">
-      <h2 id={id} className="px-1 text-meta font-medium text-muted">
+    <section aria-labelledby={id}>
+      <h2 id={id} className="text-body font-semibold text-foreground">
         {title}
       </h2>
-      <ul className={cardClasses({ padding: "none", className: "divide-y divide-border overflow-hidden" })}>
+      <ul className="-mx-3 mt-2 flex flex-col gap-0.5 sm:-mx-4">
         {items.map((n, i) => (
           <NotificationItem key={n.id} n={n} index={offset + i} now={now} />
         ))}
@@ -294,9 +294,9 @@ async function NotificationsContent({ searchParams }: { searchParams: SearchPara
     return (
       <>
         <PageHeader title="Notifications" />
-        <Card className="text-sm">
-          <SignInPrompt next="/notifications" purpose="to see replies, mentions and moderation updates." />
-        </Card>
+        <SignInRequired next="/notifications" title="Sign in to see your notifications">
+          Replies, mentions and moderation updates show up here.
+        </SignInRequired>
       </>
     );
   }
@@ -305,10 +305,7 @@ async function NotificationsContent({ searchParams }: { searchParams: SearchPara
   const { notifications, total, error, fetchedAt: now } = await fetchNotifications(viewer.userId, page);
   const hasUnread = notifications.some((n) => n.read_at === null);
 
-  const today = berlinDay.format(now);
-  const isToday = (n: NotificationRow) => berlinDay.format(new Date(n.created_at)) === today;
-  const todays = notifications.filter(isToday);
-  const earlier = notifications.filter((n) => !isToday(n));
+  const groups = groupByDay(notifications, now);
 
   return (
     <>
@@ -326,9 +323,16 @@ async function NotificationsContent({ searchParams }: { searchParams: SearchPara
           Replies to your comments, mentions and moderation decisions show up here.
         </EmptyState>
       ) : (
-        <div className="space-y-6">
-          <Group title="Today" items={todays} offset={0} now={now} />
-          <Group title="Earlier" items={earlier} offset={todays.length} now={now} />
+        <div className="space-y-8">
+          {groups.map((group, i) => (
+            <Group
+              key={group.label}
+              title={group.label}
+              items={group.items}
+              offset={groups.slice(0, i).reduce((sum, g) => sum + g.items.length, 0)}
+              now={now}
+            />
+          ))}
           <Pagination path="/notifications" page={page} total={total} />
         </div>
       )}
@@ -340,14 +344,18 @@ function NotificationsSkeleton() {
   return (
     <div role="status" aria-busy="true">
       <span className="sr-only">Loading notifications…</span>
-      <Skeleton className="mb-8 h-8 w-48" />
-      <div className={cardClasses({ padding: "none", className: "divide-y divide-border overflow-hidden" })}>
+      <div className="mb-8">
+        <Skeleton className="h-9 w-56" />
+        <Skeleton className="mt-3 h-5 w-72 max-w-full" />
+      </div>
+      <Skeleton className="h-6 w-16" />
+      <div className="-mx-3 mt-2 flex flex-col gap-0.5 sm:-mx-4">
         {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="flex items-start gap-3 px-4 py-3.5 sm:px-5">
+          <div key={i} className="flex items-start gap-3 px-3 py-3.5 sm:px-4">
             <Skeleton className="size-8 rounded-full" />
             <div className="flex-1">
-              <Skeleton className={i % 2 ? "h-4 w-2/3" : "h-4 w-4/5"} />
-              <Skeleton className="mt-2 h-3 w-16" />
+              <Skeleton className={i % 2 ? "h-5 w-2/3" : "h-5 w-4/5"} />
+              <Skeleton className="mt-2 h-4 w-16" />
             </div>
           </div>
         ))}

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { isTopHelper, ReputationScore, TopHelperBadge } from "@/components/reputation/reputation";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/cn";
@@ -5,9 +7,22 @@ import { affiliationLabels } from "@/lib/labels";
 import type { Tables } from "@/lib/supabase/database.types";
 
 type AuthorProfile = Pick<Tables<"profiles">, "display_name" | "affiliation" | "role"> & {
+  /** Links the name to the public profile; members without a handle yet have none. */
+  username?: string | null;
   reputation?: number;
   best_answer_count?: number;
 };
+
+export function profileHref(username: string): string {
+  return `/u/${username}`;
+}
+
+/**
+ * Quiet until hovered, so a meta line full of names doesn't read as a row of links. The focus ring
+ * is drawn inside because meta lines clip their overflow.
+ */
+export const profileLinkClasses =
+  "rounded-sm underline-offset-2 decoration-border-strong transition-colors duration-150 ease-out hover:text-foreground hover:underline focus-visible:-outline-offset-2";
 
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -66,7 +81,16 @@ export function Author({
   return (
     <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
       {avatar && <Avatar name={profile.display_name} />}
-      <span className="break-words font-medium text-foreground">{profile.display_name}</span>
+      {profile.username ? (
+        <Link
+          href={profileHref(profile.username)}
+          className={cn("break-words font-medium text-foreground", profileLinkClasses)}
+        >
+          {profile.display_name}
+        </Link>
+      ) : (
+        <span className="break-words font-medium text-foreground">{profile.display_name}</span>
+      )}
       {profile.role !== "member" && (
         <Badge variant="accent">{profile.role === "superadmin" ? "Superadmin" : "Moderator"}</Badge>
       )}

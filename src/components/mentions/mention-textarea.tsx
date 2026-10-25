@@ -135,8 +135,11 @@ export function MentionTextarea({ value, onValueChange, onKeyDown, onBlur, ref, 
           id={listId}
           role="listbox"
           aria-label="Mention suggestions"
-          className="absolute inset-x-0 top-full z-20 mt-1 flex animate-[fade-in_120ms_ease-out_both] flex-col overflow-hidden rounded-md border border-border bg-surface p-1 shadow-[0_8px_24px_var(--shadow-color)] motion-reduce:animate-none"
+          className="absolute inset-x-0 top-full z-20 mt-1.5 flex max-w-sm animate-[fade-in_120ms_ease-out_both] flex-col overflow-hidden rounded-lg border border-border bg-raised p-1 shadow-[0_12px_32px_-8px_var(--shadow-color)] motion-reduce:animate-none"
         >
+          <li role="presentation" aria-hidden className="px-2 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-subtle">
+            Mention
+          </li>
           {users.map((user, index) => {
             const badge = badgeFor(user);
             return (
@@ -150,13 +153,14 @@ export function MentionTextarea({ value, onValueChange, onKeyDown, onBlur, ref, 
                 onClick={() => pick(user)}
                 onMouseMove={() => setActive(index)}
                 className={cn(
-                  "flex min-h-9 cursor-pointer items-center gap-2.5 rounded px-2 py-1.5 pointer-coarse:min-h-11",
+                  "flex min-h-9 cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors duration-100 pointer-coarse:min-h-11",
                   index === active && "bg-surface-hover",
                 )}
               >
                 <Avatar name={user.display_name} />
-                <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                  {user.display_name} <span className="text-muted">@{user.username}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-foreground" title={`${user.display_name} @${user.username}`}>
+                  <span className="font-medium">{user.display_name}</span>{" "}
+                  <span className="text-muted">@{user.username}</span>
                 </span>
                 {badge ? <Badge variant={badge.accent ? "accent" : "neutral"}>{badge.label}</Badge> : null}
               </li>

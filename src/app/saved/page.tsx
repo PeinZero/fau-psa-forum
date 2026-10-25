@@ -3,10 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { SignInPrompt } from "@/components/sign-in-prompt";
+import { SignInRequired } from "@/components/auth/sign-in-required";
 import { fetchThreadsByIds, ThreadList, ThreadListSkeleton } from "@/components/thread/thread-list";
 import { buttonClasses } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PAGE_SIZE, Pagination, parsePage } from "@/components/ui/pagination";
@@ -47,7 +46,7 @@ export default function SavedPage({ searchParams }: { searchParams: SearchParams
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col">
       <PageHeader title="Saved" description="Threads you bookmarked and conversations you follow." />
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-6">
         <Suspense fallback={<SavedTabs current={null} />}>
           <CurrentSavedTabs searchParams={searchParams} />
         </Suspense>
@@ -63,9 +62,9 @@ async function SavedList({ searchParams }: { searchParams: SearchParams }) {
   const [{ tab: tabParam, page: pageParam }, userId] = await Promise.all([searchParams, getUserId()]);
   if (!userId) {
     return (
-      <Card className="text-sm">
-        <SignInPrompt next="/saved" purpose="to see your bookmarks and followed threads." />
-      </Card>
+      <SignInRequired next="/saved" title="Sign in to see your saved threads">
+        Bookmarks and followed conversations are kept for you here.
+      </SignInRequired>
     );
   }
 
@@ -83,7 +82,7 @@ async function SavedList({ searchParams }: { searchParams: SearchParams }) {
     .range(from, from + PAGE_SIZE - 1);
   if (error) {
     return (
-      <p role="alert" className="text-sm text-danger">
+      <p role="alert" className="text-body text-danger">
         Could not load your saved threads. Please try again later.
       </p>
     );

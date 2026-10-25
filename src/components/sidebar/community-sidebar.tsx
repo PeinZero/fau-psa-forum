@@ -1,7 +1,6 @@
 import { type ReactNode, Suspense } from "react";
 
 import {
-  AboutCard,
   AnnouncementsCard,
   CategoriesCard,
   GuidesCard,
@@ -9,12 +8,17 @@ import {
   SidebarLinks,
 } from "./cards";
 import { SidebarSticky } from "./feed-layout";
+import { WelcomeCard, WelcomeCardSkeleton } from "./welcome-card";
 
-/** The sidebar of /browse and the category pages; a category page passes its own about card. */
+/** The sidebar of /browse and the category pages; `about` replaces the welcome card. */
 export function CommunitySidebar({ about, currentCategory }: { about?: ReactNode; currentCategory?: string }) {
   return (
     <>
-      {about ?? <AboutCard />}
+      {about ?? (
+        <Suspense fallback={<WelcomeCardSkeleton />}>
+          <WelcomeCard />
+        </Suspense>
+      )}
       <Suspense fallback={<SidebarCardSkeleton rows={3} tall />}>
         <AnnouncementsCard />
       </Suspense>
@@ -34,7 +38,7 @@ export function CommunitySidebar({ about, currentCategory }: { about?: ReactNode
 export function CommunitySidebarSkeleton() {
   return (
     <>
-      <SidebarCardSkeleton rows={2} />
+      <WelcomeCardSkeleton />
       <SidebarCardSkeleton rows={3} tall />
       <SidebarCardSkeleton rows={4} tall />
     </>

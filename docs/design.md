@@ -23,6 +23,7 @@ Tailwind utilities from `@theme static` in `src/app/globals.css`; each carries i
 | utility | size / line height | use |
 |---|---|---|
 | `text-meta` | 13 / 20px | meta lines, counts, timestamps, helper text, sidebar secondary lines |
+| `text-small` | 14 / 22px | feed excerpts: readable, but a step below the title so it never competes |
 | `text-body` | 15 / 24px desktop, 16 / 26px phones (≤640px) | UI text, excerpts, comments, sidebar rows |
 | `text-reading` | 16px / 1.7 | the thread's own post (`<Markdown size="reading">`) |
 | `text-title` | 17px / 1.4, `font-semibold` | thread titles in lists |
@@ -41,7 +42,8 @@ Tailwind steps only: 1 (4px), 1.5 (6px, icon–text gap), 2 (8), 3 (12), 4 (16),
 
 - Page gutter: `px-4 sm:px-6`; page top `py-6 sm:py-8 lg:py-10` (root layout).
 - Inside a card: `px-4 py-4 sm:px-5`; card-to-card `gap-4`.
-- Feed rows: `py-4`, `gap-4` between score and content; title `mt-1`, excerpt `mt-1`, footer `mt-3`.
+- Feed rows: `py-4`, `gap-4` between score and content; title `mt-1`, excerpt `mt-1`, status pills `mt-2.5`
+  (only when one applies).
 - Between page sections: `gap-8` to `gap-12`; between feed and stacked sidebar on phones `gap-12`.
 
 ## Layout
@@ -49,7 +51,12 @@ Tailwind steps only: 1 (4px), 1.5 (6px, icon–text gap), 2 (8), 3 (12), 4 (16),
 - Container `max-w-6xl` (header, main, footer).
 - `FeedLayout` (`src/components/sidebar/feed-layout.tsx`): `minmax(0,1fr)` feed + `19rem`
   sidebar from `lg`; below `lg` the sidebar stacks after the feed. Home, `/browse`, `/c/[slug]`
-  and thread pages use it. Wrap the last sidebar group in `SidebarSticky` (sticks under the header).
+  and thread pages use it. Wrap the last sidebar group in `SidebarSticky` (sticks under the header
+  only on windows at least 48rem tall, so a short window can still scroll to the group's end).
+- The first sidebar card never repeats the page headline: Home, `/browse` and category pages open
+  with `WelcomeCard` (visitors: "Have a question?" with Ask + Sign in; members: a greeting, Ask and
+  links to their threads, saved threads and notifications). The thread page opens with the thread's
+  category (`AboutCard`), which the page itself only names in the breadcrumb.
 - Reading column on thread pages: `max-w-[45rem]` (~720px).
 - Phones: Home shows the welcome strip with Ask + Guides buttons and the pinned announcement
   above the feed, because the sidebar only follows the feed there.
@@ -66,7 +73,8 @@ Tailwind steps only: 1 (4px), 1.5 (6px, icon–text gap), 2 (8), 3 (12), 4 (16),
 | `border-strong` | #8a8f98 | #5c6168 | input borders, ≥3:1 on background |
 
 Depth comes from stepping surfaces (`background` < `surface` < `raised`), not from borders.
-Sidebar cards are `rounded-xl bg-surface` with no border. Every text token passes AA (4.5:1) on
+Sidebar cards are `rounded-xl bg-surface` with no border; their icon tiles are `raised`
+(`RowIcon`), headings `text-body font-semibold` in a `min-h-7` row (`card-styles.tsx`). Every text token passes AA (4.5:1) on
 `background`, `surface`, `surface-hover` and `raised` in both themes.
 
 ## Radii
@@ -77,18 +85,36 @@ buttons, inputs, icon tiles · `rounded-full` pills and avatars.
 ## Components
 
 `src/components/ui/`: `Button` (primary / secondary / ghost / danger, sizes sm/md/icon, 44px on
-touch), `Input`, `Textarea`, `Select`, `Label`, `FieldError`, `Card`, `Badge` (neutral / accent /
-warning / danger), `Kbd`, `Skeleton`, `EmptyState`, `PageHeader`, `SegmentedControl`,
-`SegmentedLinks`. Icons from `lucide-react`, 16px (`size-4`) beside text, `strokeWidth={1.75}`,
+touch), `Input`, `Textarea`, `Select`, `Label`, `FieldError`, `Card` (`outline` framed panels and
+forms, `quiet` borderless `surface` for prompts and notes, `list` hairline-divided rows such as
+moderation queues), `Badge` (neutral / accent / warning / danger), `Kbd`, `Skeleton`, `EmptyState`
+(soft `surface` block, round quiet icon, title, one line of help, action; never dashed),
+`PageHeader`, `SegmentedControl`, `SegmentedLinks`. Icons from `lucide-react`, 16px (`size-4`) beside text, `strokeWidth={1.75}`,
 `text-subtle` when decorative.
 
 `src/components/sidebar/`: `FeedLayout`, `SidebarSticky`, `SidebarCard` (title + optional
-"See all"), `AboutCard`, `AnnouncementsCard`, `GuidesCard`, `CategoriesCard`, `SidebarLinks`,
-`SidebarCardSkeleton`, `CommunitySidebar`, `ThreadSidebar`.
+"See all"), `WelcomeCard`, `AboutCard`, `AnnouncementsCard`, `GuidesCard`, `CategoriesCard`,
+`SidebarLinks`, `SidebarCardSkeleton`, `CommunitySidebar`, `ThreadSidebar`.
 
-`ThreadList` (`src/components/thread/thread-list.tsx`) is the one feed row everywhere: score
-column (display only), meta line (category link with icon · city · author · relative time),
-title, two-line excerpt, footer with comment count and status pills.
+`ThreadRow` (`src/components/thread/thread-list.tsx`, listed by `ThreadList` or inside
+`ThreadRows`) is the one feed row everywhere: score column from `sm` (display only; a new thread
+shows only a faint arrow, never a column of zeros), meta line (category link with icon · city ·
+author link · relative time) with the comment count trailing (left out at zero; phones also show a
+non-zero score there), title, two-line `text-small` excerpt, status pills only when one applies.
+Search passes `highlight` (marks the words) and its own `excerpt` snippet; lists without scores
+drop the column. Links inside a row sit above the title's stretched link (`relative z-10`).
+
+Author names link to `/u/<username>` when the query loaded the handle (quiet until hover: underline
+and `foreground`); "Deleted user" is never a link.
+
+Thread page: breadcrumb, title (`text-display`), byline (36px avatar, name with role and
+affiliation badges; date, edited and city below), status pills, then an action bar: vote pill
+(`VoteControl appearance="pill"`, tinted once voted), comments pill linking to the comments,
+Share and the ⋯ menu on the right. A hairline separates it from the post. Wrapping meta lines
+use `metaFrame` / `metaLine` / `metaItem` (`src/components/thread/meta.ts`): separators sit before
+each item and are clipped at a line start, so no line begins with "·". Comments: "Comments" heading
+with a muted count, best answer as a soft accent panel, signed-out visitors get a quiet card with
+a primary "Sign in to comment".
 
 ## Content rules
 
@@ -96,7 +122,8 @@ title, two-line excerpt, footer with comment count and status pills.
   Archived. Category and city are plain text in meta lines.
 - Truncation: list titles 2 lines (3 on phones), excerpts 2 lines, single-line names `truncate`
   with a `title` tooltip.
-- Plurals through `countLabel(n, "comment")` ("1 comment", "2 comments").
+- Plurals through `countLabel(n, "comment")` ("1 comment", "2 comments"). Zero counts in feed rows
+  and sidebar lists are left out rather than printed as "0 comments".
 - Times: relative (`relativeTime`) in a `<time dateTime>` with the full date in `title`.
 - Empty states (`EmptyState`) say what is missing and offer the next action (usually Ask a
   question).

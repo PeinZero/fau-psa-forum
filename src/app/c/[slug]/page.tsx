@@ -9,7 +9,6 @@ import { BrowseResults } from "@/components/browse/browse-results";
 import { BrowseControlsSkeleton } from "@/components/browse/browse-skeleton";
 import { parseBrowseParams } from "@/components/browse/params";
 import { PinnedThreads } from "@/components/browse/pinned-threads";
-import { AboutCard } from "@/components/sidebar/cards";
 import { CommunitySidebar, CommunitySidebarSkeleton } from "@/components/sidebar/community-sidebar";
 import { FeedLayout } from "@/components/sidebar/feed-layout";
 import { CategoryGlyph } from "@/components/thread/category-icon";
@@ -17,7 +16,6 @@ import { fetchCategories, fetchCategoriesWithCounts, ThreadListSkeleton } from "
 import { buttonClasses } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { countLabel } from "@/lib/labels";
 
 type Params = Promise<{ slug: string }>;
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -59,21 +57,8 @@ async function CategoryContent({ params, searchParams }: Props) {
   const path = `/c/${category.slug}`;
   const state = { ...parseBrowseParams(raw), category: undefined };
 
-  const about = (
-    <AboutCard
-      title={category.name}
-      icon={
-        <span aria-hidden className="flex size-7 shrink-0 items-center justify-center rounded-md bg-accent-soft text-accent">
-          <CategoryGlyph slug={category.slug} />
-        </span>
-      }
-      description={category.description}
-      meta={countLabel(category.threadCount, "thread")}
-    />
-  );
-
   return (
-    <FeedLayout sidebar={<CommunitySidebar about={about} currentCategory={category.slug} />}>
+    <FeedLayout sidebar={<CommunitySidebar currentCategory={category.slug} />}>
       <PageHeader
         className="mb-6"
         title={

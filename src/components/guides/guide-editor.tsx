@@ -249,7 +249,7 @@ export function GuideEditor({ guide }: { guide?: EditorGuide }) {
 
       <fieldset className="grid gap-3">
         <legend className="mb-3 flex w-full items-baseline justify-between gap-2">
-          <span className="text-sm font-semibold tracking-tight text-foreground">Steps</span>
+          <span className="text-heading font-semibold tracking-tight text-foreground">Steps</span>
           <span className="text-meta tabular-nums text-subtle">
             {steps.length}/{GUIDE_STEPS_MAX}
           </span>

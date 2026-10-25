@@ -37,7 +37,7 @@ async function AnnouncementList({ searchParams }: Props) {
 
   if (error) {
     return (
-      <p role="alert" className="text-sm text-danger">
+      <p role="alert" className="text-body text-danger">
         Could not load the announcements. Please try again later.
       </p>
     );
@@ -47,7 +47,7 @@ async function AnnouncementList({ searchParams }: Props) {
     if (q) {
       return (
         <EmptyState icon={<Search />} title="No announcements match">
-          Try a different word.
+          Try a different word, or clear the search to see every announcement.
         </EmptyState>
       );
     }
@@ -60,7 +60,7 @@ async function AnnouncementList({ searchParams }: Props) {
 
   return (
     <>
-      <ul className="grid gap-4">
+      <ul className="grid gap-4 sm:gap-5">
         {announcements.map((announcement, index) => (
           <li key={announcement.id} className="animate-fade-up" style={stagger(index)}>
             <AnnouncementCard announcement={announcement} variant="excerpt" />
@@ -103,8 +103,10 @@ async function SearchForm({ searchParams }: Props) {
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim().slice(0, SEARCH_MAX) : "";
   return (
-    <Form action="/announcements" role="search" className="mb-6 grid gap-1.5">
-      <Label htmlFor="announcement-search">Search announcements</Label>
+    <Form action="/announcements" role="search" className="mb-8 grid gap-1.5">
+      <Label htmlFor="announcement-search" className="sr-only">
+        Search announcements
+      </Label>
       <div className="flex gap-2">
         <Input
           id="announcement-search"
@@ -112,9 +114,11 @@ async function SearchForm({ searchParams }: Props) {
           type="search"
           defaultValue={q}
           maxLength={SEARCH_MAX}
+          placeholder="Search announcements…"
+          autoComplete="off"
           className="min-w-0 flex-1"
         />
-        <Button type="submit" variant="primary">
+        <Button type="submit" variant="secondary">
           <Search aria-hidden strokeWidth={1.75} />
           Search
         </Button>

@@ -20,17 +20,28 @@ type Props = Target & {
   /** Own posts, archived threads and hidden comments show the score without voting. */
   disabled?: boolean;
   disabledTitle?: string;
-  /** "responsive" stacks ▲ score ▼ from the sm breakpoint up and stays inline below it. */
-  orientation?: "inline" | "responsive";
+  /** "pill" sits on a soft rounded surface, for the thread's action bar; "plain" is for comments. */
+  appearance?: "plain" | "pill";
 };
 
 type Tally = { score: number; myVote: VoteValue };
 
-const arrow =
-  "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted pointer-coarse:size-11 " +
-  "transition-[background-color,color] duration-150 ease-out hover:bg-surface-hover hover:text-foreground " +
+const arrowBase =
+  "inline-flex shrink-0 items-center justify-center text-muted pointer-coarse:size-11 " +
+  "transition-[background-color,color] duration-150 ease-out hover:text-foreground " +
   "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring " +
   "disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4";
+
+const looks = {
+  plain: {
+    group: "gap-0.5",
+    arrow: cn(arrowBase, "size-7 rounded-md hover:bg-surface-hover"),
+  },
+  pill: {
+    group: "rounded-full p-0.5 transition-colors duration-150 ease-out",
+    arrow: cn(arrowBase, "size-8 rounded-full hover:bg-raised hover:shadow-[0_1px_2px_var(--shadow-color)]"),
+  },
+};
 
 export function VoteControl(props: Props) {
   const {
@@ -39,7 +50,7 @@ export function VoteControl(props: Props) {
     signedIn,
     disabled = false,
     disabledTitle = "Voting isn't available on this comment",
-    orientation = "inline",
+    appearance = "plain",
   } = props;
   const pathname = usePathname();
   const [confirmed, setConfirmed] = useState<Tally>({ score, myVote });
@@ -74,14 +85,19 @@ export function VoteControl(props: Props) {
     });
   }
 
-  const stack = orientation === "responsive" ? "sm:flex-col sm:gap-0" : "";
+  const look = looks[appearance];
+  const arrow = look.arrow;
+  // A cast vote tints the whole pill, so the choice reads at a glance.
+  const pillTone = shown.myVote === 1 ? "bg-accent-soft" : shown.myVote === -1 ? "bg-danger/10" : "bg-surface";
+  const groupTone = appearance === "pill" ? pillTone : "";
   const scoreTone = shown.myVote === 1 ? "text-accent" : shown.myVote === -1 ? "text-danger" : "text-foreground";
   const scoreLabel = (
     <span
       ref={scoreRef}
       aria-live="polite"
       className={cn(
-        "inline-block min-w-[2ch] text-center text-meta font-medium tabular-nums transition-opacity duration-150",
+        "inline-block min-w-[2ch] text-center text-meta tabular-nums transition-opacity duration-150",
+        appearance === "pill" ? "px-0.5 font-semibold" : "font-medium",
         scoreTone,
         pending && "opacity-60",
       )}
@@ -95,7 +111,7 @@ export function VoteControl(props: Props) {
     const fragment = props.onVote ? "" : `#comment-${props.commentId}`;
     const href = `/login?next=${encodeURIComponent(`${pathname}${fragment}`)}`;
     return (
-      <div role="group" aria-label="Vote" className={cn("inline-flex items-center gap-0.5", stack)}>
+      <div role="group" aria-label="Vote" className={cn("inline-flex items-center", look.group, groupTone)}>
         <Link href={href} aria-label="Sign in to upvote" title="Sign in to vote" className={arrow}>
           <ChevronUp strokeWidth={1.75} aria-hidden />
         </Link>
@@ -114,7 +130,7 @@ export function VoteControl(props: Props) {
         aria-label="Vote"
         aria-busy={pending || undefined}
         title={disabled ? disabledTitle : undefined}
-        className={cn("inline-flex items-center gap-0.5", stack)}
+        className={cn("inline-flex items-center", look.group, groupTone)}
       >
         <button
           type="button"

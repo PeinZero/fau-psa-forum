@@ -56,8 +56,9 @@ const sections: { icon: LucideIcon; title: string; body: React.ReactNode }[] = [
     title: "Who runs it",
     body: (
       <p>
-        The forum is run by the Pakistan Student Association community, for
-        students at FAU. Moderators are volunteers from that community.
+        Founded by Mahad Khalid Tarar, with co-founder Abdul Moeez, and built
+        for the Pakistan Student Association community at FAU. Moderators are
+        volunteers from that community.
       </p>
     ),
   },
@@ -120,13 +121,13 @@ const sections: { icon: LucideIcon; title: string; body: React.ReactNode }[] = [
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 sm:py-20">
+    <div className="mx-auto w-full max-w-3xl py-4 sm:py-10">
       <header className="hero-glow mb-14 text-center">
-        <h1 className="animate-fade-up text-balance text-3xl font-semibold tracking-tight sm:text-5xl sm:leading-[1.1]">
+        <h1 className="animate-fade-up text-balance text-display font-semibold tracking-tight sm:text-5xl sm:leading-[1.1]">
           Answers, written down once.
         </h1>
         <p
-          className="animate-fade-up mx-auto mt-4 max-w-xl text-balance text-body text-muted sm:text-base"
+          className="animate-fade-up mx-auto mt-4 max-w-xl text-balance text-body text-muted"
           style={stagger(1)}
         >
           A moderator-curated forum for Pakistani students at FAU
@@ -161,17 +162,17 @@ export default function AboutPage() {
             >
               <Icon className="size-4" strokeWidth={1.75} />
             </span>
-            <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-            <div className="space-y-2 text-sm leading-relaxed text-muted">
+            <h2 className="text-heading">{title}</h2>
+            <div className="space-y-2 text-body text-muted">
               {body}
             </div>
           </Card>
         ))}
       </div>
 
-      <p className="mx-auto mt-8 max-w-2xl text-meta leading-relaxed text-muted">
-        PSA FAU Community Forum is run independently by students of the
-        Pakistan Student Association community. It is not affiliated with,
+      <p className="mx-auto mt-10 max-w-2xl text-center text-meta text-muted">
+        PSA FAU Community Forum is an independent student project founded by
+        Mahad Khalid Tarar and co-founded by Abdul Moeez. It is not affiliated with,
         endorsed by or operated by Friedrich-Alexander-Universität
         Erlangen-Nürnberg (FAU). Answers here come from students and are not
         official university advice. For binding information, check with FAU or

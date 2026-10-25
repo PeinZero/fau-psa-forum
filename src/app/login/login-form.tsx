@@ -1,14 +1,15 @@
 "use client";
 
-import { AlertCircle, ArrowLeft, Loader2, MailCheck, RotateCw } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowUpRight, Loader2, MailCheck, RotateCw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/field";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyAuthError } from "./auth-errors";
+import { inboxFor } from "./inbox";
 
 type Props = { next: string; initialError?: string };
 
@@ -37,26 +38,29 @@ function LogoMark() {
   );
 }
 
+// Google's mark sits on a white disc so its colours stay true on the accent button.
 function GoogleIcon() {
   return (
-    <svg aria-hidden viewBox="0 0 24 24">
-      <path
-        fill="#4285F4"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
-      />
-    </svg>
+    <span aria-hidden className="flex size-5 items-center justify-center rounded-full bg-white">
+      <svg aria-hidden viewBox="0 0 24 24" className="size-3.5!">
+        <path
+          fill="#4285F4"
+          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"
+        />
+        <path
+          fill="#34A853"
+          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
+        />
+        <path
+          fill="#FBBC05"
+          d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"
+        />
+        <path
+          fill="#EA4335"
+          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
+        />
+      </svg>
+    </span>
   );
 }
 
@@ -150,6 +154,8 @@ export default function LoginForm({ next, initialError }: Props) {
     }
   }
 
+  const inbox = sent ? inboxFor(email) : null;
+
   return (
     <Card className="animate-fade-up flex flex-col gap-6 p-5 sm:p-7">
       {sent ? (
@@ -165,7 +171,7 @@ export default function LoginForm({ next, initialError }: Props) {
               We sent a sign-in link to <strong className="break-all font-medium text-foreground">{email}</strong>. Open
               it on this device to continue.
             </p>
-            <p className="rounded-md border border-border bg-surface px-3 py-2 text-meta text-muted">
+            <p className="mt-3 rounded-lg bg-background px-3 py-2.5 text-left text-meta text-muted ring-1 ring-border">
               <span className="font-medium text-foreground">Not in your inbox?</span> Check your spam or junk folder
               and the Promotions tab in Gmail; our emails often land there at first. Marking it as &ldquo;Not spam&rdquo; helps
               the next one arrive.
@@ -187,6 +193,13 @@ export default function LoginForm({ next, initialError }: Props) {
           ) : null}
 
           <div className="flex w-full flex-col gap-2">
+            {inbox ? (
+              <a href={inbox.url} target="_blank" rel="noopener noreferrer" className={buttonClasses({ className: "w-full" })}>
+                Open {inbox.name}
+                <ArrowUpRight aria-hidden strokeWidth={1.75} />
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            ) : null}
             <Button
               variant="secondary"
               onClick={resendLink}
@@ -194,7 +207,9 @@ export default function LoginForm({ next, initialError }: Props) {
               className="w-full"
             >
               {pending ? <Loader2 aria-hidden className="animate-spin" /> : <RotateCw aria-hidden strokeWidth={1.75} />}
-              {pending ? "Sending…" : cooldown > 0 ? `Resend link in ${cooldown}s` : "Resend link"}
+              <span className="tabular-nums">
+                {pending ? "Sending…" : cooldown > 0 ? `Resend link in ${cooldown}s` : "Resend link"}
+              </span>
             </Button>
             <Button variant="ghost" onClick={changeEmail} className="w-full">
               <ArrowLeft aria-hidden strokeWidth={1.75} />
@@ -207,9 +222,9 @@ export default function LoginForm({ next, initialError }: Props) {
           <div className="flex flex-col items-center gap-3 text-center">
             <LogoMark />
             <div className="flex flex-col gap-1">
-              <h1 className="text-xl font-semibold tracking-tight">Sign in to PSA FAU Community Forum</h1>
+              <h1 className="text-xl font-semibold tracking-tight">Sign in to the forum</h1>
               <p className="text-meta text-muted">
-                You only need an account to post or comment. Reading is open to everyone.
+                You only need an account to ask, answer or vote. Reading is open to everyone.
               </p>
             </div>
           </div>
@@ -225,14 +240,19 @@ export default function LoginForm({ next, initialError }: Props) {
           ) : null}
 
           <div className="flex flex-col gap-4">
-            <Button variant="primary" onClick={signInWithGoogle} disabled={googlePending} className="w-full">
+            <Button
+              variant="primary"
+              onClick={signInWithGoogle}
+              disabled={googlePending || pending}
+              className="min-h-10 w-full"
+            >
               {googlePending ? <Loader2 aria-hidden className="animate-spin" /> : <GoogleIcon />}
-              Continue with Google
+              {googlePending ? "Opening Google…" : "Continue with Google"}
             </Button>
 
             <div className="flex items-center gap-3 text-meta text-subtle" aria-hidden>
               <span className="h-px flex-1 bg-border" />
-              or
+              or use email
               <span className="h-px flex-1 bg-border" />
             </div>
 
@@ -248,15 +268,17 @@ export default function LoginForm({ next, initialError }: Props) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
+                  aria-describedby="email-hint"
+                  disabled={pending}
                 />
+                <p id="email-hint" className="text-meta text-muted">
+                  We&apos;ll email you a sign-in link. No password needed.
+                </p>
               </div>
-              <Button type="submit" variant="secondary" disabled={pending} className="w-full">
+              <Button type="submit" variant="secondary" disabled={pending || googlePending} className="min-h-10 w-full">
                 {pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
                 {pending ? "Sending…" : "Email me a sign-in link"}
               </Button>
-              <p className="text-meta text-muted">
-                The email can take a minute and may land in your spam folder.
-              </p>
             </form>
 
             <p className="text-center text-meta text-muted">

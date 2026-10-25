@@ -1,11 +1,9 @@
 "use client";
 
-import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { useIsApple } from "@/components/command/platform";
-import { buttonClasses } from "@/components/ui/button";
-import { cn } from "@/components/ui/cn";
+import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 
 export const OPEN_SHORTCUTS_EVENT = "open-shortcuts";
@@ -14,10 +12,45 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 }
 
+/** Each row lists alternative key combinations; keys inside one combination are pressed together. */
+type Row = { label: string; combos: string[][] };
+type Group = { heading: string; rows: Row[] };
+
+export function shortcutGroups(mod: string): Group[] {
+  return [
+    {
+      heading: "General",
+      rows: [
+        { label: "Search threads", combos: [[mod, "K"], ["/"]] },
+        { label: "Show keyboard shortcuts", combos: [["?"]] },
+      ],
+    },
+    {
+      heading: "In search",
+      rows: [
+        { label: "Move through results", combos: [["↑", "↓"]] },
+        { label: "Open the selected result", combos: [["↵"]] },
+        { label: "See all results", combos: [[mod, "↵"]] },
+        { label: "Close search", combos: [["Esc"]] },
+      ],
+    },
+    {
+      heading: "Writing",
+      rows: [
+        { label: "Post your comment", combos: [[mod, "↵"]] },
+        { label: "Cancel editing", combos: [["Esc"]] },
+      ],
+    },
+  ];
+}
+
 export function ShortcutsDialog() {
   const ref = useRef<HTMLDialogElement>(null);
+  const backdropPress = useRef(false);
+  const titleId = useId();
+  const descriptionId = useId();
   const apple = useIsApple();
-  const mod = apple ? "⌘" : "Ctrl";
+  const groups = shortcutGroups(apple ? "⌘" : "Ctrl");
 
   useEffect(() => {
     function open() {
@@ -38,69 +71,43 @@ export function ShortcutsDialog() {
     };
   }, []);
 
-  const groups: { heading: string; rows: { keys: string[][]; label: string }[] }[] = [
-    {
-      heading: "General",
-      rows: [
-        { keys: [[mod, "K"], ["/"]], label: "Open search" },
-        { keys: [["?"]], label: "Show this help" },
-      ],
-    },
-    {
-      heading: "In search",
-      rows: [
-        { keys: [["↑"], ["↓"]], label: "Move through results" },
-        { keys: [["↵"]], label: "Open result" },
-        { keys: [["Esc"]], label: "Close search" },
-      ],
-    },
-    {
-      heading: "Writing",
-      rows: [
-        { keys: [[mod, "↵"]], label: "Submit comment" },
-        { keys: [["Esc"]], label: "Cancel edit" },
-      ],
-    },
-  ];
-
   return (
     <dialog
       ref={ref}
-      aria-labelledby="shortcuts-title"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) event.currentTarget.close();
+      aria-labelledby={titleId}
+      aria-describedby={descriptionId}
+      onPointerDown={(event) => {
+        backdropPress.current = event.target === event.currentTarget;
       }}
-      className={cn(
-        "m-auto w-[calc(100vw-2rem)] max-w-md rounded-xl border border-border bg-background p-0 text-foreground not-open:hidden dark:bg-surface",
-        "shadow-[0_24px_64px_-12px_rgb(0_0_0/0.35),0_0_0_1px_var(--border)]",
-        "backdrop:bg-black/30 backdrop:backdrop-blur-[3px] dark:backdrop:bg-black/60",
-      )}
+      onClick={(event) => {
+        // Only a press that starts on the backdrop closes, not a text selection dragged out of the panel.
+        if (backdropPress.current && event.target === event.currentTarget) event.currentTarget.close();
+      }}
+      className="m-auto w-[min(26rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-xl border border-border bg-background p-0 text-foreground shadow-[0_24px_48px_-12px_var(--shadow-color)] backdrop:bg-black/40 backdrop:backdrop-blur-[2px] open:animate-fade-up"
     >
-      <div className="flex items-center justify-between border-b border-border py-2 pl-4 pr-2">
-        <h2 id="shortcuts-title" className="text-sm font-medium">
-          Keyboard shortcuts
-        </h2>
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={() => ref.current?.close()}
-          className={buttonClasses({ variant: "ghost", size: "icon" })}
-        >
-          <X strokeWidth={1.75} />
-        </button>
-      </div>
-      <div className="flex max-h-[70dvh] flex-col gap-4 overflow-y-auto p-4">
-        {groups.map((group) => (
-          <section key={group.heading} aria-label={group.heading}>
-            <h3 className="mb-2 text-meta font-medium text-muted">{group.heading}</h3>
-            <ul className="flex flex-col gap-2">
+      <div className="flex flex-col gap-5 p-5">
+        <div className="flex flex-col gap-1">
+          <h2 id={titleId} className="text-base font-semibold tracking-tight">
+            Keyboard shortcuts
+          </h2>
+          <p id={descriptionId} className="text-meta text-muted">
+            Get around the forum without leaving the keyboard.
+          </p>
+        </div>
+
+        {groups.map((group, groupIndex) => (
+          <section key={group.heading} aria-labelledby={`${titleId}-${groupIndex}`}>
+            <h3 id={`${titleId}-${groupIndex}`} className="mb-1 text-meta font-medium text-muted">
+              {group.heading}
+            </h3>
+            <dl className="flex flex-col">
               {group.rows.map((row) => (
-                <li key={row.label} className="flex items-center justify-between gap-3 text-sm">
-                  <span>{row.label}</span>
-                  <span className="flex shrink-0 items-center gap-1.5">
-                    {row.keys.map((combo, i) => (
-                      <span key={i} className="flex items-center gap-1.5">
-                        {i > 0 && <span className="text-meta text-subtle">or</span>}
+                <div key={row.label} className="flex min-h-9 items-center justify-between gap-4 text-sm">
+                  <dt>{row.label}</dt>
+                  <dd className="flex shrink-0 items-center gap-1.5 tabular-nums">
+                    {row.combos.map((combo, index) => (
+                      <span key={combo.join("+")} className="flex items-center gap-1.5">
+                        {index > 0 && <span className="text-meta text-subtle">or</span>}
                         <span className="flex gap-0.5">
                           {combo.map((key) => (
                             <Kbd key={key}>{key}</Kbd>
@@ -108,12 +115,18 @@ export function ShortcutsDialog() {
                         </span>
                       </span>
                     ))}
-                  </span>
-                </li>
+                  </dd>
+                </div>
               ))}
-            </ul>
+            </dl>
           </section>
         ))}
+
+        <div className="flex justify-end">
+          <Button variant="secondary" onClick={() => ref.current?.close()}>
+            Done
+          </Button>
+        </div>
       </div>
     </dialog>
   );

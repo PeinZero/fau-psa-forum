@@ -30,7 +30,7 @@ export default async function CannedRepliesPage() {
 
       <section aria-labelledby="new-reply">
         <Card>
-          <h2 id="new-reply" className="mb-4 text-base font-semibold tracking-tight">
+          <h2 id="new-reply" className="mb-4 text-heading font-semibold tracking-tight">
             Add a reply
           </h2>
           <CannedReplyForm />
@@ -38,7 +38,7 @@ export default async function CannedRepliesPage() {
       </section>
 
       <section aria-labelledby="all-replies" className="grid gap-3">
-        <h2 id="all-replies" className="text-meta font-medium text-muted">
+        <h2 id="all-replies" className="text-heading font-semibold tracking-tight">
           All replies
         </h2>
         {replies.length === 0 ? (

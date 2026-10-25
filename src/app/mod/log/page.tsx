@@ -147,7 +147,7 @@ export default async function ModerationLogPage({ searchParams }: Props) {
       {(page > 1 || hasNext) && (
         <nav aria-label="Log pages" className="flex items-center justify-between gap-3">
           {page > 1 ? (
-            <Link href={hrefFor(page - 1)} className={buttonClasses({ variant: "secondary" })}>
+            <Link href={hrefFor(page - 1)} className={buttonClasses({ variant: "secondary", size: "sm" })}>
               <ChevronLeft aria-hidden strokeWidth={1.75} />
               Previous
             </Link>
@@ -156,7 +156,7 @@ export default async function ModerationLogPage({ searchParams }: Props) {
           )}
           <span className="text-meta text-muted">Page {page}</span>
           {hasNext ? (
-            <Link href={hrefFor(page + 1)} className={buttonClasses({ variant: "secondary" })}>
+            <Link href={hrefFor(page + 1)} className={buttonClasses({ variant: "secondary", size: "sm" })}>
               Next
               <ChevronRight aria-hidden strokeWidth={1.75} />
             </Link>

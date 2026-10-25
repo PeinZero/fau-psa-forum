@@ -58,7 +58,7 @@ function RequestForm({ threadId, titleId, onClose }: { threadId: number; titleId
       <div role="status" className="flex flex-col items-start gap-4 p-5">
         <div className="flex items-center gap-2">
           <CircleCheck aria-hidden strokeWidth={1.75} className="size-5 text-accent" />
-          <h2 id={titleId} className="text-base font-semibold tracking-tight">
+          <h2 id={titleId} className="text-heading font-semibold tracking-tight">
             Thanks, request sent
           </h2>
         </div>
@@ -84,7 +84,7 @@ function RequestForm({ threadId, titleId, onClose }: { threadId: number; titleId
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4 p-5">
       <div className="flex flex-col gap-1">
-        <h2 id={titleId} className="text-base font-semibold tracking-tight">
+        <h2 id={titleId} className="text-heading font-semibold tracking-tight">
           Request an update
         </h2>
         <p id={hintId} className="text-meta text-muted">

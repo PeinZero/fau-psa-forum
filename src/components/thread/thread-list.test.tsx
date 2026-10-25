@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
-import { fetchThreadsByIds, ThreadList, type ThreadListRow } from "./thread-list";
+import { fetchThreadsByIds, ThreadList, type ThreadListRow, ThreadRow, ThreadRows } from "./thread-list";
 
 const NOW = new Date("2026-10-25T12:00:00Z").getTime();
 
@@ -32,7 +32,7 @@ function thread(overrides: Partial<ThreadListRow> = {}): ThreadListRow {
     comment_count: 2,
     best_comment_id: null,
     category: { slug: "first-steps", name: "First Steps" },
-    author: { display_name: "Ayesha Khan", affiliation: "student", role: "member" },
+    author: { display_name: "Ayesha Khan", username: "ayesha_khan", affiliation: "student", role: "member" },
     ...overrides,
   };
 }
@@ -78,16 +78,36 @@ describe("ThreadList rows", () => {
   });
 
   it.each([
-    [0, "0 comments"],
     [1, "1 comment"],
     [12, "12 comments"],
-  ])("pluralises %i comments", (count, label) => {
-    expect(renderRow({ comment_count: count })).toHaveTextContent(label);
+  ])("shows %i comments compactly with a spoken label", (count, label) => {
+    const row = renderRow({ comment_count: count });
+    expect(row).toHaveTextContent(label);
+    expect(within(row).getByTitle(label)).toHaveTextContent(String(count));
+  });
+
+  it("leaves the comment count out while there are none", () => {
+    expect(renderRow({ comment_count: 0 })).not.toHaveTextContent(/comment/);
   });
 
   it("announces the score for screen readers", () => {
     const row = renderRow({ score: 7 });
     expect(within(row).getAllByText("Score")[0].parentElement).toHaveTextContent("Score 7");
+    expect(row).toHaveTextContent("7 points");
+  });
+
+  it("keeps a zero score out of sight but still announces it", () => {
+    const row = renderRow({ score: 0 });
+    const score = within(row).getByText("Score").parentElement!;
+    expect(score).toHaveTextContent("Score 0");
+    expect(score).toHaveClass("sr-only");
+    expect(row).not.toHaveTextContent("points");
+  });
+
+  it("links the author to their public profile, above the row link", () => {
+    const link = within(renderRow()).getByRole("link", { name: "Ayesha Khan" });
+    expect(link).toHaveAttribute("href", "/u/ayesha_khan");
+    expect(link).toHaveClass("relative", "z-10");
   });
 
   it("shows no status pills for an ordinary thread", () => {
@@ -105,8 +125,10 @@ describe("ThreadList rows", () => {
     for (const label of ["Answered", "Pinned", "Outdated", "Verified"]) expect(row).toHaveTextContent(label);
   });
 
-  it("names a deleted author", () => {
-    expect(renderRow({ author: null })).toHaveTextContent("Deleted user");
+  it("names a deleted author without a link", () => {
+    const row = renderRow({ author: null });
+    expect(row).toHaveTextContent("Deleted user");
+    expect(within(row).queryByRole("link", { name: "Deleted user" })).toBeNull();
   });
 
   it("keeps the given order", () => {
@@ -123,6 +145,47 @@ describe("ThreadList rows", () => {
     render(<ThreadList threads={[]} emptyText="No threads yet" />);
     expect(screen.getByText("No threads yet")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ask a question" })).toHaveAttribute("href", "/new");
+  });
+});
+
+describe("ThreadRow for other lists", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+
+  it("marks the search words in the title and in a replacement excerpt", () => {
+    const { container } = render(
+      <ThreadRows>
+        <ThreadRow
+          thread={{ ...thread(), excerpt: undefined }}
+          highlight="anmeldung"
+          excerpt="Book an Anmeldung appointment early."
+        />
+      </ThreadRows>,
+    );
+    const marks = [...container.querySelectorAll("mark")].map((mark) => mark.textContent);
+    expect(marks).toEqual(["Anmeldung", "Anmeldung"]);
+    expect(screen.getByRole("listitem")).toHaveTextContent("Book an Anmeldung appointment early.");
+  });
+
+  it("leaves an author unlinked when the list did not load handles", () => {
+    render(
+      <ThreadRows>
+        <ThreadRow thread={{ ...thread(), author: { display_name: "Ayesha Khan" } }} />
+      </ThreadRows>,
+    );
+    expect(screen.getByRole("listitem")).toHaveTextContent("Ayesha Khan");
+    expect(screen.queryByRole("link", { name: "Ayesha Khan" })).toBeNull();
+  });
+
+  it("drops the score column when the list has no scores", () => {
+    render(
+      <ThreadRows>
+        <ThreadRow thread={{ ...thread(), score: undefined }} />
+      </ThreadRows>,
+    );
+    expect(screen.queryByText("Score")).toBeNull();
   });
 });
 

@@ -24,7 +24,7 @@ export default async function ModAnnouncementsPage() {
     <div className="grid gap-8">
       <section aria-labelledby="new-announcement">
         <Card>
-          <h2 id="new-announcement" className="mb-4 text-base font-semibold tracking-tight">
+          <h2 id="new-announcement" className="mb-4 text-heading font-semibold tracking-tight">
             New announcement
           </h2>
           <AnnouncementForm />
@@ -32,11 +32,11 @@ export default async function ModAnnouncementsPage() {
       </section>
 
       <section aria-labelledby="all-announcements" className="grid gap-3">
-        <h2 id="all-announcements" className="text-meta font-medium text-muted">
+        <h2 id="all-announcements" className="text-heading font-semibold tracking-tight">
           All announcements
         </h2>
         {error ? (
-          <p role="alert" className="text-sm text-danger">
+          <p role="alert" className="text-body text-danger">
             Could not load announcements. Please reload.
           </p>
         ) : announcements.length === 0 ? (

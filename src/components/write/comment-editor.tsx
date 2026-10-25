@@ -7,8 +7,11 @@ import { Markdown } from "@/components/markdown";
 import { MentionTextarea } from "@/components/mentions/mention-textarea";
 import { Button } from "@/components/ui/button";
 import { FieldError, Label } from "@/components/ui/field";
-import { Kbd } from "@/components/ui/kbd";
+import { useIsApple } from "@/components/command/platform";
 import { updateCommentAction } from "./actions";
+import { CharCounter } from "./char-counter";
+import { COMMENT_MAX } from "./comment-form";
+import { SubmitHint } from "./submit-hint";
 
 type EditState = { editing: boolean; start: () => void; stop: () => void };
 
@@ -52,6 +55,7 @@ function EditForm({ commentId, body, onDone }: { commentId: number; body: string
   const [pending, startTransition] = useTransition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const empty = draft.trim().length === 0;
+  const isApple = useIsApple();
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -101,13 +105,17 @@ function EditForm({ commentId, body, onDone }: { commentId: number; body: string
           } else if (e.key === "Escape") cancel();
         }}
         required
-        maxLength={5000}
+        readOnly={pending}
+        maxLength={COMMENT_MAX}
         rows={3}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
+        aria-describedby={error ? `${errorId} ${id}-hint` : `${id}-hint`}
         className="min-h-20 [field-sizing:content] max-h-80"
       />
-      <p className="text-meta text-muted">Type @ to mention someone.</p>
+      <p id={`${id}-hint`} className="flex items-center gap-3 text-meta text-muted">
+        <span>Markdown and @mentions work here. Esc cancels.</span>
+        <CharCounter length={draft.length} max={COMMENT_MAX} />
+      </p>
       <FieldError id={errorId} message={error ?? undefined} />
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={pending || empty}>
@@ -117,10 +125,7 @@ function EditForm({ commentId, body, onDone }: { commentId: number; body: string
         <Button size="sm" variant="ghost" disabled={pending} onClick={cancel}>
           Cancel
         </Button>
-        <span className="ml-auto hidden items-center gap-1 text-meta text-subtle pointer-fine:inline-flex" aria-hidden>
-          <Kbd>⌘</Kbd>
-          <Kbd>Enter</Kbd>
-        </span>
+        <SubmitHint isApple={isApple} className="ml-auto" />
       </div>
     </form>
   );

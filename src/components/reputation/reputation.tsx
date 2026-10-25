@@ -17,7 +17,7 @@ export function ReputationScore({ points }: { points: number | null | undefined 
       title={`${points} reputation`}
       aria-label={`${points} reputation`}
     >
-      <Sparkles aria-hidden strokeWidth={1.75} className="size-3" />
+      <Sparkles aria-hidden strokeWidth={1.75} className="size-4" />
       {points}
     </span>
   );

@@ -26,7 +26,7 @@ export default async function ModGuidesPage() {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold tracking-tight">Guides</h2>
+        <h2 className="text-heading font-semibold tracking-tight">Guides</h2>
         <Link href="/mod/guides/new" className={buttonClasses({ variant: "primary", size: "sm" })}>
           <Plus aria-hidden strokeWidth={1.75} />
           New guide
@@ -34,7 +34,7 @@ export default async function ModGuidesPage() {
       </div>
 
       {error ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="text-body text-danger">
           Could not load guides. Please reload.
         </p>
       ) : guides.length === 0 ? (

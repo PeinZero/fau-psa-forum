@@ -30,7 +30,7 @@ async function GuideList() {
 
   if (error) {
     return (
-      <p role="alert" className="text-sm text-danger">
+      <p role="alert" className="text-body text-danger">
         Could not load the guides. Please try again later.
       </p>
     );

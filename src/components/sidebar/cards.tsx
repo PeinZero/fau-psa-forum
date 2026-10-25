@@ -1,4 +1,4 @@
-import { ArrowRight, ListChecks, Megaphone, PenLine, Pin, Search } from "lucide-react";
+import { ArrowRight, ListChecks, Megaphone, PenLine, Pin } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -7,20 +7,14 @@ import { fetchGuideSummaries } from "@/components/guides/data";
 import { guideHref } from "@/components/guides/guide-card";
 import { CategoryGlyph } from "@/components/thread/category-icon";
 import { fetchCategoriesWithCounts } from "@/components/thread/thread-list";
-import { OpenSearchButton } from "@/components/thread/open-search-button";
-import { SearchShortcut } from "@/components/thread/search-shortcut";
 import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Skeleton } from "@/components/ui/skeleton";
 import { countLabel, formatDate } from "@/lib/labels";
 import { relativeTime } from "@/lib/time";
 
+import { cardClasses as card, cardHeading, cardRow as row, RowIcon } from "./card-styles";
 import { fetchLatestAnnouncements } from "./data";
-
-const card = "rounded-xl bg-surface px-4 py-4 sm:px-5";
-/** Rows bleed into the card padding so their hover fill reaches the card's inner edge. */
-const row =
-  "group -mx-2 flex min-h-11 items-center gap-3 rounded-lg px-2 py-2 transition-colors duration-150 ease-out hover:bg-surface-hover active:bg-surface-hover/70 focus-visible:-outline-offset-2";
 
 export function SidebarCard({
   title,
@@ -39,7 +33,7 @@ export function SidebarCard({
   return (
     <section className={cn(card, className)}>
       <div className="mb-2 flex min-h-7 items-center justify-between gap-3">
-        <h2 className="text-body font-semibold text-foreground">{title}</h2>
+        <h2 className={cardHeading}>{title}</h2>
         {href && (
           <Link
             href={href}
@@ -56,7 +50,7 @@ export function SidebarCard({
   );
 }
 
-/** What the place is and the two things a visitor can do here. */
+/** A category (or the forum) in a sentence, with the one action that matters there. */
 export function AboutCard({
   title = "PSA FAU Community",
   description = "Questions and answers for Pakistani students in Erlangen & Nuremberg, curated by moderators.",
@@ -74,23 +68,16 @@ export function AboutCard({
 }) {
   return (
     <section className={cn(card, className)}>
-      <h2 className="flex items-center gap-2.5 text-body font-semibold text-foreground">
+      <h2 className={cn(cardHeading, "flex min-h-7 items-center gap-3")}>
         {icon}
         <span className="min-w-0 break-words">{title}</span>
       </h2>
       {description && <p className="mt-2 text-meta text-muted">{description}</p>}
-      {meta && <p className="mt-3 text-meta tabular-nums text-muted">{meta}</p>}
-      <div className="mt-4 flex flex-col gap-2">
-        <Link href={askHref} className={buttonClasses({ className: "w-full" })}>
-          <PenLine strokeWidth={1.75} />
-          Ask a question
-        </Link>
-        <OpenSearchButton className={buttonClasses({ variant: "secondary", className: "w-full" })}>
-          <Search strokeWidth={1.75} className="text-muted" />
-          Search threads
-          <SearchShortcut className="ml-auto hidden gap-0.5 lg:inline-flex" />
-        </OpenSearchButton>
-      </div>
+      {meta && <p className="mt-2 text-meta tabular-nums text-muted">{meta}</p>}
+      <Link href={askHref} className={buttonClasses({ className: "mt-4 w-full" })}>
+        <PenLine strokeWidth={1.75} />
+        Ask a question
+      </Link>
     </section>
   );
 }
@@ -135,15 +122,9 @@ export async function AnnouncementsCard({ className }: { className?: string }) {
 export function AnnouncementIcon({ pinned }: { pinned: boolean }) {
   const Icon = pinned ? Pin : Megaphone;
   return (
-    <span
-      aria-hidden
-      className={cn(
-        "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
-        pinned ? "bg-accent-soft text-accent" : "bg-background text-muted",
-      )}
-    >
+    <RowIcon active={pinned} className="mt-0.5">
       <Icon strokeWidth={1.75} className="size-4" />
-    </span>
+    </RowIcon>
   );
 }
 
@@ -158,12 +139,9 @@ export async function GuidesCard() {
         {guides.map((guide) => (
           <li key={guide.id}>
             <Link href={guideHref(guide.slug)} className={row}>
-              <span
-                aria-hidden
-                className="flex size-7 shrink-0 items-center justify-center rounded-md bg-background text-muted transition-colors duration-150 group-hover:text-accent"
-              >
+              <RowIcon>
                 <ListChecks strokeWidth={1.75} className="size-4" />
-              </span>
+              </RowIcon>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-body font-medium text-foreground" title={guide.title}>
                   {guide.title}
@@ -197,15 +175,9 @@ export async function CategoriesCard({ currentSlug }: { currentSlug?: string }) 
                 aria-current={current ? "page" : undefined}
                 className={cn(row, "min-h-10 py-1.5", current && "bg-surface-hover")}
               >
-                <span
-                  aria-hidden
-                  className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-md transition-colors duration-150",
-                    current ? "bg-accent-soft text-accent" : "bg-background text-muted group-hover:text-accent",
-                  )}
-                >
+                <RowIcon active={current}>
                   <CategoryGlyph slug={category.slug} />
-                </span>
+                </RowIcon>
                 <span
                   className={cn(
                     "min-w-0 flex-1 truncate text-body text-foreground",

@@ -210,7 +210,7 @@ function EditCard({
   return (
     <Card className="grid gap-4">
       <div className="min-w-0">
-        <h2 className="break-words text-base font-semibold tracking-tight">
+        <h2 className="break-words text-title tracking-tight">
           {revision.thread ? (
             <Link href={`/t/${revision.thread.slug}`} className="hover:underline">
               {revision.thread.title}

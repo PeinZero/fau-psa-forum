@@ -79,7 +79,7 @@ function FeedbackForm({ titleId, onClose }: { titleId: string; onClose: () => vo
       <div role="status" className="flex flex-col items-start gap-4 p-5">
         <div className="flex items-center gap-2">
           <CircleCheck aria-hidden strokeWidth={1.75} className="size-5 text-accent" />
-          <h2 id={titleId} className="text-base font-semibold tracking-tight">
+          <h2 id={titleId} className="text-heading font-semibold tracking-tight">
             Thanks!
           </h2>
         </div>
@@ -104,7 +104,7 @@ function FeedbackForm({ titleId, onClose }: { titleId: string; onClose: () => vo
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4 p-5">
       <div className="flex flex-col gap-1">
-        <h2 id={titleId} className="text-base font-semibold tracking-tight">
+        <h2 id={titleId} className="text-heading font-semibold tracking-tight">
           Send feedback
         </h2>
         <p className="text-meta text-muted">

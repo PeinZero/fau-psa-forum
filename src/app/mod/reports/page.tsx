@@ -81,8 +81,8 @@ export default async function ReportsPage({ searchParams }: Props) {
       {error ? (
         <p role="alert" className="text-danger">Could not load reports. Please reload.</p>
       ) : !reports.length ? (
-        <EmptyState icon={<CheckCircle2 />} title={status === "open" ? "No open reports" : `No ${status} reports`}>
-          {status === "open" ? "Nothing has been flagged." : "Nothing here yet."}
+        <EmptyState icon={<CheckCircle2 />} title={status === "open" ? "All caught up" : `No ${status} reports`}>
+          {status === "open" ? "Nothing has been flagged. Reports from members show up here." : "Reports you move here are kept for reference."}
         </EmptyState>
       ) : (
         <ul className="grid gap-3">

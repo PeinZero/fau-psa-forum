@@ -84,14 +84,14 @@ async function GuideContent({ params }: { params: Params }) {
       >
         <header className="mt-4 flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
-            <h1 className="min-w-0 text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] break-words sm:text-[2.25rem] sm:leading-[1.15]">
+            <h1 className="min-w-0 text-display font-semibold tracking-[-0.025em] break-words">
               {guide.title}
             </h1>
             <Suspense fallback={null}>
               <EditLink guideId={guide.id} />
             </Suspense>
           </div>
-          {guide.summary && <p className="max-w-2xl text-base text-muted">{guide.summary}</p>}
+          {guide.summary && <p className="max-w-2xl text-body text-muted">{guide.summary}</p>}
         </header>
 
         <div className="sticky top-14 z-10 -mx-4 mt-6 border-b border-border bg-background/85 px-4 py-3 backdrop-blur-xl sm:mx-0 sm:rounded-xl sm:border sm:bg-surface/85 sm:px-5">
@@ -99,7 +99,7 @@ async function GuideContent({ params }: { params: Params }) {
         </div>
 
         {guide.steps.length === 0 ? (
-          <p className="mt-10 text-sm text-muted">This guide has no steps yet.</p>
+          <p className="mt-10 text-body text-muted">This guide has no steps yet.</p>
         ) : (
           <ol className="mt-10 flex flex-col">
             {guide.steps.map((step, index) => (
@@ -148,7 +148,7 @@ function LinkedThread({ thread }: { thread: NonNullable<GuideStep["thread"]> }) 
       <MessageSquare aria-hidden strokeWidth={1.75} className="size-4 shrink-0 text-muted" />
       <span className="min-w-0 flex-1">
         <span className="block text-meta text-subtle">Related thread</span>
-        <span className="block truncate text-sm font-medium text-foreground">{thread.title}</span>
+        <span className="block truncate text-body font-medium text-foreground">{thread.title}</span>
       </span>
       {answered && (
         <Badge variant="accent">
