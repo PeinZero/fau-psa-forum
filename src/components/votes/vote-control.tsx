@@ -1,13 +1,14 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowBigDown, ArrowBigUp } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/components/ui/cn";
 
 import { castVote, type CastVoteResult, type VoteValue } from "./actions";
+import { nextVote, scoreAfter } from "./vote-math";
 
 type Target =
   | { commentId: number; onVote?: never }
@@ -26,22 +27,30 @@ type Props = Target & {
 
 type Tally = { score: number; myVote: VoteValue };
 
+const FAILED = "Your vote didn't go through. Please try again.";
+
+// 32px for a mouse, 44px for a finger.
 const arrowBase =
-  "inline-flex shrink-0 items-center justify-center text-muted pointer-coarse:size-11 " +
-  "transition-[background-color,color] duration-150 ease-out hover:text-foreground " +
+  "inline-flex size-8 shrink-0 items-center justify-center text-muted pointer-coarse:size-11 " +
+  "transition-[background-color,color] duration-150 ease-out " +
   "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring " +
-  "disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4";
+  "disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-[1.125rem]";
 
 const looks = {
-  plain: {
-    group: "gap-0.5",
-    arrow: cn(arrowBase, "size-7 rounded-md hover:bg-surface-hover"),
-  },
+  plain: { group: "gap-0.5", arrow: cn(arrowBase, "rounded-md hover:bg-surface-hover") },
   pill: {
     group: "rounded-full p-0.5 transition-colors duration-150 ease-out",
-    arrow: cn(arrowBase, "size-8 rounded-full hover:bg-raised hover:shadow-[0_1px_2px_var(--shadow-color)]"),
+    arrow: cn(arrowBase, "rounded-full hover:bg-raised hover:shadow-[0_1px_2px_var(--shadow-color)]"),
   },
 };
+
+const tones = {
+  up: { arrow: "text-accent", score: "text-accent", pill: "bg-accent-soft" },
+  down: { arrow: "text-danger", score: "text-danger", pill: "bg-danger/10" },
+  none: { arrow: "", score: "text-foreground", pill: "bg-surface" },
+};
+
+const toneOf = (vote: VoteValue) => (vote === 1 ? tones.up : vote === -1 ? tones.down : tones.none);
 
 export function VoteControl(props: Props) {
   const {
@@ -53,105 +62,119 @@ export function VoteControl(props: Props) {
     appearance = "plain",
   } = props;
   const pathname = usePathname();
-  const [confirmed, setConfirmed] = useState<Tally>({ score, myVote });
   const [seenProps, setSeenProps] = useState<Tally>({ score, myVote });
-  const [shown, setShown] = useOptimistic(confirmed);
-  const [pending, startTransition] = useTransition();
+  const [tally, setTally] = useState<{ shown: Tally; confirmed: Tally }>(() => ({
+    shown: { score, myVote },
+    confirmed: { score, myVote },
+  }));
+  const [inFlight, setInFlight] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const latestRequest = useRef(0);
 
-  // A server re-render (new comment, router.refresh) brings fresher numbers than ours.
+  // A server re-render (a new comment, a moderator action) brings fresher numbers than ours.
   if (seenProps.score !== score || seenProps.myVote !== myVote) {
     setSeenProps({ score, myVote });
-    setConfirmed({ score, myVote });
+    setTally({ shown: { score, myVote }, confirmed: { score, myVote } });
   }
 
+  const shown = tally.shown;
   const scoreRef = useBump(shown.score);
 
-  function cast(direction: 1 | -1) {
-    if (pending || disabled) return;
-    const value: VoteValue = shown.myVote === direction ? 0 : direction;
-    const next = { score: shown.score - shown.myVote + value, myVote: value };
+  // Every click counts, even while an earlier vote is still on its way: the server handles them in
+  // order, and the newest answer is the one the control settles on.
+  async function cast(clicked: 1 | -1) {
+    if (disabled) return;
+    const to = nextVote(shown.myVote, clicked);
+    const optimistic = { score: scoreAfter(shown.score, shown.myVote, to), myVote: to };
+    const request = ++latestRequest.current;
     setError(null);
-    startTransition(async () => {
-      setShown(next);
-      const result = props.onVote
-        ? await props.onVote(value)
-        : await castVote({ commentId: props.commentId, value });
-      if (result.ok) {
-        startTransition(() => setConfirmed({ score: result.score, myVote: result.myVote }));
-      } else {
-        setError(result.message);
-      }
-    });
+    setTally((current) => ({ ...current, shown: optimistic }));
+    setInFlight((count) => count + 1);
+
+    let result: CastVoteResult;
+    try {
+      result = props.onVote ? await props.onVote(to) : await castVote({ commentId: props.commentId, value: to });
+    } catch {
+      result = { ok: false, message: FAILED };
+    }
+    setInFlight((count) => count - 1);
+
+    const isLatest = request === latestRequest.current;
+    if (result.ok) {
+      const truth = { score: result.score, myVote: result.myVote };
+      setTally((current) => ({ confirmed: truth, shown: isLatest ? truth : current.shown }));
+    } else if (isLatest) {
+      setTally((current) => ({ ...current, shown: current.confirmed }));
+      setError(result.message);
+    }
   }
 
   const look = looks[appearance];
-  const arrow = look.arrow;
-  // A cast vote tints the whole pill, so the choice reads at a glance.
-  const pillTone = shown.myVote === 1 ? "bg-accent-soft" : shown.myVote === -1 ? "bg-danger/10" : "bg-surface";
-  const groupTone = appearance === "pill" ? pillTone : "";
-  const scoreTone = shown.myVote === 1 ? "text-accent" : shown.myVote === -1 ? "text-danger" : "text-foreground";
+  const tone = toneOf(shown.myVote);
   const scoreLabel = (
     <span
       ref={scoreRef}
       aria-live="polite"
       className={cn(
-        "inline-block min-w-[2ch] text-center text-meta tabular-nums transition-opacity duration-150",
-        appearance === "pill" ? "px-0.5 font-semibold" : "font-medium",
-        scoreTone,
-        pending && "opacity-60",
+        // Three digit widths reserved, so 9 → 10 or 1 → -1 never nudges the arrows.
+        "inline-block min-w-[3ch] text-center text-meta tabular-nums transition-colors duration-150 ease-out",
+        appearance === "pill" ? "font-semibold" : "font-medium",
+        tone.score,
       )}
     >
       {shown.score}
       <span className="sr-only">{Math.abs(shown.score) === 1 ? " point" : " points"}</span>
     </span>
   );
+  const groupClass = cn("inline-flex items-center", look.group, appearance === "pill" && tone.pill);
 
   if (!signedIn && !disabled) {
     const fragment = props.onVote ? "" : `#comment-${props.commentId}`;
     const href = `/login?next=${encodeURIComponent(`${pathname}${fragment}`)}`;
     return (
-      <div role="group" aria-label="Vote" className={cn("inline-flex items-center", look.group, groupTone)}>
-        <Link href={href} aria-label="Sign in to upvote" title="Sign in to vote" className={arrow}>
-          <ChevronUp strokeWidth={1.75} aria-hidden />
+      <div role="group" aria-label="Vote" className={groupClass}>
+        <Link href={href} aria-label="Sign in to upvote" title="Sign in to vote" className={cn(look.arrow, "hover:text-accent")}>
+          <ArrowBigUp strokeWidth={1.75} aria-hidden />
         </Link>
         {scoreLabel}
-        <Link href={href} aria-label="Sign in to downvote" title="Sign in to vote" className={arrow}>
-          <ChevronDown strokeWidth={1.75} aria-hidden />
+        <Link href={href} aria-label="Sign in to downvote" title="Sign in to vote" className={cn(look.arrow, "hover:text-danger")}>
+          <ArrowBigDown strokeWidth={1.75} aria-hidden />
         </Link>
       </div>
     );
   }
 
+  const up = shown.myVote === 1;
+  const down = shown.myVote === -1;
   return (
     <div className="inline-flex flex-wrap items-center gap-x-2">
       <div
         role="group"
         aria-label="Vote"
-        aria-busy={pending || undefined}
+        aria-busy={inFlight > 0 || undefined}
         title={disabled ? disabledTitle : undefined}
-        className={cn("inline-flex items-center", look.group, groupTone)}
+        className={groupClass}
       >
         <button
           type="button"
           aria-label="Upvote"
-          aria-pressed={shown.myVote === 1}
+          aria-pressed={up}
           disabled={disabled}
-          onClick={() => cast(1)}
-          className={cn(arrow, shown.myVote === 1 && "text-accent hover:text-accent")}
+          onClick={() => void cast(1)}
+          className={cn(look.arrow, "hover:text-accent", up && tones.up.arrow)}
         >
-          <ChevronUp strokeWidth={shown.myVote === 1 ? 2.5 : 1.75} aria-hidden />
+          <ArrowBigUp strokeWidth={up ? 1.5 : 1.75} fill={up ? "currentColor" : "none"} aria-hidden />
         </button>
         {scoreLabel}
         <button
           type="button"
           aria-label="Downvote"
-          aria-pressed={shown.myVote === -1}
+          aria-pressed={down}
           disabled={disabled}
-          onClick={() => cast(-1)}
-          className={cn(arrow, shown.myVote === -1 && "text-danger hover:text-danger")}
+          onClick={() => void cast(-1)}
+          className={cn(look.arrow, "hover:text-danger", down && tones.down.arrow)}
         >
-          <ChevronDown strokeWidth={shown.myVote === -1 ? 2.5 : 1.75} aria-hidden />
+          <ArrowBigDown strokeWidth={down ? 1.5 : 1.75} fill={down ? "currentColor" : "none"} aria-hidden />
         </button>
       </div>
       {error ? (

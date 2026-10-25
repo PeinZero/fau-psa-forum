@@ -61,11 +61,14 @@ Tailwind steps only: 1 (4px), 1.5 (6px, icon–text gap), 2 (8), 3 (12), 4 (16),
   category (`AboutCard`), which the page itself only names in the breadcrumb.
 - Reading column on thread pages: `max-w-[45rem]` (~720px).
 - Home (`src/components/landing/`) is a landing page, not a feed, and has no sidebar: centred hero
-  (announcement pill above the headline, else the PSA pill; 34/48/56px headline, Ask + Search ⌘K, trust line, `hero-spotlight` glow over a faint grid),
+  (PSA pill, 34/48/56px headline, Ask + Search ⌘K, trust line, `hero-spotlight` glow over a faint grid),
   then Start here (featured guides), Browse by topic, Popular questions (5 hot threads, topped up with
-  the newest), How it works, the community strip
-  and a closing Ask. Sections sit in a `max-w-5xl` column, 64/96/112px apart (phone/sm/lg); each data
-  section has its own `<Suspense>` with a skeleton that keeps the real heading.
+  the newest), How it works, the community strip and a closing Ask. Sections sit in a `max-w-5xl`
+  column, 64/96/112px apart (phone/sm/lg). Public data comes from cached, cookieless queries
+  (`"use cache"`, `cacheLife("minutes")`) so Home arrives complete in the first HTML; only per-user
+  bits (guide progress, "Become a moderator") stream into fixed-size slots. No entrance animations.
+- Announcements: the latest (pinned first) shows in a full-width, dismissible `AnnouncementBar` above
+  the header on every page; dismissed ids are remembered in localStorage and hidden before first paint.
 
 ## Surfaces and depth
 
@@ -121,7 +124,8 @@ and `foreground`); "Deleted user" is never a link.
 
 Thread page: breadcrumb, title (`text-display`), byline (36px avatar, name with role and
 affiliation badges; date, edited and city below), status pills, then an action bar: vote pill
-(`VoteControl appearance="pill"`, tinted once voted), comments pill linking to the comments,
+(`VoteControl appearance="pill"`, tinted once voted; filled accent up arrow or danger down arrow, the
+score takes the same colour, clicking the chosen arrow again withdraws the vote), comments pill linking to the comments,
 Share and the ⋯ menu on the right. A hairline separates it from the post. Wrapping meta lines
 use `metaFrame` / `metaLine` / `metaItem` (`src/components/thread/meta.ts`): separators sit before
 each item and are clipped at a line start, so no line begins with "·". Comments: "Comments" heading
@@ -149,9 +153,11 @@ a primary "Sign in to comment".
 ## Motion
 
 - Durations 150–300ms, `ease-out` (`cubic-bezier(0.16, 1, 0.3, 1)` for entrances).
-- Lists: fade-up with a small stagger (`animate-fade-up` + `stagger(i)`, capped at 8 items).
+- Lists: fade-up with a small stagger (`animate-fade-up` + `stagger(i)`, capped at 8 items); not on Home,
+  which renders complete without entrance motion.
 - Rows and cards: background steps to `surface-hover` on hover; no bouncing, no scale.
-- Page navigation: React/Next view transitions (cross-fade) where supported.
+- Page navigation: React/Next view transitions (cross-fade) where supported, from `app/template.tsx` so
+  they play on route changes only; votes, bookmarks and other in-place updates never animate the page.
 - About, 404 and error pages keep one soft radial glow (`hero-glow`); static. Home's hero uses
   `hero-spotlight` (glow plus a masked `--grid-line` grid) and its closing call to action `hero-glow`.
 - Everything respects `prefers-reduced-motion: reduce` (animations off, transitions ≤ 1ms).

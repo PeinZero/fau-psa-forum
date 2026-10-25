@@ -286,7 +286,7 @@
   }
 }
 
-/* Page navigations cross-fade the main column (React <ViewTransition> in the root layout). */
+/* Page navigations cross-fade the main column (React <ViewTransition> in the root template). */
 ::view-transition {
   pointer-events: none;
 }

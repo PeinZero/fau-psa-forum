@@ -1,38 +1,52 @@
-import { announcementHref } from "@/components/announcements/data";
-import { fetchGuideSummaries } from "@/components/guides/data";
-import { fetchLatestAnnouncements } from "@/components/sidebar/data";
-import { fetchCategoriesWithCounts } from "@/components/thread/thread-list";
+import { Suspense } from "react";
 
-import { CommunityStripView } from "./community-strip";
-import { fetchCommunity, fetchPopularQuestions } from "./data";
-import { HeroEyebrowView } from "./hero-announcement";
+import { CommunityStripView, ModeratorApplyLink } from "./community-strip";
+import { getDoneCount, getHomeGuides, getHomeModerators, getHomeTopics, getPopularQuestions, isSignedIn } from "./data";
 import { PopularQuestionsView } from "./popular-questions";
-import { START_HERE_LIMIT } from "./shape";
-import { StartHereView } from "./start-here";
+import type { HomeGuide } from "./shape";
+import { GuideProgressLine, StartHereView } from "./start-here";
 import { TopicsView } from "./topics";
 
-// Each section reads the session or request-time data, so each renders inside its own <Suspense>.
+// The sections read cached public data, so they render into the prerendered page without a fallback.
+// Only the session-dependent bits stream, each into a slot the same size as its fallback.
 
 export async function StartHere() {
-  const { guides } = await fetchGuideSummaries({ limit: START_HERE_LIMIT });
-  return <StartHereView guides={guides} />;
+  return <StartHereView guides={await getHomeGuides()} progress={(guide) => <ProgressSlot guide={guide} />} />;
+}
+
+function ProgressSlot({ guide }: { guide: HomeGuide }) {
+  return (
+    <Suspense fallback={<GuideProgressLine stepCount={guide.stepIds.length} doneCount={null} />}>
+      <ViewerProgress guide={guide} />
+    </Suspense>
+  );
+}
+
+async function ViewerProgress({ guide }: { guide: HomeGuide }) {
+  return <GuideProgressLine stepCount={guide.stepIds.length} doneCount={await getDoneCount(guide.stepIds)} />;
 }
 
 export async function Topics() {
-  return <TopicsView topics={await fetchCategoriesWithCounts()} />;
+  return <TopicsView topics={await getHomeTopics()} />;
 }
 
 export async function PopularQuestions() {
-  return <PopularQuestionsView questions={await fetchPopularQuestions()} />;
-}
-
-/** The pinned announcement leads; without one, the newest. */
-export async function HeroEyebrow() {
-  const { items } = await fetchLatestAnnouncements();
-  const lead = items[0];
-  return <HeroEyebrowView announcement={lead ? { href: announcementHref(lead.id), title: lead.title, is_pinned: lead.is_pinned } : null} />;
+  return <PopularQuestionsView questions={await getPopularQuestions()} />;
 }
 
 export async function CommunityStrip() {
-  return <CommunityStripView {...await fetchCommunity()} />;
+  return (
+    <CommunityStripView
+      {...await getHomeModerators()}
+      apply={
+        <Suspense fallback={<ModeratorApplyLink signedIn={false} />}>
+          <ViewerApplyLink />
+        </Suspense>
+      }
+    />
+  );
+}
+
+async function ViewerApplyLink() {
+  return <ModeratorApplyLink signedIn={await isSignedIn()} />;
 }

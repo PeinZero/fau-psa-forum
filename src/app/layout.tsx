@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "next-themes";
 import { Reddit_Sans } from "next/font/google";
-import { ViewTransition } from "react";
+import { Suspense } from "react";
+import { AnnouncementBar } from "@/components/announcements/announcement-bar";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { siteUrl } from "@/lib/site-url";
@@ -53,16 +54,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           enableSystem
           disableTransitionOnChange
         >
+          <Suspense fallback={null}>
+            <AnnouncementBar />
+          </Suspense>
           <SiteHeader />
-          <ViewTransition default="page">
-            <main
-              id="main"
-              tabIndex={-1}
-              className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 focus:outline-none sm:px-6 sm:py-8 lg:py-10"
-            >
-              {children}
-            </main>
-          </ViewTransition>
+          <main
+            id="main"
+            tabIndex={-1}
+            className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 focus:outline-none sm:px-6 sm:py-8 lg:py-10"
+          >
+            {children}
+          </main>
           <SiteFooter />
         </ThemeProvider>
       </body>

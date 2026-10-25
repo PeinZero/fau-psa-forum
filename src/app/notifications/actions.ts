@@ -38,6 +38,7 @@ export async function markAllNotificationsRead(): Promise<ActionState> {
   const { error } = await supabase.rpc("mark_all_notifications_read");
   if (error) return { ok: false, message: friendlyError(error) };
 
-  revalidatePath("/", "layout");
+  // The list on this page re-renders; the header bell refetches its own count when told.
+  revalidatePath("/notifications");
   return { ok: true, message: "All notifications marked as read." };
 }
