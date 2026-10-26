@@ -18,7 +18,16 @@ export type ModThread = {
 export function threadModItems(
   { id, status, is_outdated, is_pinned }: ModThread,
   run: RunAction,
-  { presets = [], author = null }: { presets?: readonly ReasonPreset[]; author?: MutableAuthor | null } = {},
+  {
+    presets = [],
+    author = null,
+    ownDelete = false,
+  }: {
+    presets?: readonly ReasonPreset[];
+    author?: MutableAuthor | null;
+    /** The viewer wrote the thread and deletes it as its author, without a moderator reason. */
+    ownDelete?: boolean;
+  } = {},
 ): MenuEntry[] {
   const isLive = status === "published" || status === "archived";
   const op = (name: string, reason?: string) => run(moderateThread, { threadId: id, op: name, reason });
@@ -66,8 +75,8 @@ export function threadModItems(
       icon: ArchiveRestore,
       onSelect: () => op("unarchive"),
     },
-    "separator",
-    {
+    !ownDelete && "separator",
+    !ownDelete && {
       label: "Delete thread",
       icon: Trash2,
       danger: true,

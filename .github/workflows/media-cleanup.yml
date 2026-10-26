@@ -53,5 +53,13 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client
 
+      # Rejected threads go 7 days after the rejection or the author's last edit; their images
+      # land in the queue that the next step empties.
+      - name: Delete expired rejected threads
+        run: |
+          set -euo pipefail
+          deleted=$(psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -At -c "select public.purge_rejected_threads()")
+          echo "Deleted $deleted rejected threads."
+
       - name: Delete queued images
         run: scripts/media-cleanup.sh

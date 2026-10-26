@@ -416,9 +416,14 @@ export default function PrivacyPage() {
             your account. If you also want posts removed, send us their links.
           </li>
           <li>
+            <strong>Rejected threads</strong>: deleted with their images 7 days after the rejection or
+            your last edit, unless a moderator approves them. You can delete a thread yourself while it
+            waits for review or after it was rejected.
+          </li>
+          <li>
             <strong>Images</strong>: as long as their thread. An image you remove, or the images of a
-            thread a moderator deletes, are deleted from storage at once; copies cached by Cloudflare or
-            your browser expire within a day.
+            thread that you or a moderator delete, are deleted from storage at once; copies cached by
+            Cloudflare or your browser expire within a day.
           </li>
           <li>
             <strong>Feedback</strong>: until we have dealt with it.

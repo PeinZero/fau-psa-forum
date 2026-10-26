@@ -16,6 +16,22 @@ import { DeletedNotice } from "./deleted-notice";
 describe("DeletedNotice", () => {
   beforeEach(() => replace.mockClear());
 
+  it("names what was deleted", () => {
+    search = "deleted=1";
+    const { unmount } = render(<DeletedNotice />);
+    expect(screen.getByRole("status")).toHaveTextContent("Your account was deleted.");
+    unmount();
+    search = "deleted=thread";
+    render(<DeletedNotice />);
+    expect(screen.getByRole("status")).toHaveTextContent("The thread was deleted.");
+  });
+
+  it("ignores unknown values", () => {
+    search = "deleted=everything";
+    render(<DeletedNotice />);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("renders nothing without the param", () => {
     search = "";
     render(<DeletedNotice />);

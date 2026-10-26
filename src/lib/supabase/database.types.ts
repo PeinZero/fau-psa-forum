@@ -1315,6 +1315,7 @@ export type Database = {
         Returns: string
       }
       delete_own_account: { Args: never; Returns: undefined }
+      delete_own_thread: { Args: { p_thread_id: number }; Returns: string[] }
       delete_thread: {
         Args: { p_reason: string; p_thread_id: number }
         Returns: string[]
@@ -1331,6 +1332,7 @@ export type Database = {
       lift_restriction: { Args: { restriction_id: number }; Returns: undefined }
       mark_all_notifications_read: { Args: never; Returns: undefined }
       mark_thread_verified: { Args: { thread_id: number }; Returns: undefined }
+      purge_rejected_threads: { Args: never; Returns: number }
       review_moderator_application: {
         Args: {
           application_id: number

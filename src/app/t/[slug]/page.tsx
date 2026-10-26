@@ -285,7 +285,7 @@ function Banners({ thread }: { thread: ThreadDetail }) {
       )}
       {thread.status === "rejected" && (
         <Callout tone="danger" icon={<CircleAlert strokeWidth={1.75} />} title={statusLabels.rejected}>
-          <p>This thread is not public.</p>
+          <p>This thread is not public. Rejected threads are deleted 7 days after the rejection or the author&apos;s last edit, unless a moderator approves them.</p>
           {thread.rejection_reason && (
             <p className="mt-1 break-words">
               <span className="font-medium text-foreground">Reason:</span> {thread.rejection_reason}
@@ -376,6 +376,7 @@ async function ViewerThreadMenu({ thread }: { thread: ThreadDetail }) {
       slug={thread.slug}
       saved={saved}
       canEdit={isAuthor}
+      canDelete={isAuthor}
       canMove={isMod && !isAuthor}
       canReport={viewer !== null && !isMod && !isAuthor && isPublic}
       canRequestUpdate={viewer !== null && !isMod && thread.status === "published"}

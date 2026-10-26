@@ -21,6 +21,7 @@ const MOD_ERRORS = {
     ["best answer must be", "The best answer must be a visible comment of this thread."],
     ["comments are only possible", "The thread must be published for this to work."],
     ["you cannot restrict yourself", "You can't restrict your own account."],
+    ["only threads waiting for review can be rejected", "Only threads waiting for review can be rejected."],
     ["only the superadmin can restrict moderators", "Only the superadmin can change a moderator's restriction."],
     ["only the superadmin can ban", "Only the superadmin can ban accounts."],
     ["only the superadmin can lift a ban", "Only the superadmin can lift a ban."],
@@ -84,9 +85,14 @@ export async function moderateThread(_prev: ActionState, formData: FormData): Pr
   if (op === "reject" && !reason) return fail("Please give a reason for the rejection.");
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from("threads").update(updates[op]).eq("id", threadId).select("id");
+  let query = supabase.from("threads").update(updates[op]).eq("id", threadId);
+  // A rejected thread is deleted after a week, so only a thread nobody could answer yet may be rejected.
+  if (op === "reject") query = query.eq("status", "pending");
+  const { data, error } = await query.select("id");
   if (error) return fail(friendlyError(error, MOD_ERRORS));
-  if (!data?.length) return fail("Thread not found, or you don't have permission.");
+  if (!data?.length) {
+    return fail(op === "reject" ? "Only threads waiting for review can be rejected." : "Thread not found, or you don't have permission.");
+  }
 
   const messages = {
     approve: "Thread approved.",
@@ -131,7 +137,7 @@ export async function deleteThread(_prev: ActionState, formData: FormData): Prom
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/?deleted=thread");
 }
 
 const moveThreadSchema = z.object({

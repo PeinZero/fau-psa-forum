@@ -8,7 +8,8 @@ What the PSA FAU Community Forum does. Live site: https://fau-psa-forum.vercel.a
 - Hot ranks by votes, comments, a best answer and recent activity (formula in [schema.md](schema.md)).
 - Category pages with a city filter (Erlangen, Nuremberg, both), sort tabs, search and a block of pinned threads. RP & Visa shows a "not legal advice" note.
 - Thread pages: formatted text, up to 3 images in a gallery under it (tap for full size), best answer pinned on top, comments with one level of replies, votes on the thread.
-- Thread banners and badges: Waiting for review, Rejected (with reason), Outdated, Archived, Verified (month and year).
+- Thread banners and badges: Waiting for review, Rejected (with reason; deleted after 7 days unless approved), Outdated, Archived, Verified (month and year).
+- Authors delete their own pending or rejected threads from the thread menu.
 - Guides: step-by-step checklists (for example "First weeks in Erlangen") with progress saved per member and in the browser when signed out.
 - Announcements: list with search and pagination, a page per announcement, a home banner for the latest pinned one, unread count on the header icon.
 - About and Contributors pages (code contributors, moderator team, top helpers this month).

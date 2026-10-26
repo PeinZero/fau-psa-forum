@@ -11,6 +11,7 @@ import { cn } from "@/components/ui/cn";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/field";
 import { stagger } from "@/components/ui/motion";
+import { DeletedNotice } from "@/components/notice/deleted-notice";
 import { PageHeader } from "@/components/ui/page-header";
 import { PAGE_SIZE, Pagination, parsePage } from "@/components/ui/pagination";
 import { SegmentedLinks } from "@/components/ui/segmented-control";
@@ -216,6 +217,9 @@ export default function MyThreadsPage({ searchParams }: { searchParams: SearchPa
         description="Everything you posted, including threads waiting for review."
       />
       <div className="flex flex-col gap-5">
+        <Suspense fallback={null}>
+          <DeletedNotice />
+        </Suspense>
         <Suspense fallback={<RowsSkeleton />}>
           <MyThreads searchParams={searchParams} />
         </Suspense>

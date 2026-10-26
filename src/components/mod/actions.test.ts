@@ -18,13 +18,22 @@ vi.mock("@/lib/media/storage", () => ({ mediaStorage: () => mediaStorage() }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
     rpc,
-    from: () => ({ update: (values: unknown) => ({ eq: () => ({ select: () => update(values) }) }) }),
+    from: () => ({
+      update: (values: unknown) => {
+        const filters: [string, unknown][] = [];
+        const chain = {
+          eq: (column: string, value: unknown) => (filters.push([column, value]), chain),
+          select: () => update(values, filters),
+        };
+        return chain;
+      },
+    }),
   }),
 }));
 
 import { getViewer } from "@/lib/auth/viewer";
 
-import { deleteThread, moveThread } from "./actions";
+import { deleteThread, moderateThread, moveThread } from "./actions";
 
 function form(fields: Record<string, string>) {
   const data = new FormData();
@@ -67,14 +76,14 @@ describe("deleteThread", () => {
 
   it("removes the image files, then leaves for the home page", async () => {
     rpc.mockResolvedValue({ data: ["a/1.webp", "a/2.webp"], error: null });
-    await expect(deleteThread(null, form({ threadId: "3", reason: " Spam " }))).rejects.toThrow("NEXT_REDIRECT /");
+    await expect(deleteThread(null, form({ threadId: "3", reason: " Spam " }))).rejects.toThrow("NEXT_REDIRECT /?deleted=thread");
     expect(rpc).toHaveBeenCalledWith("delete_thread", { p_thread_id: 3, p_reason: "Spam" });
     expect(removeMany).toHaveBeenCalledWith(["a/1.webp", "a/2.webp"]);
   });
 
   it("skips storage when the thread had no images", async () => {
     rpc.mockResolvedValue({ data: [], error: null });
-    await expect(deleteThread(null, form({ threadId: "3", reason: "Spam" }))).rejects.toThrow("NEXT_REDIRECT /");
+    await expect(deleteThread(null, form({ threadId: "3", reason: "Spam" }))).rejects.toThrow("NEXT_REDIRECT /?deleted=thread");
     expect(mediaStorage).not.toHaveBeenCalled();
   });
 
@@ -83,10 +92,10 @@ describe("deleteThread", () => {
     mediaStorage.mockImplementationOnce(() => {
       throw new Error("Image storage is not configured");
     });
-    await expect(deleteThread(null, form({ threadId: "3", reason: "Spam" }))).rejects.toThrow("NEXT_REDIRECT /");
+    await expect(deleteThread(null, form({ threadId: "3", reason: "Spam" }))).rejects.toThrow("NEXT_REDIRECT /?deleted=thread");
 
     removeMany.mockResolvedValueOnce(["a/1.webp"]);
-    await expect(deleteThread(null, form({ threadId: "3", reason: "Spam" }))).rejects.toThrow("NEXT_REDIRECT /");
+    await expect(deleteThread(null, form({ threadId: "3", reason: "Spam" }))).rejects.toThrow("NEXT_REDIRECT /?deleted=thread");
     expect(console.error).toHaveBeenCalledTimes(2);
   });
 });
@@ -105,11 +114,32 @@ describe("moveThread", () => {
     await expect(moveThread(null, form({ threadId: "3", categoryId: "2", city: "" }))).rejects.toThrow(
       "NEXT_REDIRECT /t/visa-help",
     );
-    expect(update).toHaveBeenCalledWith({ category_id: 2, city: null });
+    expect(update).toHaveBeenCalledWith({ category_id: 2, city: null }, [["id", 3]]);
   });
 
   it("reports a thread that can't be updated", async () => {
     update.mockResolvedValue({ data: [], error: null });
     expect(await moveThread(null, form({ threadId: "3", categoryId: "2", city: "both" }))).toMatchObject({ ok: false });
+  });
+});
+
+describe("moderateThread", () => {
+  beforeEach(() => update.mockReset());
+
+  it("only rejects a thread that is still waiting for review", async () => {
+    update.mockResolvedValue({ data: [], error: null });
+    const result = await moderateThread(null, form({ threadId: "3", op: "reject", reason: "Off topic" }));
+    expect(update).toHaveBeenCalledWith({ status: "rejected", rejection_reason: "Off topic" }, [
+      ["id", 3],
+      ["status", "pending"],
+    ]);
+    expect(result).toEqual({ ok: false, message: "Only threads waiting for review can be rejected." });
+  });
+
+  it("approves without a status filter, so a rejected thread can be approved again", async () => {
+    update.mockResolvedValue({ data: [{ id: 3 }], error: null });
+    const result = await moderateThread(null, form({ threadId: "3", op: "approve" }));
+    expect(update).toHaveBeenCalledWith({ status: "published", rejection_reason: null }, [["id", 3]]);
+    expect(result).toEqual({ ok: true, message: "Thread approved." });
   });
 });

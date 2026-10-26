@@ -366,7 +366,8 @@ describe("moderation", () => {
     assert.ok(approved.reviewed_at);
     assert.ok((await threadIds(anon)).includes(threads.pending));
 
-    const [rejected] = await as<{ status: string; reviewed_by: string }>(ADMIN, "update public.threads set status = 'rejected', rejection_reason = 'Off topic' where id = $1 returning status, reviewed_by", [threads.otherPublished]);
+    const waiting = await createThread(ids.b, "pending", "Selling a used rice cooker near Röthelheimpark");
+    const [rejected] = await as<{ status: string; reviewed_by: string }>(ADMIN, "update public.threads set status = 'rejected', rejection_reason = 'Off topic' where id = $1 returning status, reviewed_by", [waiting]);
     assert.deepEqual(rejected, { status: "rejected", reviewed_by: ids.admin });
   });
 
