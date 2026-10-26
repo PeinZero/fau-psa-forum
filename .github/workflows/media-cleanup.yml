@@ -1,0 +1,57 @@
+name: Media cleanup
+
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: media-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The secrets live in this GitHub environment, not at repository level.
+    environment: media-cleanup
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      MEDIA_B2_REGION: ${{ secrets.MEDIA_B2_REGION }}
+      MEDIA_B2_BUCKET: ${{ secrets.MEDIA_B2_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.MEDIA_B2_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.MEDIA_B2_APPLICATION_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.MEDIA_B2_REGION }}
+      # Backblaze has rejected the checksum headers newer AWS CLI versions send by default.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      PGSSLMODE: require
+    steps:
+      - name: Check the secrets
+        run: |
+          missing=""
+          for name in SUPABASE_DB_URL MEDIA_B2_REGION MEDIA_B2_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            # Secrets pasted into the GitHub form often keep a trailing newline; none of these values
+            # contains whitespace, so later steps get them stripped.
+            value=$(printf '%s' "${!name}" | tr -d '[:space:]')
+            if [ -n "$value" ]; then echo "$name=$value" >> "$GITHUB_ENV"; else missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secrets in the 'media-cleanup' environment:$missing (AWS_* come from MEDIA_B2_KEY_ID and MEDIA_B2_APPLICATION_KEY; see docs/deployment.md)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install the Postgres client
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Delete queued images
+        run: scripts/media-cleanup.sh

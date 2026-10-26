@@ -223,21 +223,55 @@ describe("thread submission and editing", () => {
     assert.equal(count.n, 0);
   });
 
-  test("a moderator editing someone else's pending thread writes a revision without edited_at", async () => {
-    const [edited] = await as<{ title: string; edited_at: Date | null }>(
-      MOD,
-      "update public.threads set title = 'Pending question, curated', category_id = $2 where id = $1 returning title, edited_at",
-      [threads.pending, coursesId()],
+  test("moderators and the superadmin cannot change the title or text of a member's thread", async () => {
+    const authorOnly = (error: Error & { code?: string }) =>
+      error.message === "only the author can change a thread's title and text" && error.code === "42501";
+    for (const actor of [MOD, ADMIN]) {
+      for (const thread of [threads.published, threads.pending, threads.rejected, threads.archived]) {
+        for (const set of ["title = 'Words the author never wrote'", "body = 'Words the author never wrote'"]) {
+          await assert.rejects(as(actor, `update public.threads set ${set} where id = $1`, [thread]), authorOnly, set);
+        }
+      }
+    }
+    await assert.rejects(
+      as(MOD, "update public.threads set title = 'Pending question, curated', city = 'erlangen' where id = $1", [threads.pending]),
+      authorOnly,
     );
-    assert.deepEqual(edited, { title: "Pending question, curated", edited_at: null });
-    const revisions = await as<{ title: string; edited_by: string }>(MOD, "select title, edited_by from public.thread_revisions where thread_id = $1", [threads.pending]);
-    assert.deepEqual(revisions, [{ title: "Pending question from Ayesha", edited_by: ids.mod }]);
+    const [{ n }] = await sql<{ n: number }>("select count(*)::int as n from public.thread_revisions");
+    assert.equal(n, 0);
   });
 
-  test("a moderator editing someone else's published thread is recorded like an author edit", async () => {
-    await as(MOD, "update public.threads set body = 'Bring your Anmeldung and passport' where id = $1", [threads.published]);
-    const revisions = await as<{ body: string; edited_by: string }>(MOD, "select body, edited_by from public.thread_revisions where thread_id = $1", [threads.published]);
-    assert.deepEqual(revisions, [{ body: "Bring your Anmeldung", edited_by: ids.mod }]);
+  test("moderators move a member's thread to another category or city without a revision", async () => {
+    const [jobs] = await sql<{ id: number }>("select id from public.categories where slug = 'jobs'");
+    for (const [actor, thread] of [[MOD, threads.published], [ADMIN, threads.pending], [MOD, threads.rejected]] as const) {
+      const moved = await as(actor, "update public.threads set category_id = $2, city = 'nuremberg' where id = $1 returning id", [thread, jobs.id]);
+      assert.equal(moved.length, 1);
+    }
+    // Repeating the author's words unchanged is no edit, so a form may send them along.
+    await as(MOD, "update public.threads set title = title, body = body, city = 'both' where id = $1", [threads.published]);
+    const rows = await sql<{ category_id: number; city: string; edited_at: Date | null }>(
+      "select category_id, city, edited_at from public.threads where id = any($1::bigint[]) order by id",
+      [[threads.published, threads.pending, threads.rejected]],
+    );
+    assert.deepEqual(rows, [
+      { category_id: jobs.id, city: "both", edited_at: null },
+      { category_id: jobs.id, city: "nuremberg", edited_at: null },
+      { category_id: jobs.id, city: "nuremberg", edited_at: null },
+    ]);
+    const [{ n }] = await sql<{ n: number }>("select count(*)::int as n from public.thread_revisions");
+    assert.equal(n, 0);
+  });
+
+  test("a moderator edits their own thread like any author", async () => {
+    const own = await createThread(ids.mod, "published", "Mensa opening hours during the semester break", "Südmensa opens at noon");
+    const [edited] = await as<{ edited_at: Date | null }>(
+      MOD,
+      "update public.threads set title = 'Mensa opening hours in the semester break', body = 'Südmensa opens at 11' where id = $1 returning edited_at",
+      [own],
+    );
+    assert.ok(edited.edited_at);
+    const revisions = await as(MOD, "select title, body, edited_by from public.thread_revisions where thread_id = $1", [own]);
+    assert.deepEqual(revisions, [{ title: "Mensa opening hours during the semester break", body: "Südmensa opens at noon", edited_by: ids.mod }]);
   });
 });
 
@@ -1180,6 +1214,81 @@ describe("thread votes", () => {
     assert.equal((await unvote(A, threads.otherPublished)).length, 0);
     assert.equal((await as(A, "delete from public.thread_votes where thread_id = $1 returning 1", [threads.otherPublished])).length, 0);
     assert.equal(await score(threads.otherPublished), 1);
+  });
+});
+
+// The full rules, limits and functions are in thread-images.test.ts.
+describe("thread images", () => {
+  const insertImage = (actor: Actor, thread: number) =>
+    as<{ id: number }>(
+      actor,
+      `insert into public.thread_images (thread_id, storage_key, content_type, width, height, size_bytes)
+       values ($1, 'threads/' || gen_random_uuid() || '.webp', 'image/webp', 800, 600, 90000) returning id`,
+      [thread],
+    );
+  const imageThreads = async (actor: Actor) =>
+    (await as<{ thread_id: number }>(actor, "select thread_id from public.thread_images order by thread_id")).map((r) => r.thread_id);
+
+  test("images are visible to exactly those who can read their thread", async () => {
+    for (const thread of [threads.published, threads.pending, threads.rejected]) await insertImage(A, thread);
+    await insertImage(B, threads.otherPublished);
+    const publicThreads = [threads.published, threads.otherPublished].sort((x, y) => x - y);
+    assert.deepEqual(await imageThreads(anon), publicThreads);
+    assert.deepEqual(await imageThreads(B), publicThreads);
+    const all = [threads.published, threads.pending, threads.rejected, threads.otherPublished].sort((x, y) => x - y);
+    assert.deepEqual(await imageThreads(A), all);
+    assert.deepEqual(await imageThreads(MOD), all);
+  });
+
+  test("only the author adds and removes images; other members, moderators, the superadmin and anon do neither", async () => {
+    for (const actor of [B, MOD, ADMIN]) {
+      await assert.rejects(insertImage(actor, threads.published), /only the author can add images to a thread/);
+    }
+    await assert.rejects(insertImage(anon, threads.published), /permission denied for table thread_images/);
+    const [{ id: first }] = await insertImage(A, threads.published);
+    const [{ id: second }] = await insertImage(A, threads.published);
+    for (const actor of [B, MOD, ADMIN]) {
+      assert.equal((await as(actor, "delete from public.thread_images where id = $1 returning id", [first])).length, 0);
+    }
+    await assert.rejects(as(anon, "delete from public.thread_images where id = $1", [first]), /permission denied/);
+    assert.equal((await as(A, "delete from public.thread_images where id = $1 returning id", [first])).length, 1);
+    assert.equal((await as(A, "delete from public.thread_images where id = $1 returning id", [second])).length, 1);
+  });
+
+  test("nobody updates an image or sets its owner", async () => {
+    const [{ id }] = await insertImage(A, threads.published);
+    await assert.rejects(as(A, "update public.thread_images set alt_text = 'Edited' where id = $1", [id]), /permission denied/);
+    await assert.rejects(as(MOD, "update public.thread_images set thread_id = $2 where id = $1", [id, threads.otherPublished]), /permission denied/);
+    await assert.rejects(
+      as(A, "insert into public.thread_images (thread_id, owner_id, storage_key, content_type, width, height, size_bytes) values ($1, $2, 'threads/' || gen_random_uuid() || '.webp', 'image/webp', 800, 600, 90000)", [threads.published, ids.b]),
+      /permission denied for table thread_images/,
+    );
+  });
+});
+
+// Only the image triggers and the nightly cleanup (as postgres) touch the queue.
+describe("media deletions", () => {
+  test("no client reads, writes or empties the queue of deleted image files", async () => {
+    const [{ id }] = await as<{ id: number }>(
+      A,
+      `insert into public.thread_images (thread_id, storage_key, content_type, width, height, size_bytes)
+       values ($1, 'threads/' || gen_random_uuid() || '.webp', 'image/webp', 800, 600, 90000) returning id`,
+      [threads.published],
+    );
+    await as(A, "delete from public.thread_images where id = $1", [id]);
+    const writes = [
+      "select * from public.media_deletions",
+      "insert into public.media_deletions (storage_key, size_bytes, uploaded_at) values ('threads/00000000-0000-4000-8000-000000000000.webp', 1, now())",
+      "update public.media_deletions set uploaded_at = now() - interval '2 days'",
+      "delete from public.media_deletions",
+    ];
+    for (const actor of [anon, A, MOD, ADMIN]) {
+      for (const query of writes) {
+        await assert.rejects(as(actor, query), /permission denied for table media_deletions/, query);
+      }
+    }
+    const [{ n }] = await sql<{ n: number }>("select count(*)::int as n from public.media_deletions");
+    assert.equal(n, 1);
   });
 });
 

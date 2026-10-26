@@ -413,6 +413,38 @@ export type Database = {
           },
         ]
       }
+      media_deletions: {
+        Row: {
+          owner_id: string | null
+          queued_at: string
+          size_bytes: number
+          storage_key: string
+          uploaded_at: string
+        }
+        Insert: {
+          owner_id?: string | null
+          queued_at?: string
+          size_bytes: number
+          storage_key: string
+          uploaded_at: string
+        }
+        Update: {
+          owner_id?: string | null
+          queued_at?: string
+          size_bytes?: number
+          storage_key?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_deletions_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moderation_log: {
         Row: {
           action: Database["public"]["Enums"]["moderation_action"]
@@ -558,6 +590,7 @@ export type Database = {
           announcement_id: number | null
           comment_id: number | null
           created_at: string
+          details: Json | null
           feedback_id: number | null
           id: number
           read_at: string | null
@@ -571,6 +604,7 @@ export type Database = {
           announcement_id?: number | null
           comment_id?: number | null
           created_at?: string
+          details?: Json | null
           feedback_id?: number | null
           id?: never
           read_at?: string | null
@@ -584,6 +618,7 @@ export type Database = {
           announcement_id?: number | null
           comment_id?: number | null
           created_at?: string
+          details?: Json | null
           feedback_id?: number | null
           id?: never
           read_at?: string | null
@@ -891,12 +926,67 @@ export type Database = {
           },
         ]
       }
+      thread_images: {
+        Row: {
+          alt_text: string | null
+          content_type: string
+          created_at: string
+          height: number
+          id: number
+          owner_id: string | null
+          size_bytes: number
+          storage_key: string
+          thread_id: number
+          width: number
+        }
+        Insert: {
+          alt_text?: string | null
+          content_type: string
+          created_at?: string
+          height: number
+          id?: never
+          owner_id?: string | null
+          size_bytes: number
+          storage_key: string
+          thread_id: number
+          width: number
+        }
+        Update: {
+          alt_text?: string | null
+          content_type?: string
+          created_at?: string
+          height?: number
+          id?: never
+          owner_id?: string | null
+          size_bytes?: number
+          storage_key?: string
+          thread_id?: number
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_images_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_images_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       thread_revisions: {
         Row: {
           body: string
           created_at: string
           edited_by: string | null
           id: number
+          image_keys: string[] | null
           reviewed_at: string | null
           reviewed_by: string | null
           thread_id: number
@@ -907,6 +997,7 @@ export type Database = {
           created_at?: string
           edited_by?: string | null
           id?: never
+          image_keys?: string[] | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           thread_id: number
@@ -917,6 +1008,7 @@ export type Database = {
           created_at?: string
           edited_by?: string | null
           id?: never
+          image_keys?: string[] | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           thread_id?: number
@@ -1203,7 +1295,30 @@ export type Database = {
         }
         Returns: number
       }
+      check_image_upload: {
+        Args: {
+          p_bytes: number
+          p_count: number
+          p_removed_ids?: number[]
+          p_thread_id: number | null
+        }
+        Returns: undefined
+      }
+      create_thread_with_images: {
+        Args: {
+          p_body: string
+          p_category_id: number
+          p_city: Database["public"]["Enums"]["city"] | null
+          p_images: Json
+          p_title: string
+        }
+        Returns: string
+      }
       delete_own_account: { Args: never; Returns: undefined }
+      delete_thread: {
+        Args: { p_reason: string; p_thread_id: number }
+        Returns: string[]
+      }
       is_moderator: { Args: never; Returns: boolean }
       is_restricted: {
         Args: {
@@ -1358,6 +1473,7 @@ export type Database = {
         | "user_muted"
         | "user_banned"
         | "user_unrestricted"
+        | "thread_deleted"
       notification_type:
         | "reply"
         | "mention"
@@ -1377,6 +1493,7 @@ export type Database = {
         | "account_banned"
         | "account_unrestricted"
         | "mod_new_feedback"
+        | "thread_deleted"
       report_reason:
         | "spam"
         | "offensive"
@@ -1549,6 +1666,7 @@ export const Constants = {
         "user_muted",
         "user_banned",
         "user_unrestricted",
+        "thread_deleted",
       ],
       notification_type: [
         "reply",
@@ -1569,6 +1687,7 @@ export const Constants = {
         "account_banned",
         "account_unrestricted",
         "mod_new_feedback",
+        "thread_deleted",
       ],
       report_reason: ["spam", "offensive", "wrong_info", "personal_data", "other"],
       report_status: ["open", "resolved", "dismissed"],

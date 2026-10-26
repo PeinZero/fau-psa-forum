@@ -53,6 +53,7 @@ export default async function SignupsPage() {
                   active={restrictions.get(user.id) ?? []}
                   canRestrict={canRestrict(viewer, user)}
                   canBan={viewer.role === "superadmin"}
+                  targetRole={user.role}
                 />
               </div>
             </li>

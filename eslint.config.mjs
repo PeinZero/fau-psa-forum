@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     ".claude/**",
     // The intro film is its own Remotion package with its own checks.
     "video/**",
+    // The media Worker is its own Cloudflare package with its own tsconfig.
+    "workers/**",
   ]),
 ]);
 

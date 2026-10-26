@@ -11,6 +11,7 @@ import {
   type Restriction,
   restrictionStatus,
 } from "@/lib/restrictions";
+import type { UserRole } from "@/lib/auth/viewer";
 
 import { ActionButton } from "./action-button";
 import { liftRestriction, restrictUser } from "./actions";
@@ -24,10 +25,14 @@ type Props = {
   canRestrict: boolean;
   /** Superadmins ban and lift bans. */
   canBan: boolean;
+  /** Moderators and the superadmin are never muted or banned; their role has to be removed first. */
+  targetRole?: UserRole;
 };
 
 /** Active mute/ban badges with Lift, and a Restrict panel asking for kind, duration and reason. */
-export function RestrictControls({ target, name, active, canRestrict, canBan }: Props) {
+export function RestrictControls({ target, name, active, canRestrict: mayRestrict, canBan, targetRole = "member" }: Props) {
+  const isStaff = targetRole !== "member";
+  const canRestrict = mayRestrict && !isStaff;
   const uid = useId();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -52,7 +57,7 @@ export function RestrictControls({ target, name, active, canRestrict, canBan }: 
           <p className="break-words text-meta text-muted">
             <span className="font-medium text-foreground">Reason:</span> {restriction.reason}
           </p>
-          {(restriction.kind === "mute" || canBan) && canRestrict && (
+          {(restriction.kind === "mute" || canBan) && mayRestrict && (
             <ActionButton
               action={liftRestriction}
               fields={{ restrictionId: restriction.id }}
@@ -63,6 +68,10 @@ export function RestrictControls({ target, name, active, canRestrict, canBan }: 
           )}
         </div>
       ))}
+
+      {targetRole === "moderator" && (
+        <p className="text-meta text-muted">Moderators can&apos;t be muted or banned. Remove the role first.</p>
+      )}
 
       {canRestrict && !open && (
         <Button variant="danger" size="sm" onClick={() => setOpen(true)} className="self-start">

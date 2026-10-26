@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "psa-forum-media",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "vars": {
+    "B2_REGION": "eu-central-003",
+    "B2_BUCKET": "psa-fau-community-forum-images"
+  },
+  "env": {
+    "dev": {
+      "name": "psa-forum-media-dev",
+      "workers_dev": true,
+      "vars": {
+        "B2_REGION": "eu-central-003",
+        "B2_BUCKET": "psa-fau-community-forum-images-dev"
+      }
+    }
+  }
+}

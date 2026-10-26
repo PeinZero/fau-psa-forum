@@ -5,6 +5,7 @@ import { getOwnRestriction } from "@/components/restrictions/data";
 import { RestrictionBanner } from "@/components/restrictions/restriction-banner";
 import { SignInCard } from "@/components/sign-in-prompt";
 import { getViewer } from "@/lib/auth/viewer";
+import { imagesEnabled } from "@/lib/media/keys";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-header";
 import { createThreadAction } from "@/components/write/actions";
@@ -42,6 +43,7 @@ async function NewThread() {
           pendingLabel="Submitting…"
           suggestSimilar
           footnote="A moderator reviews new threads before they go public. Until then only you and moderators can see it; up to 3 can wait at once."
+          images={imagesEnabled() ? { existing: [] } : undefined}
           action={createThreadAction}
         />
       </div>

@@ -49,26 +49,45 @@ export function NotificationLink({
   children,
 }: {
   id: number;
-  href: string;
+  /** Omitted when there is nothing to open; the row then only marks itself read. */
+  href?: string;
   unread: boolean;
   className?: string;
   children: ReactNode;
 }) {
   const [opened, setOpened] = useState(false);
+  const onClick = () => {
+    if (!unread || opened) return;
+    setOpened(true);
+    void markNotificationRead(id).then((result) => {
+      if (result?.ok) announceNotificationsChanged();
+      else setOpened(false);
+    });
+  };
+  const dataUnread = unread && !opened ? "" : undefined;
+
+  if (href === undefined) {
+    // Nothing to open, so an unread row is itself the control that marks it read.
+    const markable = dataUnread !== undefined;
+    return (
+      <div
+        className={className}
+        data-unread={dataUnread}
+        onClick={onClick}
+        role={markable ? "button" : undefined}
+        tabIndex={markable ? 0 : undefined}
+        onKeyDown={(event) => {
+          if (!markable || (event.key !== "Enter" && event.key !== " ")) return;
+          event.preventDefault();
+          onClick();
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
   return (
-    <Link
-      href={href}
-      className={className}
-      data-unread={unread && !opened ? "" : undefined}
-      onClick={() => {
-        if (!unread || opened) return;
-        setOpened(true);
-        void markNotificationRead(id).then((result) => {
-          if (result?.ok) announceNotificationsChanged();
-          else setOpened(false);
-        });
-      }}
-    >
+    <Link href={href} className={className} data-unread={dataUnread} onClick={onClick}>
       {children}
     </Link>
   );

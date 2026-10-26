@@ -214,6 +214,11 @@ export default function PrivacyPage() {
               threads, which moderators review. Published posts are public, with your name.
             </li>
             <li>
+              <strong>Images</strong> you attach to a thread, with the descriptions you add. Your browser
+              shrinks them before uploading, which also removes location and camera details. They are
+              public whenever the thread is.
+            </li>
+            <li>
               <strong>Votes</strong>: the totals are public; who voted is visible only to you.
             </li>
             <li>
@@ -241,9 +246,9 @@ export default function PrivacyPage() {
 
         <LegalSubsection title="Moderation and abuse prevention">
           <p>
-            When moderators approve, reject or archive threads, hide comments, handle reports, or mute or
-            ban an account, we keep a
-            moderation log entry with who did it, to whom, and the reason. Restrictions on an account
+            When moderators approve, reject, archive or delete threads, hide comments, handle reports, or
+            mute or ban an account, we keep a moderation log entry with who did it, to whom, and the
+            reason; for a deleted thread the entry keeps its title. Restrictions on an account
             are stored with their reason. To limit spam, the forum counts how many posts, votes and
             reports an account made recently; this uses the posts themselves and stores nothing extra.
           </p>
@@ -301,11 +306,13 @@ export default function PrivacyPage() {
             .
           </p>
         </LegalSubsection>
-        <LegalSubsection title="Cloudflare (bot check on the sign-in page)">
+        <LegalSubsection title="Cloudflare (bot check on the sign-in page, image delivery)">
           <p>
             Cloudflare, Inc., 101 Townsend St., San Francisco, CA 94107, USA. Cloudflare runs the bot
             check for us. It also uses the same data as its own controller to improve its bot detection,
             and states that the purpose is not to identify, profile or target individuals. Cloudflare
+            also delivers the images in threads: when you open a thread with images, your browser loads
+            them from Cloudflare, which processes your IP address and browser details for us. Cloudflare
             states that it is certified under the EU-US Data Privacy Framework (Art. 45 GDPR); its data
             processing agreement also includes the EU Standard Contractual Clauses.{" "}
             <a href="https://www.cloudflare.com/privacypolicy/" className={legalLinkClass}>
@@ -318,11 +325,12 @@ export default function PrivacyPage() {
             .
           </p>
         </LegalSubsection>
-        <LegalSubsection title="Backblaze (backups)">
+        <LegalSubsection title="Backblaze (backups and images)">
           <p>
             Backblaze, Inc., 2261 Market Street STE 81006, San Francisco, CA 94114, USA. Backblaze stores
-            our encrypted database backups in a private bucket in Amsterdam, Netherlands (region EU
-            Central). It cannot read them, because they are encrypted before they are uploaded.
+            our encrypted database backups and the images attached to threads in private buckets in
+            Amsterdam, Netherlands (region EU Central). It cannot read the backups, because they are
+            encrypted before they are uploaded.
             Backblaze states that it is certified under the EU-US Data Privacy Framework (Art. 45 GDPR);
             its data processing agreement also includes the EU Standard Contractual Clauses.{" "}
             <a href="https://www.backblaze.com/company/policy/privacy" className={legalLinkClass}>
@@ -401,10 +409,16 @@ export default function PrivacyPage() {
             <strong>When you delete your account</strong>, we immediately delete your sign-in data,
             profile, votes, bookmarks, followed threads, guide progress, notifications, notification
             settings, moderator applications, reputation and account restrictions. Your published
-            threads and comments stay, so that answers others rely on and the replies to them still make
-            sense, but they are no longer linked to you and show “Deleted user” instead of your name.
+            threads (with their images) and comments stay, so that answers others rely on and the
+            replies to them still make sense, but they are no longer linked to you and show “Deleted
+            user” instead of your name.
             Reports, update requests, feedback and moderation log entries are kept without the link to
             your account. If you also want posts removed, send us their links.
+          </li>
+          <li>
+            <strong>Images</strong>: as long as their thread. An image you remove, or the images of a
+            thread a moderator deletes, are deleted from storage at once; copies cached by Cloudflare or
+            your browser expire within a day.
           </li>
           <li>
             <strong>Feedback</strong>: until we have dealt with it.

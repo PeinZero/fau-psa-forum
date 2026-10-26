@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   cacheComponents: true,
   partialPrefetching: true,
+  // A thread carries up to 3 compressed images of at most 1 MB each; Vercel caps requests at 4.5 MB.
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
   async redirects() {
     return [
       { source: "/datenschutz", destination: "/privacy", permanent: false },

@@ -2,7 +2,7 @@
 // notifications the member receives.
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { A, B, MOD, ADMIN, anon, as, categories, comments, createUser, ids, setupDatabase, sql, threads } from "./harness.mjs";
+import { A, B, MOD, ADMIN, anon, as, categories, comments, createUser, ids, member, setupDatabase, sql, threads } from "./harness.mjs";
 
 setupDatabase();
 
@@ -108,7 +108,7 @@ describe("a banned member", () => {
 
   test("moderators still moderate a banned member's content", async () => {
     await restrict(ADMIN, ids.a, "ban", "Harassment");
-    await as(MOD, "update public.threads set title = 'How do I extend my residence permit quickly?' where id = $1", [threads.published]);
+    await as(MOD, "update public.threads set city = 'erlangen', is_outdated = true where id = $1", [threads.published]);
     await as(MOD, "update public.comments set hidden_at = now() where id = $1", [comments.onOther]);
   });
 
@@ -138,22 +138,54 @@ describe("who may restrict whom", () => {
     await assert.rejects(as(anon, "select public.restrict_user($1, 'mute', 'x')", [ids.a]), /permission denied/);
   });
 
-  test("nobody restricts themselves or the superadmin", async () => {
+  test("nobody restricts themselves", async () => {
     await assert.rejects(restrict(MOD, ids.mod, "mute"), /you cannot restrict yourself/);
     await assert.rejects(restrict(ADMIN, ids.admin, "ban"), /you cannot restrict yourself/);
-    await assert.rejects(restrict(MOD, ids.admin, "mute"), /the superadmin cannot be restricted/);
-    const second = await createUser("cofounder@example.com", { full_name: "Co Founder" });
-    await sql("update public.profiles set role = 'superadmin' where id = $1", [second]);
-    await assert.rejects(restrict(ADMIN, second, "ban"), /the superadmin cannot be restricted/);
   });
 
-  test("moderators cannot restrict other moderators; the superadmin can", async () => {
-    const other = await createUser("mod2@example.com", { full_name: "Second Mod" });
-    await sql("update public.profiles set role = 'moderator' where id = $1", [other]);
-    await assert.rejects(restrict(MOD, other, "mute"), /only the superadmin can restrict moderators/);
-    const id = await restrict(ADMIN, other, "mute");
-    await assert.rejects(lift(MOD, id), /only the superadmin can restrict moderators/);
+  test("moderators and superadmins are never muted or banned, not even by the superadmin", async () => {
+    const otherMod = await createUser("hamza.mod@example.com", { full_name: "Hamza Mod" });
+    const cofounder = await createUser("cofounder@example.com", { full_name: "Co Founder" });
+    await sql("update public.profiles set role = 'moderator' where id = $1", [otherMod]);
+    await sql("update public.profiles set role = 'superadmin' where id = $1", [cofounder]);
+
+    const attempts: [Actor, string, "mute" | "ban"][] = [
+      [ADMIN, ids.mod, "mute"],
+      [ADMIN, ids.mod, "ban"],
+      [ADMIN, cofounder, "mute"],
+      [ADMIN, cofounder, "ban"],
+      [MOD, otherMod, "mute"],
+      [MOD, ids.admin, "mute"],
+    ];
+    for (const [actor, target, kind] of attempts) {
+      await assert.rejects(restrict(actor, target, kind, "Deleted threads without asking"), (error: Error & { code?: string }) => {
+        assert.equal(error.message, "moderators cannot be muted or banned; remove the moderator role first");
+        assert.equal(error.code, "42501");
+        return true;
+      });
+    }
+    // Banning stays the superadmin's call, whoever the target is.
+    await assert.rejects(restrict(MOD, otherMod, "ban"), /only the superadmin can ban accounts/);
+
+    const touched = [ids.mod, ids.admin, otherMod, cofounder];
+    assert.equal((await sql("select 1 from public.user_restrictions where user_id = any($1::uuid[])", [touched])).length, 0);
+    assert.equal((await sql("select 1 from public.notifications where type::text like 'account_%'")).length, 0);
+  });
+
+  test("a moderator muted before the rule stays muted until the superadmin lifts it", async () => {
+    const [{ id }] = await sql<{ id: number }>(
+      "insert into public.user_restrictions (user_id, kind, reason, created_by) values ($1, 'mute', 'Rude replies', $2) returning id",
+      [ids.mod, ids.admin],
+    );
+    await assert.rejects(
+      as(MOD, "insert into public.comments (thread_id, body) values ($1, 'hello')", [threads.published]),
+      /your account is muted: Rude replies/,
+    );
+    const otherMod = await createUser("hamza.mod@example.com", { full_name: "Hamza Mod" });
+    await sql("update public.profiles set role = 'moderator' where id = $1", [otherMod]);
+    await assert.rejects(lift(member(otherMod), id), /only the superadmin can restrict moderators/);
     await lift(ADMIN, id);
+    await as(MOD, "insert into public.comments (thread_id, body) values ($1, 'hello again')", [threads.published]);
   });
 
   test("a reason is required and durations must be positive", async () => {
@@ -189,6 +221,66 @@ describe("who may restrict whom", () => {
       [id],
     );
     assert.deepEqual(row, { lifted_by: ids.mod, lifted: true });
+  });
+});
+
+describe("making a restricted member a moderator", () => {
+  const PROMOTION_REFUSED = "lift the mute or ban before making this member a moderator";
+  const setRole = (target: string, role: string) => as(ADMIN, "select public.set_user_role($1, $2)", [target, role]);
+  const roleOf = async (user: string) =>
+    (await sql<{ role: string }>("select role from public.profiles where id = $1", [user]))[0].role;
+  const refused = (error: Error & { code?: string }) => {
+    assert.equal(error.message, PROMOTION_REFUSED);
+    assert.equal(error.code, "P0001");
+    return true;
+  };
+
+  test("is refused while muted or banned, and works once it is lifted", async () => {
+    const mute = await restrict(MOD, ids.a, "mute", "Posting spam", "7 days");
+    await assert.rejects(setRole(ids.a, "moderator"), refused);
+    await assert.rejects(setRole(ids.a, "superadmin"), refused);
+    assert.equal(await roleOf(ids.a), "member");
+    await lift(MOD, mute);
+    await setRole(ids.a, "moderator");
+    assert.equal(await roleOf(ids.a), "moderator");
+
+    const ban = await restrict(ADMIN, ids.b, "ban", "Harassment");
+    await assert.rejects(setRole(ids.b, "moderator"), refused);
+    assert.equal(await roleOf(ids.b), "member");
+    await lift(ADMIN, ban);
+    await setRole(ids.b, "moderator");
+    assert.equal(await roleOf(ids.b), "moderator");
+  });
+
+  test("an ended restriction does not stand in the way", async () => {
+    await expired(ids.a, "ban");
+    await setRole(ids.a, "moderator");
+    assert.equal(await roleOf(ids.a), "moderator");
+  });
+
+  test("an application from a member muted after applying cannot be approved until the mute is lifted", async () => {
+    const [{ id: application }] = await as<{ id: number }>(
+      A, "insert into public.moderator_applications (motivation) values ('I help new students with their Anmeldung') returning id",
+    );
+    const mute = await restrict(MOD, ids.a, "mute");
+    await assert.rejects(as(MOD, "select public.review_moderator_application($1, 'approved')", [application]), refused);
+    const [{ status }] = await sql<{ status: string }>("select status from public.moderator_applications where id = $1", [application]);
+    assert.equal(status, "pending");
+    assert.equal(await roleOf(ids.a), "member");
+
+    await lift(MOD, mute);
+    await as(MOD, "select public.review_moderator_application($1, 'approved')", [application]);
+    assert.equal(await roleOf(ids.a), "moderator");
+  });
+
+  test("a moderator restricted before the rule can still be removed, but not promoted further", async () => {
+    await sql(
+      "insert into public.user_restrictions (user_id, kind, reason, created_by) values ($1, 'ban', 'Leaked a member''s address', $2)",
+      [ids.mod, ids.admin],
+    );
+    await assert.rejects(setRole(ids.mod, "superadmin"), refused);
+    await setRole(ids.mod, "member");
+    assert.equal(await roleOf(ids.mod), "member");
   });
 });
 

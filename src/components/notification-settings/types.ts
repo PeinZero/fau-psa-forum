@@ -20,6 +20,7 @@ export const NOTIFICATION_GROUPS: NotificationGroup[] = [
     options: [
       { type: "thread_approved", label: "Thread approved", description: "A moderator publishes your thread." },
       { type: "thread_rejected", label: "Thread rejected", description: "A moderator declines your thread." },
+      { type: "thread_deleted", label: "Thread deleted", description: "A moderator deletes your thread." },
       { type: "application_approved", label: "Moderator application approved", description: "Your moderator application is accepted." },
       { type: "application_rejected", label: "Moderator application declined", description: "Your moderator application is not accepted." },
       { type: "announcement", label: "Announcements", description: "News from the PSA team." },

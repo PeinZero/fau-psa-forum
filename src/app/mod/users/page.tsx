@@ -54,7 +54,7 @@ export default async function UsersPage({ searchParams }: Props) {
         </div>
         <p className="text-meta text-subtle">
           {isSuperadmin
-            ? "The last superadmin can't be demoted. Only you can ban or restrict moderators."
+            ? "The last superadmin can't be demoted. Moderators can't be muted or banned; remove the role first."
             : "Moderators mute members; the superadmin bans and changes roles."}
         </p>
       </Form>
@@ -91,6 +91,7 @@ export default async function UsersPage({ searchParams }: Props) {
                   active={restrictions.get(user.id) ?? []}
                   canRestrict={canRestrict(viewer, user)}
                   canBan={isSuperadmin}
+                  targetRole={user.role}
                 />
               </li>
             ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Bookmark, FileClock, Flag, Link2, Pencil } from "lucide-react";
+import { Bell, Bookmark, FileClock, Flag, FolderInput, Link2, Pencil } from "lucide-react";
 import { useState } from "react";
 
 import { BookmarkButton, FollowingIndicator } from "@/components/bookmarks/bookmark-button";
@@ -22,6 +22,7 @@ export function ThreadMenu({
   slug,
   saved,
   canEdit = false,
+  canMove = false,
   canReport = false,
   canRequestUpdate = false,
   isMod = false,
@@ -33,6 +34,8 @@ export function ThreadMenu({
   /** The viewer's bookmark and follow state; absent for visitors who are not signed in. */
   saved?: SavedState;
   canEdit?: boolean;
+  /** Moderators can only move someone else's thread; the author edits it. */
+  canMove?: boolean;
   canReport?: boolean;
   canRequestUpdate?: boolean;
   isMod?: boolean;
@@ -57,6 +60,7 @@ export function ThreadMenu({
         busy={pending}
         items={[
           canEdit && { label: "Edit", icon: Pencil, href: `/t/${slug}/edit` },
+          !canEdit && canMove && { label: "Move", icon: FolderInput, href: `/t/${slug}/edit` },
           { label: "Copy link", icon: Link2, onSelect: () => copyLink(`/t/${slug}`) },
           saved && { label: "Bookmark", icon: Bookmark, checked: bookmarked, onSelect: () => savedState.toggle("bookmarked") },
           saved && { label: "Follow thread", icon: Bell, checked: following, onSelect: () => savedState.toggle("following") },

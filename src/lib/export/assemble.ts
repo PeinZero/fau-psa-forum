@@ -4,6 +4,7 @@ export type SectionResult = { data: unknown; error: unknown };
 
 export const SECTION_KEYS = [
   "threads",
+  "images",
   "comments",
   "votes",
   "bookmarks",
@@ -46,6 +47,7 @@ export function assembleExport({ now, email, profile, sections }: ExportInput) {
     exportedAt: now.toISOString(),
     profile: profileSection(profile, email),
     threads: section(sections.threads),
+    images: section(sections.images),
     comments: section(sections.comments),
     votes: section(sections.votes),
     bookmarks: section(sections.bookmarks),

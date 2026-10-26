@@ -35,6 +35,13 @@ describe("assembleExport", () => {
     expect(out.votes).toEqual([{ comment_id: 1, value: 1 }]);
   });
 
+  it("includes the member's images next to their threads", () => {
+    const image = { id: 3, thread_id: 9, url: "https://media.example/threads/x.webp", alt_text: null };
+    const out = assembleExport({ now, email: null, profile, sections: { ...sections, images: ok([image]) } });
+    expect(out.images).toEqual([image]);
+    expect(Object.keys(out).indexOf("images")).toBe(Object.keys(out).indexOf("threads") + 1);
+  });
+
   it("marks a failed profile and its derived field unavailable", () => {
     const out = assembleExport({ now, email: null, profile: { data: null, error: {} }, sections });
     expect(out.profile).toBe(UNAVAILABLE);

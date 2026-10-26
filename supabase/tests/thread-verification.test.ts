@@ -69,13 +69,21 @@ describe("verification after edits", () => {
     });
   }
 
-  test("a moderator's edit keeps the verification", async () => {
+  test("a moderator moving the thread keeps the verification", async () => {
     await as(MOD, "select public.mark_thread_verified($1)", [threads.published]);
-    await as(MOD, "update public.threads set body = 'Bring your Anmeldung and passport' where id = $1", [threads.published]);
+    await as(MOD, "update public.threads set city = 'nuremberg' where id = $1", [threads.published]);
     const row = await verification();
     assert.ok(row.last_verified_at);
     assert.equal(row.verified_by, ids.mod);
     assert.deepEqual(await verifiedInSearch(), [threads.published]);
+  });
+
+  test("a moderator editing their own thread keeps its verification", async () => {
+    const own = await createThread(ids.mod, "published", "Where to renew the Deutschlandticket?");
+    await as(MOD, "select public.mark_thread_verified($1)", [own]);
+    await as(MOD, "update public.threads set body = 'At the VAG customer centre' where id = $1", [own]);
+    const [row] = await sql<{ verified_by: string | null }>("select verified_by from public.threads where id = $1", [own]);
+    assert.equal(row.verified_by, ids.mod);
   });
 
   test("an author's edit of other columns keeps the verification", async () => {

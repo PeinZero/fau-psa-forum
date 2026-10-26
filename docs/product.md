@@ -19,11 +19,13 @@ Decisions agreed with the owner. Read before any user-facing feature. What exist
 ## Posting and approval
 - A member's thread is public only after a moderator approves it; rejections carry a reason. Moderators' and superadmins' own threads publish at once with no pending cap.
 - Threads have a category and an optional city (Erlangen, Nuremberg, both).
-- Authors may edit after approval; edits go live and show in the moderators' edit review. Moderators may edit any thread's title, body, category and city to keep it current; non-author edits are kept as revisions. Moderators hide comments but never rewrite them, and a hidden comment can no longer be edited by its author.
+- Authors may edit after approval; edits go live and show in the moderators' edit review.
+- Moderators never change what other members wrote: not a thread's title, text or images, not a comment. On someone else's thread they approve, reject, archive, pin, mark outdated or verified, move it to another category or city, and delete it (the author is notified with the reason, which is also kept in the moderation log). Comments they hide, never rewrite, and a hidden comment can no longer be edited by its author. On their own threads they are authors like anyone else.
+- Images: up to 3 per thread, never in comments, shown as a gallery under the text. Only the author adds or removes them, whenever they may edit the thread, also after approval; an image that breaks the rules means rejecting or deleting the thread. The browser shrinks them (WebP or JPEG, longest side 1600 px) before upload, which drops location data. They stay with the thread when its author deletes the account.
 - Outdated: banner, thread stays open. Archived: read-only, hidden from lists, still linkable. One best answer per thread, chosen by a moderator, always pinned above the comment sort.
 - Verified: moderators mark a thread still accurate; members can request an update; threads unverified for 6+ months get a soft hint.
 - Votes: one per user, never on own content; scores are public, voters private; no vote notifications. Reputation: +1 upvote, -1 downvote, +15 best answer.
-- Mutes and bans are visible to the member with reason and end date.
+- Mutes and bans are visible to the member with reason and end date. Moderators and superadmins are never muted or banned: a moderator who misuses the role loses it first, and a muted or banned member can't be made a moderator.
 - Account deletion keeps threads and comments as "Deleted user".
 
 ## Other decisions

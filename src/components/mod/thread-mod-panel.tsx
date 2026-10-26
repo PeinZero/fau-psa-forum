@@ -1,10 +1,10 @@
-import { Archive, ArchiveRestore, CircleCheck, CircleX, Pin, PinOff, ShieldCheck, TriangleAlert } from "lucide-react";
+import { Archive, ArchiveRestore, CircleCheck, CircleX, Pin, PinOff, ShieldCheck, Trash2, TriangleAlert } from "lucide-react";
 
 import type { RunAction } from "@/components/thread/menu-action";
 import type { MenuEntry } from "@/components/ui/dropdown-menu";
 import type { ReasonPreset } from "@/components/ui/reason-field";
 
-import { markThreadVerified, moderateThread } from "./actions";
+import { deleteThread, markThreadVerified, moderateThread } from "./actions";
 import { muteAuthorItem, type MutableAuthor } from "./mute-author";
 
 export type ModThread = {
@@ -65,6 +65,18 @@ export function threadModItems(
       label: "Unarchive",
       icon: ArchiveRestore,
       onSelect: () => op("unarchive"),
+    },
+    "separator",
+    {
+      label: "Delete thread",
+      icon: Trash2,
+      danger: true,
+      confirm: {
+        message: "The thread, its comments and images are deleted for good. The reason is kept in the moderation log.",
+        action: "Delete thread",
+        reason: { label: "Reason for deletion", max: 1000 },
+      },
+      onSelect: ({ reason }) => run(deleteThread, { threadId: id, reason }),
     },
     author && "separator",
     author && muteAuthorItem(author, run),
