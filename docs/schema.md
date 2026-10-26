@@ -135,12 +135,12 @@ Rejected threads are deleted once `greatest(created_at, reviewed_at, edited_at)`
 
 ## Notifications
 
-Types: `reply`, `mention`, `thread_comment`, `followed_thread_activity`, `thread_approved`, `thread_rejected`, `best_answer`, `application_approved`, `application_rejected`, `announcement`, `account_muted`, `account_banned`, `account_unrestricted`, `thread_deleted`, and moderator queue types `mod_new_thread`, `mod_new_application`, `mod_new_report`, `mod_new_update_request`, `mod_new_feedback`.
+Types: `reply`, `mention`, `thread_comment`, `followed_thread_activity`, `thread_approved`, `thread_rejected`, `best_answer`, `application_approved`, `application_rejected`, `announcement`, `account_muted`, `account_banned`, `account_unrestricted`, `thread_deleted`, and moderator queue types `mod_new_thread`, `mod_new_application`, `mod_new_report`, `mod_new_update_request`, `mod_new_feedback`, `mod_thread_edited`.
 
 - Only `security definer` triggers and functions insert; the actor is never notified; nothing is sent about content the recipient cannot read.
 - `thread_deleted` goes to the author when a moderator or the superadmin deletes their thread (not when they delete their own, not to a deleted account). The thread is gone, so `thread_id` is null and `details` is `{title, reason}`; `actor_id` is the moderator.
 - A comment sends at most one notification per recipient: reply beats mention beats thread_comment beats followed_thread_activity (muted types fall through to the next).
-- Hiding a comment deletes its notifications. Moderator queue items go to every moderator and superadmin except the actor. Announcements go to every other user.
+- Hiding a comment deletes its notifications. Moderator queue items go to every moderator and superadmin except the actor. `mod_thread_edited` comes with a thread's first unreviewed revision only, so one notice per thread until its edits are reviewed. Announcements go to every other user.
 - `notifications` is in the `supabase_realtime` publication; RLS decides what each subscriber receives. Index `(recipient_id, read_at, created_at desc)` serves the bell.
 - Email copies are not sent; `email_frequency` is stored only.
 

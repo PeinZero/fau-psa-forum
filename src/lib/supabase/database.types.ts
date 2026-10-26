@@ -1496,6 +1496,7 @@ export type Database = {
         | "account_unrestricted"
         | "mod_new_feedback"
         | "thread_deleted"
+        | "mod_thread_edited"
       report_reason:
         | "spam"
         | "offensive"
@@ -1690,6 +1691,7 @@ export const Constants = {
         "account_unrestricted",
         "mod_new_feedback",
         "thread_deleted",
+        "mod_thread_edited",
       ],
       report_reason: ["spam", "offensive", "wrong_info", "personal_data", "other"],
       report_status: ["open", "resolved", "dismissed"],
