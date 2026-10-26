@@ -7,6 +7,7 @@ import {
   CircleCheck,
   CircleX,
   FileClock,
+  FilePenLine,
   Flag,
   Inbox,
   Megaphone,
@@ -24,7 +25,6 @@ import {
 import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
 
-import { announcementHref } from "@/components/announcements/data";
 import { Avatar } from "@/components/author";
 import { SignInRequired } from "@/components/auth/sign-in-required";
 import { Quoted } from "@/components/notifications/quoted";
@@ -43,6 +43,7 @@ import { requestNow } from "@/lib/request-time";
 import { relativeTime } from "@/lib/time";
 import { MarkAllReadButton, NotificationLink } from "./controls";
 import { groupByDay } from "./group";
+import { target } from "./target";
 
 export const metadata: Metadata = { title: "Notifications" };
 
@@ -95,6 +96,7 @@ const icons: Record<NotificationType, LucideIcon> = {
   account_banned: Ban,
   account_unrestricted: Volume2,
   mod_new_feedback: MessageSquareText,
+  mod_thread_edited: FilePenLine,
 };
 
 // Decisions and announcements come from the moderation team as a whole, so they show no moderator's name.
@@ -161,6 +163,8 @@ function sentence(n: NotificationRow): ReactNode {
       );
     case "mod_new_update_request":
       return <>{actor} asked for an update of {title}</>;
+    case "mod_thread_edited":
+      return <>{actor} edited {title}, waiting for review</>;
     case "account_muted":
     case "account_banned": {
       const r = n.restriction;
@@ -188,35 +192,6 @@ function sentence(n: NotificationRow): ReactNode {
         <>The mute on your account was lifted. You can post again</>
       );
   }
-}
-
-/** A deleted thread leaves nothing to open. */
-function target(n: NotificationRow): string | undefined {
-  switch (n.type) {
-    case "thread_deleted":
-      return undefined;
-    case "mod_new_thread":
-      return "/mod/threads";
-    case "mod_new_application":
-      return "/mod/applications";
-    case "mod_new_report":
-      return "/mod/reports";
-    case "mod_new_update_request":
-      return "/mod/updates";
-    case "mod_new_feedback":
-      return "/mod/feedback";
-    case "application_approved":
-      return "/mod";
-    case "application_rejected":
-    case "account_muted":
-    case "account_banned":
-    case "account_unrestricted":
-      return "/account";
-    case "announcement":
-      return n.announcement ? announcementHref(n.announcement.id) : "/announcements";
-  }
-  if (!n.thread) return "/account";
-  return n.comment_id ? `/t/${n.thread.slug}#comment-${n.comment_id}` : `/t/${n.thread.slug}`;
 }
 
 function NotificationItem({ n, index, now }: { n: NotificationRow; index: number; now: number }) {
