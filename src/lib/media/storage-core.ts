@@ -46,9 +46,11 @@ export function createMediaStorage(config: MediaStorageConfig, fetchImpl: typeof
 
   async function send(method: "PUT" | "DELETE", key: string, init: RequestInit = {}) {
     if (!isImageKey(key)) throw new MediaStorageError("Refusing to touch an unexpected storage key.");
-    const request = await client.sign(urlFor(key), { ...init, method });
+    const signed = await client.sign(urlFor(key), { ...init, method });
     try {
-      return await fetchImpl(request);
+      // Sent with the original bytes rather than the signed Request: a Request's body is a stream of
+      // unknown length, so Node would send it chunked, and Backblaze refuses uploads without Content-Length.
+      return await fetchImpl(signed.url, { method, headers: signed.headers, body: init.body });
     } catch {
       throw new MediaStorageError(`Storage ${method} request failed.`);
     }

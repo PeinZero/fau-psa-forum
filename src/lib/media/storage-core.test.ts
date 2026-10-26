@@ -7,8 +7,8 @@ const KEY2 = "threads/1b9a1f5e-3c1d-4a7e-8b2f-5d6c7e8f9a0b.jpg";
 
 function setup(status: number | ((req: Request) => number) = 200) {
   const calls: Request[] = [];
-  const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
-    const req = input as Request;
+  const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const req = new Request(input, init);
     calls.push(req);
     return new Response(null, { status: typeof status === "function" ? status(req) : status });
   }) as unknown as typeof fetch;
@@ -26,6 +26,16 @@ describe("put", () => {
     expect(req.headers.get("Content-Type")).toBe("image/webp");
     expect([...req.headers.keys()].some((h) => h.startsWith("x-amz-checksum"))).toBe(false);
     expect(new Uint8Array(await req.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("sends the bytes themselves, so the upload has a known Content-Length", async () => {
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 200 })) as unknown as typeof fetch;
+    const bytes = new Uint8Array([1, 2, 3]);
+    await createMediaStorage(config, fetchImpl).put(KEY, bytes, "image/webp");
+    const [url, init] = vi.mocked(fetchImpl).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`https://s3.eu-central-003.backblazeb2.com/test-bucket/${KEY}`);
+    expect(init.body).toBe(bytes);
+    expect(init.body).not.toBeInstanceOf(ReadableStream);
   });
 
   it("signs the real payload hash instead of UNSIGNED-PAYLOAD", async () => {
