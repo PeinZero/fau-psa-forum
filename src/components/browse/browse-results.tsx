@@ -6,6 +6,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 
 import { browseHref, browseParams, type BrowseState } from "./params";
+import { requestNow } from "@/lib/request-time";
 
 /** One page of the ranked list with its total; reads cookies, so render inside <Suspense>. */
 export async function BrowseResults({
@@ -23,6 +24,7 @@ export async function BrowseResults({
   emptyText: string;
   emptyDescription: string;
 }) {
+  const now = await requestNow();
   const filters = {
     period: state.sort === "top" ? state.period : undefined,
     categoryId,
@@ -53,7 +55,7 @@ export async function BrowseResults({
         )}
       </h2>
       {state.q && threads.length === 0 ? (
-        <ThreadList
+        <ThreadList now={now}
           threads={threads}
           emptyText={`No threads match “${state.q}”`}
           emptyDescription="Try fewer words, or the German term as well as the English one."
@@ -65,7 +67,7 @@ export async function BrowseResults({
           }
         />
       ) : total > 0 && threads.length === 0 ? (
-        <ThreadList
+        <ThreadList now={now}
           threads={threads}
           emptyText="This page is empty"
           emptyDescription="The list is shorter than this page number."
@@ -76,7 +78,7 @@ export async function BrowseResults({
           }
         />
       ) : (
-        <ThreadList
+        <ThreadList now={now}
           threads={threads}
           hideCategory={hideCategory}
           emptyText={emptyText}

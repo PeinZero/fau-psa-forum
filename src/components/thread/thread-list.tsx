@@ -88,6 +88,8 @@ export type ThreadListProps = {
   hideCategory?: boolean;
   /** On a profile every row would repeat the same author. */
   hideAuthor?: boolean;
+  /** The request's clock (`requestNow()`), so "2 hr. ago" never reads the clock while prerendering. */
+  now: number;
 };
 
 const askAction = (
@@ -104,6 +106,7 @@ export function ThreadList({
   emptyAction = askAction,
   hideCategory = false,
   hideAuthor = false,
+  now,
 }: ThreadListProps) {
   if (threads.length === 0) {
     return (
@@ -116,16 +119,12 @@ export function ThreadList({
   return (
     <ThreadRows>
       {threads.map((thread, i) => (
-        <ThreadRow key={thread.id} thread={thread} index={i} hideCategory={hideCategory} hideAuthor={hideAuthor} />
+        <ThreadRow key={thread.id} thread={thread} index={i} hideCategory={hideCategory} hideAuthor={hideAuthor} now={now} />
       ))}
     </ThreadRows>
   );
 }
 
-/** Server components render once per request, so reading the clock here cannot drift between renders. */
-function sinceNow(iso: string): string {
-  return relativeTime(iso, Date.now());
-}
 
 // Rows bleed into the gutter so their hover fill lines up with the text above and below the list.
 const listFrame = "-mx-3 flex flex-col divide-y divide-border sm:-mx-4";
@@ -158,6 +157,8 @@ export type ThreadRowProps = {
   highlight?: string;
   /** Replaces `thread.excerpt`, e.g. with a search snippet around the match. */
   excerpt?: string;
+  /** The request's clock (`requestNow()`). */
+  now: number;
 };
 
 /**
@@ -171,6 +172,7 @@ export function ThreadRow({
   hideAuthor = false,
   highlight,
   excerpt,
+  now,
 }: ThreadRowProps) {
   const author = thread.author?.display_name ?? "Deleted user";
   const username = thread.author?.username;
@@ -233,7 +235,7 @@ export function ThreadRow({
               title={formatDate(thread.created_at)}
               className="shrink-0 whitespace-nowrap"
             >
-              {sinceNow(thread.created_at)}
+              {relativeTime(thread.created_at, now)}
             </time>
           </p>
           <RowStats score={thread.score} comments={thread.comment_count} />

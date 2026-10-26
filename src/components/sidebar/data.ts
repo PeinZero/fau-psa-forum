@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
+import { requestNow } from "@/lib/request-time";
 import { createClient } from "@/lib/supabase/server";
 
 import { mergeLatestAnnouncements } from "./announcements";
@@ -18,6 +19,6 @@ export const fetchLatestAnnouncements = cache(async () => {
   ]);
   return {
     items: mergeLatestAnnouncements(pinned.data?.[0], recent.data ?? [], RECENT_LIMIT),
-    fetchedAt: Date.now(),
+    fetchedAt: await requestNow(),
   };
 });

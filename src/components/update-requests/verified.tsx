@@ -16,15 +16,18 @@ export function VerifiedBadge({ at }: { at: string }) {
 
 const STALE_MONTHS = 6;
 
-type VerifiableThread = { status: string; created_at: string; last_verified_at: string | null };
+export type VerifiableThread = { status: string; created_at: string; last_verified_at: string | null };
 
 /**
  * Bureaucracy answers (residence permits, Anmeldung, insurance) drift over time, so older published
  * threads that nobody has re-checked get a soft hint. Distinct from the moderators' Outdated flag.
  */
-export function needsVerificationHint({ status, created_at, last_verified_at }: VerifiableThread): boolean {
+export function needsVerificationHint(
+  { status, created_at, last_verified_at }: VerifiableThread,
+  now: number = Date.now(),
+): boolean {
   if (status !== "published") return false;
-  const cutoff = new Date();
+  const cutoff = new Date(now);
   cutoff.setMonth(cutoff.getMonth() - STALE_MONTHS);
   const checkedAt = new Date(last_verified_at ?? created_at);
   return new Date(created_at) < cutoff && checkedAt < cutoff;

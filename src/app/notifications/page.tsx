@@ -36,6 +36,7 @@ import { formatDate } from "@/lib/labels";
 import { formatUntil } from "@/lib/restrictions";
 import type { Enums } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
+import { requestNow } from "@/lib/request-time";
 import { relativeTime } from "@/lib/time";
 import { MarkAllReadButton, NotificationLink } from "./controls";
 import { groupByDay } from "./group";
@@ -66,7 +67,7 @@ async function fetchNotifications(userId: string, page: number) {
     .eq("recipient_id", userId)
     .order("created_at", { ascending: false })
     .range(from, from + PAGE_SIZE - 1);
-  return { notifications: data ?? [], total: count ?? 0, error, fetchedAt: Date.now() };
+  return { notifications: data ?? [], total: count ?? 0, error, fetchedAt: await requestNow() };
 }
 
 type NotificationRow = Awaited<ReturnType<typeof fetchNotifications>>["notifications"][number];
