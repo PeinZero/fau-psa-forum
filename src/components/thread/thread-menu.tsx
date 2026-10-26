@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Bookmark, FileClock, Flag, FolderInput, Link2, Pencil } from "lucide-react";
+import { Bell, Bookmark, FileClock, Flag, FolderInput, Link2, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { BookmarkButton, FollowingIndicator } from "@/components/bookmarks/bookmark-button";
@@ -12,9 +12,11 @@ import { ReportDialog } from "@/components/report/report-dialog";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import type { ReasonPreset } from "@/components/ui/reason-field";
 import { RequestUpdateDialog } from "@/components/update-requests/request-update-dialog";
+import { deleteOwnThread } from "@/components/write/delete-own-thread";
 
 import { MenuFeedback, useMenuAction } from "./menu-action";
 
+const DELETE_LABEL = "Delete thread";
 const SIGNED_OUT: SavedState = { bookmarked: false, following: false };
 
 export function ThreadMenu({
@@ -23,6 +25,7 @@ export function ThreadMenu({
   saved,
   canEdit = false,
   canMove = false,
+  canDelete = false,
   canReport = false,
   canRequestUpdate = false,
   isMod = false,
@@ -36,6 +39,8 @@ export function ThreadMenu({
   canEdit?: boolean;
   /** Moderators can only move someone else's thread; the author edits it. */
   canMove?: boolean;
+  /** The author may withdraw a thread until a moderator has approved it. */
+  canDelete?: boolean;
   canReport?: boolean;
   canRequestUpdate?: boolean;
   isMod?: boolean;
@@ -49,6 +54,9 @@ export function ThreadMenu({
   const [reporting, setReporting] = useState(false);
   const [requesting, setRequesting] = useState(false);
   const { bookmarked, following } = savedState.state;
+  const deletable = canDelete && (thread.status === "pending" || thread.status === "rejected");
+  // A moderator who is also the author deletes without a reason, so the moderator entry steps aside.
+  const modItems = isMod ? threadModItems(thread, run, { presets, author, ownDelete: deletable }) : [];
 
   return (
     <div className="-my-1.5 -mr-2 flex items-center gap-1 pointer-coarse:-my-3">
@@ -68,7 +76,15 @@ export function ThreadMenu({
           canRequestUpdate && { label: "Request an update", icon: FileClock, onSelect: () => setRequesting(true) },
           canReport && { label: "Report", icon: Flag, onSelect: () => setReporting(true) },
           "separator",
-          ...(isMod ? threadModItems(thread, run, { presets, author }) : []),
+          ...modItems,
+          deletable && "separator",
+          deletable && {
+            label: DELETE_LABEL,
+            icon: Trash2,
+            danger: true,
+            confirm: { message: "Your thread and its images are deleted for good.", action: DELETE_LABEL },
+            onSelect: () => run(deleteOwnThread, { threadId: thread.id }),
+          },
         ]}
       />
       {canReport && (

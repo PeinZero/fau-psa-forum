@@ -583,8 +583,10 @@ describe("image changes as revisions", () => {
       await addImage(A, thread);
       await removeImage(A, id);
       assert.deepEqual(await revisions(thread), []);
-      assert.equal(await editedNow(thread), null);
     }
+    // The author fixing a rejected thread restarts the 7 days before it is purged.
+    assert.equal(await editedNow(threads.pending), null);
+    assert.equal(await editedNow(threads.rejected), true);
   });
 
   test("a thread posted with its images is new, not edited, even when it goes live at once", async () => {

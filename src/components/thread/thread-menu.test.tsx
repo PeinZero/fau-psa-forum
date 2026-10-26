@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { deleteThread } from "@/components/mod/actions";
+import { deleteOwnThread } from "@/components/write/delete-own-thread";
 
 import { ThreadMenu } from "./thread-menu";
 
@@ -12,6 +13,9 @@ vi.mock("@/components/mod/actions", () => ({
   markThreadVerified: vi.fn(),
   restrictUser: vi.fn(),
   liftRestriction: vi.fn(),
+}));
+vi.mock("@/components/write/delete-own-thread", () => ({
+  deleteOwnThread: vi.fn().mockResolvedValue({ ok: true, message: "" }),
 }));
 vi.mock("@/components/bookmarks/actions", () => ({ setBookmark: vi.fn(), setFollow: vi.fn() }));
 vi.mock("@/components/report/report-dialog", () => ({ ReportDialog: () => null }));
@@ -78,5 +82,53 @@ describe("ThreadMenu delete", () => {
     const formData = vi.mocked(deleteThread).mock.calls[0][1];
     expect(formData.get("threadId")).toBe("7");
     expect(formData.get("reason")).toBe("Spam");
+  });
+});
+
+describe("ThreadMenu author delete", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it.each(["pending", "rejected"] as const)("is offered to the author of a %s thread", async (status) => {
+    await openMenu({ thread: { ...thread, status }, canEdit: true, canDelete: true });
+    expect(screen.getByRole("menuitem", { name: "Delete thread" })).toBeInTheDocument();
+  });
+
+  it.each(["published", "archived"] as const)("is not offered to the author of a %s thread", async (status) => {
+    await openMenu({ thread: { ...thread, status }, canEdit: true, canDelete: true });
+    expect(screen.queryByRole("menuitem", { name: "Delete thread" })).not.toBeInTheDocument();
+  });
+
+  it("is not offered to other members", async () => {
+    await openMenu({ thread: { ...thread, status: "pending" }, canReport: true });
+    expect(screen.queryByRole("menuitem", { name: "Delete thread" })).not.toBeInTheDocument();
+  });
+
+  it("needs a confirmation but no reason", async () => {
+    const user = await openMenu({ thread: { ...thread, status: "rejected" }, canEdit: true, canDelete: true });
+    await user.click(screen.getByRole("menuitem", { name: "Delete thread" }));
+    expect(deleteOwnThread).not.toHaveBeenCalled();
+    expect(screen.getByText("Your thread and its images are deleted for good.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Reason for deletion")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Delete thread" }));
+    expect(deleteOwnThread).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(deleteOwnThread).mock.calls[0][1].get("threadId")).toBe("7");
+    expect(deleteThread).not.toHaveBeenCalled();
+  });
+
+  it("shows a single reason-free Delete to a moderator who wrote the thread", async () => {
+    const user = await openMenu({ thread: { ...thread, status: "pending" }, canEdit: true, canDelete: true, isMod: true });
+    expect(screen.getAllByRole("menuitem", { name: "Delete thread" })).toHaveLength(1);
+    await user.click(screen.getByRole("menuitem", { name: "Delete thread" }));
+    expect(screen.queryByLabelText("Reason for deletion")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Delete thread" }));
+    expect(deleteOwnThread).toHaveBeenCalledTimes(1);
+    expect(deleteThread).not.toHaveBeenCalled();
+  });
+
+  it("keeps the moderator Delete, with its reason, on someone else's pending thread", async () => {
+    const user = await openMenu({ thread: { ...thread, status: "pending" }, isMod: true, canMove: true });
+    await user.click(screen.getByRole("menuitem", { name: "Delete thread" }));
+    expect(screen.getByLabelText("Reason for deletion")).toBeRequired();
   });
 });

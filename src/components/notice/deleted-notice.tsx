@@ -5,12 +5,18 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { buttonClasses } from "@/components/ui/button";
 
-/** Reads `?deleted=1`; must render inside <Suspense> because search params are request-time data. */
+const MESSAGES: Record<string, string> = {
+  "1": "Your account was deleted.",
+  thread: "The thread was deleted.",
+};
+
+/** Reads `?deleted=1|thread`; must render inside <Suspense> because search params are request-time data. */
 export function DeletedNotice() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  if (searchParams.get("deleted") !== "1") return null;
+  const message = MESSAGES[searchParams.get("deleted") ?? ""];
+  if (!message) return null;
 
   function dismiss() {
     const next = new URLSearchParams(searchParams.toString());
@@ -24,7 +30,7 @@ export function DeletedNotice() {
       role="status"
       className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface py-1 pl-4 pr-1 text-small text-foreground"
     >
-      <p>Your account was deleted.</p>
+      <p>{message}</p>
       <button
         type="button"
         aria-label="Dismiss notice"

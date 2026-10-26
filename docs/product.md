@@ -17,7 +17,7 @@ Decisions agreed with the owner. Read before any user-facing feature. What exist
 - Affiliation badge (student, graduate, postgrad, resident) is self-chosen and unverified.
 
 ## Posting and approval
-- A member's thread is public only after a moderator approves it; rejections carry a reason. Moderators' and superadmins' own threads publish at once with no pending cap.
+- A member's thread is public only after a moderator approves it; rejections carry a reason. Rejected threads are deleted 7 days after the rejection or the author's last edit, unless a moderator approves them. Authors may delete their own threads while pending or rejected; published threads stay, because answers depend on them. Moderators' and superadmins' own threads publish at once with no pending cap.
 - Threads have a category and an optional city (Erlangen, Nuremberg, both).
 - Authors may edit after approval; edits go live and show in the moderators' edit review.
 - Moderators never change what other members wrote: not a thread's title, text or images, not a comment. On someone else's thread they approve, reject, archive, pin, mark outdated or verified, move it to another category or city, and delete it (the author is notified with the reason, which is also kept in the moderation log). Comments they hide, never rewrite, and a hidden comment can no longer be edited by its author. On their own threads they are authors like anyone else.

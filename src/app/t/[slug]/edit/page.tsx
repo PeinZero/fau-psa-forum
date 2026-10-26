@@ -102,7 +102,7 @@ async function EditThread({ params }: { params: Promise<{ slug: string }> }) {
     thread.status === "published"
       ? "This thread is published: your changes go live immediately, and moderators can see the previous version."
       : thread.status === "rejected" && isAuthor
-        ? `This thread was rejected${thread.rejection_reason ? `: ${thread.rejection_reason}` : "."} It stays rejected after you edit it, and a moderator has to approve it again.`
+        ? `This thread was rejected${thread.rejection_reason ? `: ${thread.rejection_reason}` : "."} It stays rejected after you edit it, and a moderator has to approve it again. Rejected threads are deleted 7 days after the rejection or your last edit, unless a moderator approves them.`
         : null;
 
   return (
