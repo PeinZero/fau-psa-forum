@@ -38,7 +38,7 @@ function thread(overrides: Partial<ThreadListRow> = {}): ThreadListRow {
 }
 
 function renderRow(overrides: Partial<ThreadListRow> = {}, props: { hideCategory?: boolean; hideAuthor?: boolean } = {}) {
-  render(<ThreadList threads={[thread(overrides)]} emptyText="No threads yet" {...props} />);
+  render(<ThreadList now={NOW} threads={[thread(overrides)]} emptyText="No threads yet" {...props} />);
   return screen.getByRole("listitem");
 }
 
@@ -139,7 +139,7 @@ describe("ThreadList rows", () => {
 
   it("keeps the given order", () => {
     render(
-      <ThreadList
+      <ThreadList now={NOW}
         threads={[thread({ id: 2, title: "Second" }), thread({ id: 1, title: "First" })]}
         emptyText="No threads yet"
       />,
@@ -148,7 +148,7 @@ describe("ThreadList rows", () => {
   });
 
   it("shows a warm empty state with a way to ask", () => {
-    render(<ThreadList threads={[]} emptyText="No threads yet" />);
+    render(<ThreadList now={NOW} threads={[]} emptyText="No threads yet" />);
     expect(screen.getByText("No threads yet")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ask a question" })).toHaveAttribute("href", "/new");
   });
@@ -163,7 +163,7 @@ describe("ThreadRow for other lists", () => {
   it("marks the search words in the title and in a replacement excerpt", () => {
     const { container } = render(
       <ThreadRows>
-        <ThreadRow
+        <ThreadRow now={NOW}
           thread={{ ...thread(), excerpt: undefined }}
           highlight="anmeldung"
           excerpt="Book an Anmeldung appointment early."
@@ -178,7 +178,7 @@ describe("ThreadRow for other lists", () => {
   it("leaves an author unlinked when the list did not load handles", () => {
     render(
       <ThreadRows>
-        <ThreadRow thread={{ ...thread(), author: { display_name: "Ayesha Khan" } }} />
+        <ThreadRow now={NOW} thread={{ ...thread(), author: { display_name: "Ayesha Khan" } }} />
       </ThreadRows>,
     );
     expect(screen.getByRole("listitem")).toHaveTextContent("Ayesha Khan");
@@ -188,7 +188,7 @@ describe("ThreadRow for other lists", () => {
   it("drops the score column when the list has no scores", () => {
     render(
       <ThreadRows>
-        <ThreadRow thread={{ ...thread(), score: undefined }} />
+        <ThreadRow now={NOW} thread={{ ...thread(), score: undefined }} />
       </ThreadRows>,
     );
     expect(screen.queryByText("Score")).toBeNull();

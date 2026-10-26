@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { UserRole, Viewer } from "@/lib/auth/viewer";
+import { requestNow } from "@/lib/request-time";
 import { activeRestrictions, type Restriction } from "@/lib/restrictions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,7 +13,7 @@ export async function getActiveRestrictions(userIds: readonly string[]): Promise
   if (userIds.length === 0) return byUser;
   const supabase = await createClient();
   const { data } = await supabase.from("user_restrictions").select(FIELDS).in("user_id", userIds).is("lifted_at", null);
-  const now = Date.now();
+  const now = await requestNow();
   for (const row of activeRestrictions(data ?? [], now)) {
     byUser.set(row.user_id, [...(byUser.get(row.user_id) ?? []), row]);
   }

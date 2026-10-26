@@ -11,6 +11,7 @@ import { PAGE_SIZE, Pagination, parsePage } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { affiliationLabels, formatDate } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
+import { requestNow } from "@/lib/request-time";
 
 type Params = Promise<{ username: string }>;
 type SearchParams = Promise<{ page?: string | string[] }>;
@@ -130,6 +131,7 @@ async function ProfileThreads({
   name: string;
   searchParams: SearchParams;
 }) {
+  const now = await requestNow();
   const [supabase, { page: pageParam }] = await Promise.all([createClient(), searchParams]);
   const page = parsePage(pageParam);
   const from = (page - 1) * PAGE_SIZE;
@@ -152,7 +154,7 @@ async function ProfileThreads({
   const threads = await fetchThreadsByIds(data.map((row) => row.id));
   return (
     <>
-      <ThreadList
+      <ThreadList now={now}
         threads={threads}
         hideAuthor
         emptyText={`${name} has no published threads yet`}

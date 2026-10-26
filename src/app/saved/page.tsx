@@ -12,6 +12,7 @@ import { PAGE_SIZE, Pagination, parsePage } from "@/components/ui/pagination";
 import { SegmentedLinks } from "@/components/ui/segmented-control";
 import { getUserId } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
+import { requestNow } from "@/lib/request-time";
 
 export const metadata: Metadata = { title: "Saved", robots: { index: false } };
 
@@ -61,6 +62,7 @@ export default function SavedPage({ searchParams }: { searchParams: SearchParams
 }
 
 async function SavedList({ searchParams }: { searchParams: SearchParams }) {
+  const now = await requestNow();
   const [{ tab: tabParam, page: pageParam }, userId] = await Promise.all([searchParams, getUserId()]);
   if (!userId) {
     return (
@@ -94,7 +96,7 @@ async function SavedList({ searchParams }: { searchParams: SearchParams }) {
   const threads = await fetchThreadsByIds(data.map((row) => row.thread_id));
   return (
     <>
-      <ThreadList threads={threads} emptyText="" />
+      <ThreadList now={now} threads={threads} emptyText="" />
       <Pagination
         path="/saved"
         params={{ tab: tab === "following" ? "following" : undefined }}

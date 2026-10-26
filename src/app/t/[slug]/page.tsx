@@ -27,7 +27,8 @@ import { ThreadMenu } from "@/components/thread/thread-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/cn";
 import { Skeleton } from "@/components/ui/skeleton";
-import { needsVerificationHint, UnverifiedHint, VerifiedBadge } from "@/components/update-requests/verified";
+import { StaleThreadHint } from "@/components/update-requests/stale-hint";
+import { VerifiedBadge } from "@/components/update-requests/verified";
 import { ThreadVoteControl } from "@/components/votes/thread-vote-control";
 import { getEffectiveViewer, isModerator } from "@/lib/auth/viewer";
 import { cityLabels, formatDate, statusLabels } from "@/lib/labels";
@@ -233,7 +234,7 @@ function ThreadBadges({ thread }: { thread: ThreadDetail }) {
       )}
       {thread.is_outdated && <Badge variant="warning">Outdated</Badge>}
       {thread.last_verified_at && <VerifiedBadge at={thread.last_verified_at} />}
-      {!thread.is_outdated && needsVerificationHint(thread) && <UnverifiedHint />}
+      {!thread.is_outdated && <StaleThreadHint thread={thread} />}
     </div>
   );
 }

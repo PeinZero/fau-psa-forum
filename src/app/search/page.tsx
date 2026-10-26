@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SearchFilters } from "./search-filters";
 import { parseSearchState, searchHref, searchParamsOf, sortTabs, type SearchFilterState } from "./search-state";
 import { bodySnippet } from "./snippet";
+import { requestNow } from "@/lib/request-time";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -89,6 +90,7 @@ const resultSelect = `id, slug, title, body, city, created_at, score, comment_co
 type ResultThread = ThreadRowData & { body: string };
 
 async function Results({ searchParams }: { searchParams: SearchParams }) {
+  const now = await requestNow();
   const raw = await searchParams;
   const supabase = await createClient();
   const { data: categoryRows } = await supabase.from("categories").select("id, slug, name").order("sort_order");
@@ -195,7 +197,7 @@ async function Results({ searchParams }: { searchParams: SearchParams }) {
         ) : (
           <ThreadRows>
             {threads.map(({ body, ...thread }, i) => (
-              <ThreadRow
+              <ThreadRow now={now}
                 key={thread.id}
                 thread={thread}
                 index={i}
